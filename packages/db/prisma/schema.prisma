@@ -1,0 +1,250 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+
+enum OrganizationType { IMPORTER CUSTOMS_AGENCY TAX_FIRM PARTNER INTERNAL }
+enum MembershipRole { OWNER ADMIN ANALYST REVIEWER VIEWER PARTNER_SUPPORT }
+enum CaseStatus { DRAFT INTAKE IN_ANALYSIS NEEDS_INFORMATION NEEDS_REVIEW APPROVED REJECTED SUPERSEDED ARCHIVED }
+enum ReviewDecision { APPROVED CHANGES_REQUESTED REJECTED }
+enum AlertSeverity { INFO WARNING HIGH CRITICAL }
+enum AlertStatus { OPEN ACKNOWLEDGED SNOOZED RESOLVED DISMISSED }
+enum SourceAuthority { DOF SAT ANAM SNICE BANXICO COFEPRIS SENASICA SEMARNAT SE OTHER }
+
+model Organization {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  type OrganizationType
+  taxId String?
+  timezone String @default("America/Mexico_City")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  memberships Membership[]
+  products Product[]
+  cases ClassificationCase[]
+  alerts Alert[]
+  auditEvents AuditEvent[]
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  displayName String
+  createdAt DateTime @default(now())
+  memberships Membership[]
+  reviews HumanReview[]
+}
+model Membership {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  organizationId String @db.Uuid
+  role MembershipRole
+  createdAt DateTime @default(now())
+  user User @relation(fields:[userId], references:[id])
+  organization Organization @relation(fields:[organizationId], references:[id])
+  @@unique([userId, organizationId])
+  @@index([organizationId, role])
+}
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name String
+  sku String?
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId], references:[id])
+  versions ProductVersion[]
+  cases ClassificationCase[]
+  @@index([organizationId, name])
+}
+model ProductVersion {
+  id String @id @default(uuid()) @db.Uuid
+  productId String @db.Uuid
+  version Int
+  description String
+  attributes Json
+  validFrom DateTime @default(now())
+  validTo DateTime?
+  createdAt DateTime @default(now())
+  product Product @relation(fields:[productId], references:[id])
+  documents Document[]
+  @@unique([productId, version])
+}
+model Document {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  productVersionId String? @db.Uuid
+  filename String
+  mimeType String
+  sizeBytes BigInt
+  sha256 String
+  storageKey String @unique
+  sourceType String
+  createdAt DateTime @default(now())
+  productVersion ProductVersion? @relation(fields:[productVersionId], references:[id])
+  evidence EvidenceLink[]
+  @@index([organizationId, createdAt])
+}
+model ClassificationCase {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  productId String @db.Uuid
+  status CaseStatus @default(DRAFT)
+  confidence Decimal? @db.Decimal(5,2)
+  selectedCodeId String? @db.Uuid
+  normativeSnapshotId String? @db.Uuid
+  assumptions Json?
+  createdById String @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId], references:[id])
+  product Product @relation(fields:[productId], references:[id])
+  candidates ClassificationCandidate[]
+  reviews HumanReview[]
+  evidence EvidenceLink[]
+  @@index([organizationId, status, createdAt])
+}
+model TariffCode {
+  id String @id @default(uuid()) @db.Uuid
+  countryCode String @default("MX")
+  code String
+  nico String?
+  description String
+  validFrom DateTime
+  validTo DateTime?
+  sourceVersion String
+  candidates ClassificationCandidate[]
+  @@unique([countryCode, code, nico, validFrom])
+}
+model ClassificationCandidate {
+  id String @id @default(uuid()) @db.Uuid
+  caseId String @db.Uuid
+  tariffCodeId String @db.Uuid
+  score Decimal @db.Decimal(5,2)
+  rationale Json
+  contradictions Json?
+  rank Int
+  createdAt DateTime @default(now())
+  case ClassificationCase @relation(fields:[caseId], references:[id])
+  tariffCode TariffCode @relation(fields:[tariffCodeId], references:[id])
+  @@unique([caseId, rank])
+}
+model HumanReview {
+  id String @id @default(uuid()) @db.Uuid
+  caseId String @db.Uuid
+  reviewerId String @db.Uuid
+  decision ReviewDecision
+  notes String?
+  createdAt DateTime @default(now())
+  case ClassificationCase @relation(fields:[caseId], references:[id])
+  reviewer User @relation(fields:[reviewerId], references:[id])
+}
+model RegulatorySource {
+  id String @id @default(uuid()) @db.Uuid
+  authority SourceAuthority
+  title String
+  canonicalUrl String
+  externalId String?
+  fetchedAt DateTime
+  publishedAt DateTime?
+  sha256 String
+  rawStorageKey String
+  version String
+  documents RegulatoryProvision[]
+  @@unique([authority, canonicalUrl, sha256])
+}
+model RegulatoryProvision {
+  id String @id @default(uuid()) @db.Uuid
+  sourceId String @db.Uuid
+  heading String?
+  body String
+  validFrom DateTime?
+  validTo DateTime?
+  normalizedRefs Json
+  source RegulatorySource @relation(fields:[sourceId], references:[id])
+  impacts RegulatoryImpact[]
+}
+model RegulatoryImpact {
+  id String @id @default(uuid()) @db.Uuid
+  provisionId String @db.Uuid
+  organizationId String? @db.Uuid
+  objectType String
+  objectId String?
+  severity AlertSeverity
+  explanation Json
+  requiresHumanReview Boolean @default(false)
+  createdAt DateTime @default(now())
+  provision RegulatoryProvision @relation(fields:[provisionId], references:[id])
+}
+model Alert {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  severity AlertSeverity
+  status AlertStatus @default(OPEN)
+  title String
+  summary String
+  impact Json
+  sourceRefs Json
+  dueAt DateTime?
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId], references:[id])
+  @@index([organizationId, status, severity])
+}
+model FxRate {
+  id String @id @default(uuid()) @db.Uuid
+  baseCurrency String
+  quoteCurrency String
+  rate Decimal @db.Decimal(20,8)
+  effectiveDate DateTime @db.Date
+  sourceAuthority SourceAuthority
+  sourceRef String
+  createdAt DateTime @default(now())
+  @@unique([baseCurrency, quoteCurrency, effectiveDate, sourceAuthority])
+}
+model CostScenario {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  caseId String? @db.Uuid
+  currency String
+  inputs Json
+  outputs Json
+  rulesetVersion String
+  fxSnapshot Json
+  createdAt DateTime @default(now())
+  @@index([organizationId, createdAt])
+}
+model EvidenceLink {
+  id String @id @default(uuid()) @db.Uuid
+  caseId String @db.Uuid
+  documentId String @db.Uuid
+  locator Json
+  claimType String
+  createdAt DateTime @default(now())
+  case ClassificationCase @relation(fields:[caseId], references:[id])
+  document Document @relation(fields:[documentId], references:[id])
+}
+model AuditEvent {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  actorId String?
+  action String
+  entityType String
+  entityId String
+  before Json?
+  after Json?
+  traceId String
+  occurredAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId], references:[id])
+  @@index([organizationId, occurredAt])
+}
+
+model IdempotencyRecord {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  key String
+  scope String
+  requestHash String
+  response Json
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId], references:[id])
+  @@unique([organizationId, scope, key])
+  @@index([organizationId, createdAt])
+}

@@ -1,0 +1,158 @@
+openapi: 3.1.0
+info:
+  title: Plataforma de Inteligencia Aduanera y Fiscal API
+  version: 0.1.0
+servers:
+  - url: http://localhost:4000/api/v1
+paths:
+  /me:
+    get:
+      summary: Consultar usuario y organizacion de la sesion dev
+      responses:
+        '200':
+          description: Contexto activo
+  /products:
+    get:
+      summary: Listar productos de la organizacion
+      responses:
+        '200':
+          description: Lista de productos
+    post:
+      summary: Crear producto con version inicial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Producto creado
+  /products/{id}:
+    get:
+      summary: Consultar producto con versiones
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Producto
+        '404':
+          description: No encontrado
+  /classification-cases:
+    post:
+      summary: Crear caso de clasificacion
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClassificationCaseRequest'
+      responses:
+        '202':
+          description: Caso aceptado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationCase'
+        '409':
+          description: Llave de idempotencia reutilizada con otro payload
+  /classification-cases/{caseId}:
+    get:
+      summary: Consultar caso
+      parameters:
+        - in: path
+          name: caseId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Caso
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ClassificationCase' }
+        '404':
+          description: No encontrado
+  /classification-cases/{caseId}/submit:
+    post:
+      summary: Enviar caso a analisis
+      parameters:
+        - in: path
+          name: caseId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string }
+      responses:
+        '202':
+          description: Caso enviado y evento encolado
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status, event_id, queued]
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { enum: [INTAKE] }
+                  event_id: { type: string, format: uuid }
+                  queued: { type: boolean }
+        '404':
+          description: Caso no encontrado
+        '409':
+          description: Estado invalido o llave idempotente conflictiva
+  /alerts:
+    get:
+      summary: Listar alertas de la organizacion
+      parameters:
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: severity
+          schema: { enum: [INFO, WARNING, HIGH, CRITICAL] }
+      responses:
+        '200': { description: Pagina de alertas }
+components:
+  schemas:
+    CreateProductRequest:
+      type: object
+      required: [name, description]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        sku: { type: string, maxLength: 80 }
+        description: { type: string, minLength: 1, maxLength: 4000 }
+        attributes: { type: object, additionalProperties: true }
+    CreateClassificationCaseRequest:
+      type: object
+      required: [product_id]
+      properties:
+        product_id: { type: string, format: uuid }
+        product_version_id: { type: string, format: uuid }
+        assumptions: { type: object, additionalProperties: true }
+    ClassificationCase:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { enum: [DRAFT, INTAKE, IN_ANALYSIS, NEEDS_INFORMATION, NEEDS_REVIEW, APPROVED, REJECTED, SUPERSEDED, ARCHIVED] }
+        product_id: { type: string, format: uuid }
+        product_version_id: { type: string, format: uuid }
+        confidence: { type: number, minimum: 0, maximum: 100 }
+    Error:
+      type: object
+      required: [code, message, trace_id, retryable]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details: { type: object }
+        trace_id: { type: string }
+        retryable: { type: boolean }

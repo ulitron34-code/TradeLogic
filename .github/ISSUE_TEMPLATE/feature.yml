@@ -1,0 +1,13 @@
+name: Feature
+body:
+  - type: textarea
+    id: outcome
+    attributes: { label: Resultado esperado }
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes: { label: Criterios de aceptación }
+    validations: { required: true }
+  - type: textarea
+    id: security
+    attributes: { label: Riesgos de seguridad, datos o regulación }
