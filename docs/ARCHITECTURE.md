@@ -23,3 +23,7 @@
 ## Aislamiento
 
 Toda consulta de negocio recibe `organizationId` desde el token. Ningún endpoint acepta el identificador de organización como autoridad del cliente. Deben existir pruebas negativas para cada repositorio.
+
+## MVP actual
+
+El worker de clasificacion implementa una primera recuperacion deterministica: toma la version del producto, compara descripcion/atributos contra `TariffCode`, crea candidatos, registra auditoria y aplica la politica de revision humana. Este flujo permite probar el ciclo producto -> caso -> submit -> analisis -> candidatos sin depender aun de RAG o agentes de IA.

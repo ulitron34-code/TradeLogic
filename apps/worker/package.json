@@ -13,7 +13,8 @@
     "@platform/config": "workspace:*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2",
-    "@platform/db": "workspace:*"
+    "@platform/db": "workspace:*",
+    "@platform/domain": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

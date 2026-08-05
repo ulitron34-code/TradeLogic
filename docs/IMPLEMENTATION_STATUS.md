@@ -15,7 +15,9 @@ Actualizado: 2026-08-05
   - `GET /api/v1/classification-cases/:caseId`
 - Registro de auditoria al crear casos.
 - Submit de casos implementado: `POST /api/v1/classification-cases/:caseId/submit` cambia `DRAFT`/`NEEDS_INFORMATION` a `INTAKE`, registra auditoria y encola `classification.case.submitted`.
-- Worker escucha `classification-analysis` y cambia casos `INTAKE` a `IN_ANALYSIS` al iniciar procesamiento.
+- Worker escucha `classification-analysis`, cambia casos `INTAKE` a `IN_ANALYSIS`, genera candidatos deterministas y termina en `NEEDS_INFORMATION`, `NEEDS_REVIEW` o `APPROVED`.
+- Clasificador deterministico inicial agregado en `@platform/domain` con ranking por coincidencia de descripcion/atributos contra `TariffCode`.
+- Seed agrega catalogo arancelario MX minimo para probar el flujo end-to-end.
 - Modelo `IdempotencyRecord` para repetir respuestas si se reusa la misma llave con el mismo payload y rechazar conflictos.
 - Seed idempotente para evitar duplicar la organizacion piloto.
 - OpenAPI actualizado con productos y payloads implementados.
@@ -30,7 +32,7 @@ Actualizado: 2026-08-05
 4. Crear pruebas de API con `app.inject` o separar `buildApp()` para testear sin levantar puerto.
 5. Agregar repositorios con enforcement explicito de `organizationId` y pruebas anti-fuga multiempresa.
 6. Conectar storage para documentos y evidencias.
-7. Implementar recuperacion inicial de candidatos arancelarios.
+7. Reemplazar catalogo semilla por ingesta LIGIE/DOF completa y recuperacion regulatoria versionada.
 
 ## Bloqueo de verificacion
 

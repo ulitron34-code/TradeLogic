@@ -69,3 +69,6 @@ Endpoints disponibles en la API inicial:
 - `GET /api/v1/classification-cases/:caseId`
 
 La creacion y el envio de casos usan `Idempotency-Key` y persisten un registro para repetir la misma respuesta ante reintentos seguros. El envio encola `classification.case.submitted` para que el worker inicie analisis.
+## Clasificador deterministico inicial
+
+El worker `classification-analysis` ya genera candidatos arancelarios desde el catalogo semilla `TariffCode`, calcula confianza, registra auditoria y decide `NEEDS_INFORMATION`, `NEEDS_REVIEW` o `APPROVED`. Ver `docs/DETERMINISTIC_CLASSIFIER.md`.
