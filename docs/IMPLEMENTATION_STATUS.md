@@ -4,7 +4,7 @@ Actualizado: 2026-08-05
 
 ## Avance aplicado en esta iteracion
 
-- API separada en `server.ts` y `routes.ts`.
+- API separada en `app.ts`, `server.ts` y `routes.ts`; `buildApp()` permite pruebas con dependencias inyectadas.
 - Contexto dev persistido con usuario, organizacion y membresia estables.
 - CRUD inicial de productos:
   - `GET /api/v1/products`
@@ -22,17 +22,18 @@ Actualizado: 2026-08-05
 - Seed idempotente para evitar duplicar la organizacion piloto.
 - OpenAPI actualizado con productos y payloads implementados.
 - Scripts `lint` ajustados para no depender de ESLint antes de configurarlo formalmente.
-- Scripts `test` ajustados con `--passWithNoTests` mientras se crea la primera suite.
+- Suite inicial de pruebas agregada para flujo critico de API: producto, caso, idempotencia y submit con cola mockeada.
+- Pruebas puras agregadas para el ranking deterministico de candidatos arancelarios.
 
 ## Pendiente inmediato
 
 1. Completar `pnpm install` cuando npm deje de cortar descargas.
 2. Ejecutar `pnpm db:generate` y `pnpm db:migrate`.
-3. Ejecutar `pnpm typecheck` y `pnpm build`.
-4. Crear pruebas de API con `app.inject` o separar `buildApp()` para testear sin levantar puerto.
-5. Agregar repositorios con enforcement explicito de `organizationId` y pruebas anti-fuga multiempresa.
-6. Conectar storage para documentos y evidencias.
-7. Reemplazar catalogo semilla por ingesta LIGIE/DOF completa y recuperacion regulatoria versionada.
+3. Ejecutar `pnpm typecheck`, `pnpm test` y `pnpm build`.
+4. Agregar repositorios con enforcement explicito de `organizationId` y pruebas anti-fuga multiempresa.
+5. Conectar storage para documentos y evidencias.
+6. Reemplazar catalogo semilla por ingesta LIGIE/DOF completa y recuperacion regulatoria versionada.
+7. Agregar pruebas del worker con DB fake o repositorios abstraidos.
 
 ## Bloqueo de verificacion
 

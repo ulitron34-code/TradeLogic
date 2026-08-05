@@ -4,17 +4,20 @@ import { env } from '@platform/config';
 
 export const CLASSIFICATION_ANALYSIS_QUEUE = 'classification-analysis';
 
-const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
+let queue: Queue | undefined;
 
-export const classificationAnalysisQueue = new Queue(CLASSIFICATION_ANALYSIS_QUEUE, {
-  connection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 5000 },
-    removeOnComplete: 1000,
-    removeOnFail: 1000,
-  },
-});
+function getClassificationAnalysisQueue() {
+  queue ??= new Queue(CLASSIFICATION_ANALYSIS_QUEUE, {
+    connection: new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null }),
+    defaultJobOptions: {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5000 },
+      removeOnComplete: 1000,
+      removeOnFail: 1000,
+    },
+  });
+  return queue;
+}
 
 export async function enqueueClassificationSubmitted(event: {
   event_id: string;
@@ -29,7 +32,7 @@ export async function enqueueClassificationSubmitted(event: {
     product_version_id?: string;
   };
 }) {
-  await classificationAnalysisQueue.add('classification.case.submitted', event, {
+  await getClassificationAnalysisQueue().add('classification.case.submitted', event, {
     jobId: event.event_id,
   });
 }

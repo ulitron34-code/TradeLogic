@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db } from '@platform/db';
-import { ensureDevContext } from './context.js';
+import { db as defaultDb } from '@platform/db';
+import { ensureDevContext as defaultEnsureDevContext } from './context.js';
 import { hashPayload, replayOrStore } from './idempotency.js';
-import { enqueueClassificationSubmitted } from './queue.js';
+import { enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted } from './queue.js';
 
 const createProductBody = z.object({
   name: z.string().min(1).max(200),
@@ -22,6 +22,12 @@ const createCaseBody = z.object({
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 
+export type RouteDependencies = {
+  db?: typeof defaultDb;
+  ensureDevContext?: typeof defaultEnsureDevContext;
+  enqueueClassificationSubmitted?: typeof defaultEnqueueClassificationSubmitted;
+};
+
 function requireIdempotencyKey(value: string | string[] | undefined) {
   const key = Array.isArray(value) ? value[0] : value;
   if (!key) {
@@ -32,7 +38,11 @@ function requireIdempotencyKey(value: string | string[] | undefined) {
   return key;
 }
 
-export async function registerRoutes(app: FastifyInstance) {
+export async function registerRoutes(app: FastifyInstance, dependencies: RouteDependencies = {}) {
+  const db = dependencies.db ?? defaultDb;
+  const ensureDevContext = dependencies.ensureDevContext ?? defaultEnsureDevContext;
+  const enqueueClassificationSubmitted = dependencies.enqueueClassificationSubmitted ?? defaultEnqueueClassificationSubmitted;
+
   app.get('/health', async () => ({ status: 'ok', service: 'api' }));
 
   app.get('/api/v1/me', async () => {
@@ -159,11 +169,10 @@ export async function registerRoutes(app: FastifyInstance) {
           product_version_id: selectedVersion.id,
         };
       },
-    });
+    }, db);
 
     return reply.code(202).send(response);
   });
-
 
   app.post('/api/v1/classification-cases/:caseId/submit', async (request, reply) => {
     const { user, organization } = await ensureDevContext();
@@ -240,10 +249,11 @@ export async function registerRoutes(app: FastifyInstance) {
           queued: true,
         };
       },
-    });
+    }, db);
 
     return reply.code(202).send(response);
   });
+
   app.get('/api/v1/classification-cases/:caseId', async (request, reply) => {
     const { organization } = await ensureDevContext();
     const params = paramsWithCaseId.parse(request.params);

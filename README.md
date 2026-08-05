@@ -72,3 +72,11 @@ La creacion y el envio de casos usan `Idempotency-Key` y persisten un registro p
 ## Clasificador deterministico inicial
 
 El worker `classification-analysis` ya genera candidatos arancelarios desde el catalogo semilla `TariffCode`, calcula confianza, registra auditoria y decide `NEEDS_INFORMATION`, `NEEDS_REVIEW` o `APPROVED`. Ver `docs/DETERMINISTIC_CLASSIFIER.md`.
+## Pruebas locales
+
+La API expone `buildApp()` para pruebas con `app.inject` y dependencias inyectadas. Ver `docs/TESTING.md`. Cuando la instalacion complete, ejecutar:
+
+```bash
+pnpm test
+pnpm typecheck
+```

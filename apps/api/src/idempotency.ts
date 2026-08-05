@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { db } from '@platform/db';
+import { db as defaultDb } from '@platform/db';
 
 export function hashPayload(payload: unknown) {
   return createHash('sha256').update(JSON.stringify(payload ?? null)).digest('hex');
@@ -11,7 +11,7 @@ export async function replayOrStore(args: {
   scope: string;
   requestHash: string;
   build: () => Promise<unknown>;
-}) {
+}, db = defaultDb) {
   const existing = await db.idempotencyRecord.findUnique({
     where: {
       organizationId_scope_key: {
