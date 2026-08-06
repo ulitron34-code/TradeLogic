@@ -1,6 +1,6 @@
 # Estado de Implementacion
 
-Actualizado: 2026-08-05
+Actualizado: 2026-08-06
 
 ## Avance aplicado en esta iteracion
 
@@ -24,6 +24,9 @@ Actualizado: 2026-08-05
 - Scripts `lint` ajustados para no depender de ESLint antes de configurarlo formalmente.
 - Suite inicial de pruebas agregada para flujo critico de API: producto, caso, idempotencia y submit con cola mockeada.
 - Pruebas puras agregadas para el ranking deterministico de candidatos arancelarios.
+- Guias de publicacion agregadas para GitHub, Supabase, Vercel y siguiente sesion.
+- Scripts de preflight local agregados para validar estructura, JSON y posibles secretos obvios sin depender de instalacion completa.
+- Referencia de `F:\13apps` documentada para capturar patrones reutilizados de COBITO.
 
 ## Pendiente inmediato
 

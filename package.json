@@ -11,7 +11,10 @@
     "typecheck": "turbo typecheck",
     "db:generate": "pnpm --filter @platform/db prisma:generate",
     "db:migrate": "pnpm --filter @platform/db prisma:migrate",
-    "db:studio": "pnpm --filter @platform/db prisma:studio"
+    "db:studio": "pnpm --filter @platform/db prisma:studio",
+    "verify:structure": "node scripts/verify-structure.cjs",
+    "preflight:win": "powershell -ExecutionPolicy Bypass -File scripts/preflight-local.ps1",
+    "preflight:sh": "sh scripts/preflight-local.sh"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

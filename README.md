@@ -80,3 +80,23 @@ La API expone `buildApp()` para pruebas con `app.inject` y dependencias inyectad
 pnpm test
 pnpm typecheck
 ```
+## Preparacion de publicacion
+
+El paquete incluye guias para crear GitHub, Supabase y Vercel cuando toque conectar servicios externos:
+
+- `docs/PUBLISHING_SETUP.md`
+- `docs/SUPABASE_PRISMA_SETUP.md`
+- `docs/VERCEL_ENV_SETUP.md`
+- `docs/NEXT_SESSION_CHECKLIST.md`
+
+Verificacion sin dependencias completas:
+
+```bash
+pnpm verify:structure
+```
+
+En Windows tambien puedes correr:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/preflight-local.ps1
+```
