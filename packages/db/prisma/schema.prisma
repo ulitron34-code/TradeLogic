@@ -1,13 +1,75 @@
-generator client { provider = "prisma-client-js" }
-datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client-js"
+}
 
-enum OrganizationType { IMPORTER CUSTOMS_AGENCY TAX_FIRM PARTNER INTERNAL }
-enum MembershipRole { OWNER ADMIN ANALYST REVIEWER VIEWER PARTNER_SUPPORT }
-enum CaseStatus { DRAFT INTAKE IN_ANALYSIS NEEDS_INFORMATION NEEDS_REVIEW APPROVED REJECTED SUPERSEDED ARCHIVED }
-enum ReviewDecision { APPROVED CHANGES_REQUESTED REJECTED }
-enum AlertSeverity { INFO WARNING HIGH CRITICAL }
-enum AlertStatus { OPEN ACKNOWLEDGED SNOOZED RESOLVED DISMISSED }
-enum SourceAuthority { DOF SAT ANAM SNICE BANXICO COFEPRIS SENASICA SEMARNAT SE OTHER }
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OrganizationType {
+  IMPORTER
+  CUSTOMS_AGENCY
+  TAX_FIRM
+  PARTNER
+  INTERNAL
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  ANALYST
+  REVIEWER
+  VIEWER
+  PARTNER_SUPPORT
+}
+
+enum CaseStatus {
+  DRAFT
+  INTAKE
+  IN_ANALYSIS
+  NEEDS_INFORMATION
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
+  SUPERSEDED
+  ARCHIVED
+}
+
+enum ReviewDecision {
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  SNOOZED
+  RESOLVED
+  DISMISSED
+}
+
+enum SourceAuthority {
+  DOF
+  SAT
+  ANAM
+  SNICE
+  BANXICO
+  COFEPRIS
+  SENASICA
+  SEMARNAT
+  SE
+  OTHER
+}
 
 model Organization {
   id String @id @default(uuid()) @db.Uuid
@@ -22,6 +84,7 @@ model Organization {
   cases ClassificationCase[]
   alerts Alert[]
   auditEvents AuditEvent[]
+  idempotencyRecords IdempotencyRecord[]
 }
 model User {
   id String @id @default(uuid()) @db.Uuid
