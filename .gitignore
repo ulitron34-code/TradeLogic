@@ -10,3 +10,5 @@ coverage
 storage-data
 postgres-data
 redis-data
+.turbo
+*.tsbuildinfo

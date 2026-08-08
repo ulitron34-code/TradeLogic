@@ -85,8 +85,16 @@ function tokenize(input: string): string[] {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .split(' ')
-    .map((token) => token.trim())
+    .map((token) => singularize(token.trim()))
     .filter((token) => token.length >= MIN_TOKEN_LENGTH);
+}
+
+// Coincidencia determinista producto-fraccion en espanol: singular vs. plural
+// (p. ej. "sensor" vs. "sensores") no debe romper el match de tokens.
+function singularize(token: string): string {
+  if (token.length > 5 && token.endsWith('es')) return token.slice(0, -2);
+  if (token.length > 4 && token.endsWith('s')) return token.slice(0, -1);
+  return token;
 }
 
 function scoreCodeFamilyBoost(candidate: TariffCandidateInput, productTermSet: Set<string>): number {

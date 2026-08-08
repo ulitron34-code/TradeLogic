@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { Worker } from 'bullmq';
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 import { env } from '@platform/config';
 import { db } from '@platform/db';
 import { rankTariffCandidates, requiresHumanReview } from '@platform/domain';
 
-const connection = new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
+const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
 new Worker('regulatory-ingestion', async job => {
   console.log('processing regulatory source', job.data);

@@ -3,6 +3,17 @@ process.env.APP_BASE_URL ??= 'http://localhost:3000';
 process.env.API_BASE_URL ??= 'http://localhost:4000';
 process.env.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
 process.env.REDIS_URL ??= 'redis://localhost:6379';
+process.env.S3_ENDPOINT ??= 'http://localhost:9000';
+process.env.S3_REGION ??= 'us-east-1';
+process.env.S3_BUCKET ??= 'platform-test';
+process.env.S3_ACCESS_KEY ??= 'test';
+process.env.S3_SECRET_KEY ??= 'test';
+process.env.JWT_ISSUER ??= 'platform-test';
+process.env.JWT_AUDIENCE ??= 'platform-test';
+process.env.JWT_SECRET ??= 'test-secret-at-least-32-characters-long';
+process.env.ENCRYPTION_KEY ??= 'test-encryption-key';
+process.env.FX_PROVIDER ??= 'banxico';
+process.env.REGULATORY_POLL_CRON ??= '0 * * * 1-5';
 process.env.LOG_LEVEL ??= 'silent';
 import type { FastifyInstance } from 'fastify';
 import { DEV_ORG_ID, DEV_USER_ID, electronicProductFixture } from './test/fixtures.js';
@@ -38,8 +49,22 @@ function createHarness() {
     nextCase: 1,
   };
 
-  const organization = { id: DEV_ORG_ID, name: 'Organizacion piloto', type: 'IMPORTER' };
-  const user = { id: DEV_USER_ID, email: 'owner@example.local', displayName: 'Owner local' };
+  const now = new Date();
+  const organization = {
+    id: DEV_ORG_ID,
+    name: 'Organizacion piloto',
+    type: 'IMPORTER' as const,
+    taxId: null,
+    timezone: 'America/Mexico_City',
+    createdAt: now,
+    updatedAt: now,
+  };
+  const user = {
+    id: DEV_USER_ID,
+    email: 'owner@example.local',
+    displayName: 'Owner local',
+    createdAt: now,
+  };
 
   const db = {
     product: {

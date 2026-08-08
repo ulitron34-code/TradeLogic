@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { db as defaultDb } from '@platform/db';
+import { db as defaultDb, type Prisma } from '@platform/db';
 import { ensureDevContext as defaultEnsureDevContext } from './context.js';
 import { hashPayload, replayOrStore } from './idempotency.js';
 import { enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted } from './queue.js';
@@ -77,7 +77,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           create: {
             version: 1,
             description: body.description,
-            attributes: body.attributes,
+            attributes: body.attributes as Prisma.InputJsonValue,
           },
         },
       },

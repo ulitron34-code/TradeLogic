@@ -1,5 +1,5 @@
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import { Redis } from 'ioredis';
 import { env } from '@platform/config';
 
 export const CLASSIFICATION_ANALYSIS_QUEUE = 'classification-analysis';
@@ -8,7 +8,7 @@ let queue: Queue | undefined;
 
 function getClassificationAnalysisQueue() {
   queue ??= new Queue(CLASSIFICATION_ANALYSIS_QUEUE, {
-    connection: new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null }),
+    connection: new Redis(env.REDIS_URL, { maxRetriesPerRequest: null }),
     defaultJobOptions: {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
