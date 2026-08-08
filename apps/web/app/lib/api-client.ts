@@ -1,15 +1,17 @@
-import { createClient } from './supabase/server';
+'use client';
+
+import { createClient } from './supabase/client';
 import { ApiError } from './api-error';
 
-export { ApiError } from './api-error';
-
-// Helper de fetch para Server Components / Server Actions: adjunta el JWT
-// de la sesion de Supabase a cada llamada a la API. Para uso en Client
-// Components, usar el cliente de supabase/client.ts directamente para
-// obtener el token via supabase.auth.getSession().
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+// Version de apiFetch (lib/api.ts) para Client Components: ese helper usa
+// el cliente de Supabase para Server Components (next/headers), que no
+// funciona en el navegador. La subida de evidencia necesita correr en el
+// cliente porque calcula el sha256 con Web Crypto sobre el archivo elegido.
+export async function apiFetchClient<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const supabase = createClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');
@@ -21,7 +23,6 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
       ...init.headers,
     },
-    cache: 'no-store',
   });
 
   if (!response.ok) {

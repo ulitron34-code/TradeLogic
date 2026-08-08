@@ -1,6 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 export type { Prisma } from '@prisma/client';
 
+// Document.sizeBytes es BigInt en Postgres; JSON.stringify no sabe serializar
+// BigInt de forma nativa y Fastify tira TypeError al responder cualquier ruta
+// que incluya un Document. Los tamaños de archivo caben sin problema en un
+// Number (tope aplicado en la ruta de creacion: 50 MB), asi que se convierte
+// aqui una sola vez para toda la app en vez de en cada handler.
+(BigInt.prototype as unknown as { toJSON(): number }).toJSON = function toJSON(this: bigint) {
+  return Number(this);
+};
+
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 export const db = globalForPrisma.prisma ?? new PrismaClient();
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;

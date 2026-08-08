@@ -26,11 +26,13 @@ type FakeState = {
   versions: RecordMap<any>;
   cases: RecordMap<any>;
   idempotency: RecordMap<any>;
+  documents: RecordMap<any>;
   auditEvents: any[];
   queuedEvents: any[];
   nextProduct: number;
   nextVersion: number;
   nextCase: number;
+  nextDocument: number;
 };
 
 function makeUuid(label: string, value: number) {
@@ -43,11 +45,13 @@ function createHarness() {
     versions: new Map(),
     cases: new Map(),
     idempotency: new Map(),
+    documents: new Map(),
     auditEvents: [],
     queuedEvents: [],
     nextProduct: 1,
     nextVersion: 1,
     nextCase: 1,
+    nextDocument: 1,
   };
 
   const now = new Date();
@@ -122,8 +126,20 @@ function createHarness() {
     productVersion: {
       findFirst: async ({ where }: any) => {
         const version = state.versions.get(where.id);
-        if (!version || version.productId !== where.productId) return null;
+        if (!version) return null;
+        if (where.productId && version.productId !== where.productId) return null;
+        if (where.product?.organizationId) {
+          const product = state.products.get(version.productId);
+          if (!product || product.organizationId !== where.product.organizationId) return null;
+        }
         return version;
+      },
+    },
+    document: {
+      create: async ({ data }: any) => {
+        const document = { id: makeUuid('50000', state.nextDocument++), ...data };
+        state.documents.set(document.id, document);
+        return document;
       },
     },
     classificationCase: {
@@ -172,6 +188,11 @@ function createHarness() {
     },
   };
 
+  // Simula lo que headObject veria en el bucket real despues de que el
+  // cliente sube el archivo con la URL presignada (paso que las pruebas no
+  // ejecutan, ya que no hay S3/MinIO real corriendo en la suite).
+  const storageObjects = new Map<string, { sizeBytes: number }>();
+
   async function makeApp(identity: typeof ownerIdentity = ownerIdentity) {
     const { buildApp } = await import('./app.js');
     const app = await buildApp({
@@ -180,11 +201,19 @@ function createHarness() {
       enqueueClassificationSubmitted: async (event) => {
         state.queuedEvents.push(event);
       },
+      presignUpload: async ({ storageKey }) => ({
+        uploadUrl: `https://fake-upload.local/${storageKey}`,
+        expiresInSeconds: 300,
+      }),
+      headObject: async (storageKey) => {
+        const object = storageObjects.get(storageKey);
+        return object ? { exists: true as const, sizeBytes: object.sizeBytes } : { exists: false as const, sizeBytes: 0 };
+      },
     });
     return app;
   }
 
-  return { state, makeApp, ownerIdentity, otherIdentity };
+  return { state, makeApp, ownerIdentity, otherIdentity, storageObjects };
 }
 
 async function createProduct(app: FastifyInstance) {
@@ -354,5 +383,166 @@ describe('multi-tenant isolation (T-012)', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json().code).toBe('CLASSIFICATION_CASE_NOT_FOUND');
+  });
+});
+
+describe('document upload (block 3: storage)', () => {
+  it('presigns an upload key scoped to the organization', async () => {
+    const { makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents/presign',
+      payload: { filename: 'invoice.pdf', mimeType: 'application/pdf' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.storage_key.startsWith(`org/${ownerIdentity.organization.id}/`)).toBe(true);
+    expect(body.upload_url).toContain(body.storage_key);
+  });
+
+  it('registers a document once the object exists in storage with a matching size', async () => {
+    const { makeApp, storageObjects } = createHarness();
+    const app = await makeApp();
+
+    const presigned = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents/presign',
+      payload: { filename: 'invoice.pdf', mimeType: 'application/pdf' },
+    });
+    const { storage_key: storageKey } = presigned.json();
+    storageObjects.set(storageKey, { sizeBytes: 1024 });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents',
+      payload: {
+        storage_key: storageKey,
+        filename: 'invoice.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 1024,
+        sha256: 'a'.repeat(64),
+        source_type: 'PRODUCT_EVIDENCE',
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().storageKey).toBe(storageKey);
+    expect(response.json().sizeBytes).toBe(1024);
+  });
+
+  it('rejects registration when the object was never uploaded', async () => {
+    const { makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp();
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents',
+      payload: {
+        storage_key: `org/${ownerIdentity.organization.id}/never-uploaded.pdf`,
+        filename: 'invoice.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 1024,
+        sha256: 'a'.repeat(64),
+        source_type: 'PRODUCT_EVIDENCE',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().code).toBe('DOCUMENT_NOT_UPLOADED');
+  });
+
+  it('rejects registration when the claimed size does not match the uploaded object', async () => {
+    const { makeApp, storageObjects } = createHarness();
+    const app = await makeApp();
+
+    const presigned = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents/presign',
+      payload: { filename: 'invoice.pdf', mimeType: 'application/pdf' },
+    });
+    const { storage_key: storageKey } = presigned.json();
+    storageObjects.set(storageKey, { sizeBytes: 2048 });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents',
+      payload: {
+        storage_key: storageKey,
+        filename: 'invoice.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 1024,
+        sha256: 'a'.repeat(64),
+        source_type: 'PRODUCT_EVIDENCE',
+      },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().code).toBe('DOCUMENT_SIZE_MISMATCH');
+  });
+
+  it('refuses to register a storage_key belonging to another organization', async () => {
+    const { makeApp, storageObjects, otherIdentity } = createHarness();
+    const ownerApp = await makeApp();
+
+    const presigned = await ownerApp.inject({
+      method: 'POST',
+      url: '/api/v1/documents/presign',
+      payload: { filename: 'invoice.pdf', mimeType: 'application/pdf' },
+    });
+    const { storage_key: storageKey } = presigned.json();
+    storageObjects.set(storageKey, { sizeBytes: 1024 });
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({
+      method: 'POST',
+      url: '/api/v1/documents',
+      payload: {
+        storage_key: storageKey,
+        filename: 'invoice.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 1024,
+        sha256: 'a'.repeat(64),
+        source_type: 'PRODUCT_EVIDENCE',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().code).toBe('STORAGE_KEY_FORBIDDEN');
+  });
+
+  it('rejects a product_version_id that belongs to another organization', async () => {
+    const { makeApp, storageObjects, otherIdentity } = createHarness();
+    const ownerApp = await makeApp();
+    const product = await createProduct(ownerApp);
+    const versionId = product.versions[0].id;
+
+    const otherApp = await makeApp(otherIdentity);
+    const otherPresigned = await otherApp.inject({
+      method: 'POST',
+      url: '/api/v1/documents/presign',
+      payload: { filename: 'invoice.pdf', mimeType: 'application/pdf' },
+    });
+    const { storage_key: otherStorageKey } = otherPresigned.json();
+    storageObjects.set(otherStorageKey, { sizeBytes: 1024 });
+
+    const response = await otherApp.inject({
+      method: 'POST',
+      url: '/api/v1/documents',
+      payload: {
+        storage_key: otherStorageKey,
+        filename: 'invoice.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 1024,
+        sha256: 'a'.repeat(64),
+        source_type: 'PRODUCT_EVIDENCE',
+        product_version_id: versionId,
+      },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json().code).toBe('PRODUCT_VERSION_NOT_FOUND');
   });
 });

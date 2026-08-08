@@ -2,6 +2,14 @@
 
 Actualizado: 2026-08-08
 
+## Avance aplicado en esta iteracion (2026-08-08, bloque 3: storage)
+
+- `packages/storage` nuevo: cliente S3 (`@aws-sdk/client-s3` + `s3-request-presigner`), URL de subida firmada con TTL de 5 minutos, `HeadObject` para verificar lo realmente subido.
+- `POST /api/v1/documents/presign` y `POST /api/v1/documents`: el registro valida que el `storageKey` empiece con `org/{organizationId}/` (evita que una organizacion registre un archivo subido por otra) y que `size_bytes` coincida con el objeto real en el bucket antes de crear el `Document`.
+- Bug real encontrado al escribir la ruta: `Document.sizeBytes` es `BigInt` en Prisma y Fastify no lo sabe serializar (`TypeError`); corregido una sola vez en `@platform/db` con `BigInt.prototype.toJSON`, no solo en la ruta nueva — tambien afectaba la lectura de `evidence.document` en `GET /classification-cases/:caseId`, que hoy no tenia pruebas que lo cubrieran.
+- `apps/web/app/products/[id]` nuevo (antes no existia, solo el link roto desde `/products`): sube evidencia con URL firmada, calcula `sha256` en el navegador (Web Crypto) antes de subir.
+- Limitacion documentada en `docs/SUPABASE_PRISMA_SETUP.md`: el hash se confia del cliente, sin re-hash server-side todavia.
+
 ## Avance aplicado en esta iteracion (2026-08-08)
 
 - Bloqueo real de instalacion resuelto: no era de red, era que el working copy vivia en una unidad exFAT (USB), que no soporta los hardlinks que pnpm necesita. Working copy movido a `C:\Users\ulitr\TradeLogic` (NTFS); `E:\ADUANA\MVP_Tecnico` queda como copia de respaldo.
@@ -41,12 +49,12 @@ Actualizado: 2026-08-08
 
 ## Pendiente inmediato
 
-1. Storage de documentos/evidencia (presign S3 + endpoints).
-2. Capa de IA (Anthropic) sobre el clasificador determinista, con validacion de citas contra el schema `AgentResult`.
-3. UI real completa: crear producto, subir evidencia, ver/enviar casos, revision humana.
-4. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo).
-5. Agregar pruebas del worker con DB fake o repositorios abstraidos.
-6. Endpoint de revision humana (`POST .../review`) — `HumanReview` existe en el schema pero no hay ruta todavia.
+1. Capa de IA (Anthropic) sobre el clasificador determinista, con validacion de citas contra el schema `AgentResult`.
+2. UI real completa: crear producto (falta el formulario), ver/enviar casos, revision humana.
+3. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo).
+4. Agregar pruebas del worker con DB fake o repositorios abstraidos.
+5. Endpoint de revision humana (`POST .../review`) — `HumanReview` existe en el schema pero no hay ruta todavia.
+6. Pruebas de `POST /api/v1/documents/presign` y `POST /api/v1/documents` en `routes.test.ts` — el bloque 3 quedo sin cobertura automatizada, solo verificado por typecheck/build.
 
 ## Notas operativas
 

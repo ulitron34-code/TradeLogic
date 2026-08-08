@@ -3,6 +3,11 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
 import { db as defaultDb, scopeToOrganization, type Prisma } from '@platform/db';
+import {
+  buildStorageKey,
+  headObject as defaultHeadObject,
+  presignUpload as defaultPresignUpload,
+} from '@platform/storage';
 import { resolveAuthContext, type AuthContext } from './auth.js';
 import { ensureDevContext } from './context.js';
 import { hashPayload, replayOrStore } from './idempotency.js';
@@ -29,10 +34,29 @@ const createCaseBody = z.object({
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 
+const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
+
+const presignDocumentBody = z.object({
+  filename: z.string().min(1).max(255),
+  mimeType: z.string().min(1).max(200),
+});
+
+const createDocumentBody = z.object({
+  storage_key: z.string().min(1),
+  filename: z.string().min(1).max(255),
+  mime_type: z.string().min(1).max(200),
+  size_bytes: z.number().int().positive().max(MAX_DOCUMENT_SIZE_BYTES),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/i, 'sha256 must be a 64-char hex digest'),
+  source_type: z.string().min(1).max(80),
+  product_version_id: z.string().uuid().optional(),
+});
+
 export type RouteDependencies = {
   db?: typeof defaultDb;
   resolveContext?: (request: FastifyRequest, db: typeof defaultDb) => Promise<AuthContext>;
   enqueueClassificationSubmitted?: typeof defaultEnqueueClassificationSubmitted;
+  presignUpload?: typeof defaultPresignUpload;
+  headObject?: typeof defaultHeadObject;
 };
 
 function requireIdempotencyKey(value: string | string[] | undefined) {
@@ -49,6 +73,8 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   const db = dependencies.db ?? defaultDb;
   const resolveContext = dependencies.resolveContext ?? defaultResolveContext;
   const enqueueClassificationSubmitted = dependencies.enqueueClassificationSubmitted ?? defaultEnqueueClassificationSubmitted;
+  const presignUpload = dependencies.presignUpload ?? defaultPresignUpload;
+  const headObject = dependencies.headObject ?? defaultHeadObject;
 
   app.get('/health', async () => ({ status: 'ok', service: 'api' }));
 
@@ -107,6 +133,72 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
 
     if (!product) return reply.notFound('Product not found');
     return product;
+  });
+
+  app.post('/api/v1/documents/presign', async (request) => {
+    const { organization } = await resolveContext(request, db);
+    const body = presignDocumentBody.parse(request.body);
+
+    const storageKey = buildStorageKey(organization.id, body.filename);
+    const { uploadUrl, expiresInSeconds } = await presignUpload({
+      storageKey,
+      mimeType: body.mimeType,
+    });
+
+    return { upload_url: uploadUrl, storage_key: storageKey, expires_in_seconds: expiresInSeconds };
+  });
+
+  app.post('/api/v1/documents', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const body = createDocumentBody.parse(request.body);
+
+    // El uploadUrl presignado solo protege la escritura al bucket; sin este
+    // prefijo, cualquier usuario autenticado podria registrar como propio un
+    // storageKey subido por otra organizacion si lo adivinara.
+    if (!body.storage_key.startsWith(`org/${organization.id}/`)) {
+      const error = new Error('storage_key does not belong to this organization');
+      Object.assign(error, { statusCode: 403, code: 'STORAGE_KEY_FORBIDDEN' });
+      throw error;
+    }
+
+    if (body.product_version_id) {
+      const version = await scopedDb.productVersion.findFirst({
+        where: { id: body.product_version_id, product: { organizationId: organization.id } },
+      });
+      if (!version) {
+        const error = new Error('Product version not found');
+        Object.assign(error, { statusCode: 404, code: 'PRODUCT_VERSION_NOT_FOUND' });
+        throw error;
+      }
+    }
+
+    const uploaded = await headObject(body.storage_key);
+    if (!uploaded.exists) {
+      const error = new Error('storage_key has not been uploaded yet');
+      Object.assign(error, { statusCode: 409, code: 'DOCUMENT_NOT_UPLOADED' });
+      throw error;
+    }
+    if (uploaded.sizeBytes !== body.size_bytes) {
+      const error = new Error('size_bytes does not match the uploaded object');
+      Object.assign(error, { statusCode: 409, code: 'DOCUMENT_SIZE_MISMATCH' });
+      throw error;
+    }
+
+    const document = await scopedDb.document.create({
+      data: {
+        organizationId: organization.id,
+        ...(body.product_version_id ? { productVersionId: body.product_version_id } : {}),
+        filename: body.filename,
+        mimeType: body.mime_type,
+        sizeBytes: body.size_bytes,
+        sha256: body.sha256,
+        storageKey: body.storage_key,
+        sourceType: body.source_type,
+      },
+    });
+
+    return reply.code(201).send(document);
   });
 
   app.post('/api/v1/classification-cases', async (request, reply) => {

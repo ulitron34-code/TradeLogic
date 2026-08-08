@@ -12,3 +12,4 @@ postgres-data
 redis-data
 .turbo
 *.tsbuildinfo
+.claude/settings.local.json
