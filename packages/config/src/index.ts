@@ -1,4 +1,14 @@
+import { config as loadDotenv } from 'dotenv';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+
+// apps/api y apps/worker no cargan dotenv por su cuenta; sin esto, `pnpm dev`
+// falla siempre fuera de Docker Compose (que sí inyecta env vars) a menos que
+// el shell ya las tenga exportadas. No pisa variables que la plataforma de
+// hosting ya haya inyectado (dotenv nunca sobreescribe process.env existente).
+const rootEnvPath = fileURLToPath(new URL('../../../.env', import.meta.url));
+if (existsSync(rootEnvPath)) loadDotenv({ path: rootEnvPath });
 
 const optionalUrl = z.preprocess(
   (value) => (value === '' ? undefined : value),

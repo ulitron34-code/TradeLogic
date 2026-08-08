@@ -1,8 +1,19 @@
 # Estado de Implementacion
 
-Actualizado: 2026-08-06
+Actualizado: 2026-08-08
 
-## Avance aplicado en esta iteracion
+## Avance aplicado en esta iteracion (2026-08-08)
+
+- Bloqueo real de instalacion resuelto: no era de red, era que el working copy vivia en una unidad exFAT (USB), que no soporta los hardlinks que pnpm necesita. Working copy movido a `C:\Users\ulitr\TradeLogic` (NTFS); `E:\ADUANA\MVP_Tecnico` queda como copia de respaldo.
+- `pnpm typecheck`/`test`/`build` corrieron de verdad por primera vez y fallaban: import roto de `ioredis`, faltaba `@types/node` en `packages/db`, tipado de error de Fastify, cast de JSON de Prisma, fixtures de test desalineadas, y un bug real en el clasificador (tokenizador sin singular/plural en espanol). Todo corregido; `pnpm test` agregado a `ci.yml` (antes solo corria typecheck+build).
+- `packages/config` valida ahora todas las variables de `.env.example`, no solo 5, y carga `.env` de la raiz automaticamente (antes `pnpm dev` fallaba siempre fuera de Docker Compose).
+- Auth real con Supabase Auth: `apps/api/src/auth.ts` verifica JWT contra el JWKS del proyecto, resuelve `User`/`Membership` (nunca confia `organizationId` del cliente). `ensureDevContext` solo sobrevive detras de `DEV_AUTH_BYPASS` y nunca en `NODE_ENV=production`.
+- RLS real en Supabase, verificada en produccion: `packages/db` expone `scopeToOrganization()` (fija `app.current_org_id` por operacion via `set_config`, parametrizado). `supabase/rls.sql` tiene las politicas reales, incluyendo el hallazgo de que el SQL editor de Supabase auto-activa RLS sin politicas en cualquier tabla nueva (bloqueaba 12 tablas que no estaban en el plan original hasta que se corrigio). Rol `app_user` dedicado sin `BYPASSRLS` (el `postgres` de siempre es superusuario y ignora RLS por completo).
+- Historial de migraciones de Prisma establecido por primera vez (`prisma/migrations/0_init`); antes todo el esquema vivia solo en `supabase/init.sql` corrido a mano, con drift real (foreign keys faltantes) contra el schema.
+- Login real probado de punta a punta contra produccion: Supabase Auth -> JWT -> API -> Postgres con RLS, incluyendo escritura (`POST /api/v1/products` con 201 real).
+- `apps/web` tiene su primera UI real: login, middleware de sesion, pagina de productos conectada a la API con el JWT de la sesion. Tailwind agregado.
+
+## Avance aplicado en esta iteracion (2026-08-06, historico)
 
 - API separada en `app.ts`, `server.ts` y `routes.ts`; `buildApp()` permite pruebas con dependencias inyectadas.
 - Contexto dev persistido con usuario, organizacion y membresia estables.
@@ -30,14 +41,14 @@ Actualizado: 2026-08-06
 
 ## Pendiente inmediato
 
-1. Completar `pnpm install` cuando npm deje de cortar descargas.
-2. Ejecutar `pnpm db:generate` y `pnpm db:migrate`.
-3. Ejecutar `pnpm typecheck`, `pnpm test` y `pnpm build`.
-4. Agregar repositorios con enforcement explicito de `organizationId` y pruebas anti-fuga multiempresa.
-5. Conectar storage para documentos y evidencias.
-6. Reemplazar catalogo semilla por ingesta LIGIE/DOF completa y recuperacion regulatoria versionada.
-7. Agregar pruebas del worker con DB fake o repositorios abstraidos.
+1. Storage de documentos/evidencia (presign S3 + endpoints).
+2. Capa de IA (Anthropic) sobre el clasificador determinista, con validacion de citas contra el schema `AgentResult`.
+3. UI real completa: crear producto, subir evidencia, ver/enviar casos, revision humana.
+4. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo).
+5. Agregar pruebas del worker con DB fake o repositorios abstraidos.
+6. Endpoint de revision humana (`POST .../review`) — `HumanReview` existe en el schema pero no hay ruta todavia.
 
-## Bloqueo de verificacion
+## Notas operativas
 
-La instalacion ya genero `pnpm-lock.yaml` y descargo parte del arbol, pero sigue fallando por cortes `ECONNREFUSED` al descargar tarballs desde npm. Se intento `pnpm typecheck`; `pnpm` primero trato de completar instalacion y tambien fallo por red antes de ejecutar TypeScript.
+- `DATABASE_URL`/`DIRECT_URL` en `.env` local ya usan el rol `app_user` (no `postgres`) para que RLS aplique de verdad.
+- Al agregar una tabla nueva via SQL editor de Supabase: verificar su estado de RLS explicitamente (ver `supabase/rls.sql`), no asumir que queda abierta por default.
