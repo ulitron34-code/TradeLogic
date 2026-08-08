@@ -31,6 +31,14 @@ const createCaseBody = z.object({
   assumptions: z.record(z.unknown()).optional(),
 });
 
+const reviewCaseBody = z.object({
+  decision: z.enum(['APPROVED', 'CHANGES_REQUESTED', 'REJECTED']),
+  notes: z.string().max(2000).optional(),
+});
+
+// RBAC.md: "Aprobar caso critico" solo lo permiten Owner, Admin y Reviewer.
+const REVIEW_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
+
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 
@@ -82,7 +90,9 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const context = await resolveContext(request, db);
     return {
       id: context.user.id,
+      email: context.user.email,
       organizationId: context.organization.id,
+      organizationName: context.organization.name,
       roles: context.roles,
     };
   });
@@ -374,5 +384,90 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
 
     if (!classificationCase) return reply.notFound('Classification case not found');
     return classificationCase;
+  });
+
+  app.post('/api/v1/classification-cases/:caseId/review', async (request, reply) => {
+    const { user, organization, roles } = await resolveContext(request, db);
+    if (!roles.some((role) => REVIEW_ROLES.has(role))) {
+      const error = new Error('Only OWNER, ADMIN, or REVIEWER can review a classification case');
+      Object.assign(error, { statusCode: 403, code: 'FORBIDDEN_ROLE' });
+      throw error;
+    }
+
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const idempotencyKey = requireIdempotencyKey(request.headers['idempotency-key']);
+    const body = reviewCaseBody.parse(request.body);
+    const requestHash = hashPayload({ caseId: params.caseId, ...body });
+
+    const response = await replayOrStore({
+      organizationId: organization.id,
+      key: idempotencyKey,
+      scope: 'classification-cases:review',
+      requestHash,
+      build: async () => {
+        const existingCase = await scopedDb.classificationCase.findFirst({
+          where: { id: params.caseId, organizationId: organization.id },
+          include: { candidates: { orderBy: { rank: 'asc' }, take: 1 } },
+        });
+
+        if (!existingCase) {
+          const error = new Error('Classification case not found');
+          Object.assign(error, { statusCode: 404, code: 'CLASSIFICATION_CASE_NOT_FOUND' });
+          throw error;
+        }
+
+        if (existingCase.status !== 'NEEDS_REVIEW') {
+          const error = new Error(`Cannot review case from status ${existingCase.status}`);
+          Object.assign(error, { statusCode: 409, code: 'INVALID_CASE_STATUS' });
+          throw error;
+        }
+
+        // CHANGES_REQUESTED regresa el caso a NEEDS_INFORMATION para que se
+        // pueda corregir y reenviar a analisis; APPROVED/REJECTED son
+        // terminales, tal como pide el plan.
+        const nextStatus =
+          body.decision === 'APPROVED' ? 'APPROVED' : body.decision === 'REJECTED' ? 'REJECTED' : 'NEEDS_INFORMATION';
+        const topCandidate = existingCase.candidates[0];
+
+        const reviewedCase = await scopedDb.classificationCase.update({
+          where: { id: existingCase.id },
+          data: {
+            status: nextStatus,
+            ...(body.decision === 'APPROVED' && topCandidate ? { selectedCodeId: topCandidate.tariffCodeId } : {}),
+          },
+        });
+
+        const review = await scopedDb.humanReview.create({
+          data: {
+            caseId: existingCase.id,
+            reviewerId: user.id,
+            decision: body.decision,
+            ...(body.notes ? { notes: body.notes } : {}),
+          },
+        });
+
+        await scopedDb.auditEvent.create({
+          data: {
+            organizationId: organization.id,
+            actorId: user.id,
+            action: 'classification.case.reviewed',
+            entityType: 'ClassificationCase',
+            entityId: existingCase.id,
+            before: { status: existingCase.status },
+            after: { status: reviewedCase.status, decision: body.decision, reviewId: review.id },
+            traceId: randomUUID(),
+          },
+        });
+
+        return {
+          id: reviewedCase.id,
+          status: reviewedCase.status,
+          review_id: review.id,
+        };
+      },
+    }, scopedDb);
+
+    return reply.code(202).send(response);
   });
 }

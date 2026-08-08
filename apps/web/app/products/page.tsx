@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { apiFetch } from '../lib/api';
+import { CreateProductForm } from './create-product-form';
 
 type Product = {
   id: string;
@@ -15,6 +16,7 @@ export default async function ProductsPage() {
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="mb-6 text-xl font-semibold">Productos</h1>
+      <CreateProductForm />
       {products.length === 0 ? (
         <p className="text-sm text-neutral-500">Todavía no hay productos registrados.</p>
       ) : (

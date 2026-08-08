@@ -60,6 +60,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@platform/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@supabase/ssr':
         specifier: ^0.5.2
         version: 0.5.2(@supabase/supabase-js@2.112.2)

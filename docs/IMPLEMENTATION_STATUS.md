@@ -2,6 +2,13 @@
 
 Actualizado: 2026-08-08
 
+## Avance aplicado en esta iteracion (2026-08-08, bloque 5: UI real + revision humana)
+
+- `POST /api/v1/classification-cases/:caseId/review` nueva: primer RBAC real del repo (solo `OWNER`/`ADMIN`/`REVIEWER`, `RBAC.md`), solo transiciona desde `NEEDS_REVIEW`, crea `HumanReview`, y decide el siguiente estado — `APPROVED` (fija `selectedCodeId` con el candidato rank 1) o `REJECTED` son terminales; `CHANGES_REQUESTED` regresa el caso a `NEEDS_INFORMATION` para poder corregir y reenviar. 5 pruebas nuevas (RBAC, transicion invalida, y las tres decisiones).
+- `GET /api/v1/me` ahora tambien devuelve `email` y `organizationName` (ya estaban cargados en el contexto de auth, sin query nueva) para el nav.
+- UI real completa por primera vez: layout con nav (organizacion/usuario/salir, solo visible con sesion activa), formulario de creacion de producto en `/products`, boton "Iniciar caso de clasificacion" en `/products/[id]`, y pagina nueva `/cases/[id]` (estado, enviar a analisis, candidatos con score/banda de confianza — reutiliza `confidenceBand` de `@platform/domain` en vez de duplicar la logica —, rationale, evaluacion de IA cuando existe, contradicciones, historial de revisiones, y acciones de revision solo visibles si el rol del usuario aplica y el caso esta en `NEEDS_REVIEW`).
+- **No verificado en un navegador real en esta sesion**: Docker no esta disponible en este entorno (sin Redis local) y no hay credenciales de login a mano, asi que no se pudo hacer login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar de punta a punta. Typecheck/test/build si corrieron en verde para las 9 paquetes. Recomendado: el usuario haga una pasada manual rapida antes de confiar en el flujo completo.
+
 ## Avance aplicado en esta iteracion (2026-08-08, bloque 4: capa de IA)
 
 - `packages/ai` nuevo: cliente `@anthropic-ai/sdk` (`claude-opus-5`, salida estructurada via `output_config.format` contra `AgentResultJsonSchema`). El ranking/score deterministico de `@platform/domain` no cambia; la IA solo agrega `rationale.ai_enrichment` (claims con evidencia citada) a los candidatos que ya calculo el clasificador.
@@ -57,11 +64,11 @@ Actualizado: 2026-08-08
 
 ## Pendiente inmediato
 
-1. UI real completa: crear producto (falta el formulario), ver/enviar casos, revision humana.
-2. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo).
+1. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo) — unico bloque que queda del plan original de 6.
+2. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
 3. Agregar pruebas del worker con DB fake o repositorios abstraidos (incluido el punto de enganche de `enrichClassification`, hoy solo probado a nivel de `packages/ai`).
-4. Endpoint de revision humana (`POST .../review`) — `HumanReview` existe en el schema pero no hay ruta todavia.
-5. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
+4. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
+5. Alertas de UI para regulacion (queda fuera del alcance actual, mencionado en el README original).
 
 ## Notas operativas
 

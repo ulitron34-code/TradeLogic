@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { apiFetch, ApiError } from '../../lib/api';
 import { EvidenceUploader } from './evidence-uploader';
+import { StartCaseButton } from './start-case-button';
 
 type ProductVersion = {
   id: string;
@@ -50,6 +51,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           <p className="mb-4 text-sm text-neutral-700 dark:text-neutral-300">{latestVersion.description}</p>
           <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">Evidencia</h2>
           <EvidenceUploader productVersionId={latestVersion.id} initialDocuments={[]} />
+
+          <h2 className="mb-3 mt-8 text-sm font-medium uppercase tracking-wide text-neutral-500">
+            Clasificacion arancelaria
+          </h2>
+          <StartCaseButton productId={product.id} />
         </>
       ) : (
         <p className="text-sm text-neutral-500">Este producto no tiene versiones.</p>

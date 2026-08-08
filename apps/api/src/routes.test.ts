@@ -27,12 +27,16 @@ type FakeState = {
   cases: RecordMap<any>;
   idempotency: RecordMap<any>;
   documents: RecordMap<any>;
+  candidates: RecordMap<any>;
+  reviews: RecordMap<any>;
   auditEvents: any[];
   queuedEvents: any[];
   nextProduct: number;
   nextVersion: number;
   nextCase: number;
   nextDocument: number;
+  nextCandidate: number;
+  nextReview: number;
 };
 
 function makeUuid(label: string, value: number) {
@@ -46,12 +50,16 @@ function createHarness() {
     cases: new Map(),
     idempotency: new Map(),
     documents: new Map(),
+    candidates: new Map(),
+    reviews: new Map(),
     auditEvents: [],
     queuedEvents: [],
     nextProduct: 1,
     nextVersion: 1,
     nextCase: 1,
     nextDocument: 1,
+    nextCandidate: 1,
+    nextReview: 1,
   };
 
   const now = new Date();
@@ -155,10 +163,15 @@ function createHarness() {
         state.cases.set(classificationCase.id, classificationCase);
         return classificationCase;
       },
-      findFirst: async ({ where }: any) => {
+      findFirst: async ({ where, include }: any) => {
         const classificationCase = state.cases.get(where.id);
         if (!classificationCase || classificationCase.organizationId !== where.organizationId) return null;
-        return classificationCase;
+        if (!include?.candidates) return classificationCase;
+        const candidates = Array.from(state.candidates.values())
+          .filter((candidate) => candidate.caseId === classificationCase.id)
+          .sort((a, b) => a.rank - b.rank);
+        const limit = include.candidates.take;
+        return { ...classificationCase, candidates: typeof limit === 'number' ? candidates.slice(0, limit) : candidates };
       },
       update: async ({ where, data }: any) => {
         const existing = state.cases.get(where.id);
@@ -166,6 +179,20 @@ function createHarness() {
         const updated = { ...existing, ...data };
         state.cases.set(where.id, updated);
         return updated;
+      },
+    },
+    classificationCandidate: {
+      create: async ({ data }: any) => {
+        const candidate = { id: makeUuid('60000', state.nextCandidate++), ...data };
+        state.candidates.set(candidate.id, candidate);
+        return candidate;
+      },
+    },
+    humanReview: {
+      create: async ({ data }: any) => {
+        const review = { id: makeUuid('70000', state.nextReview++), createdAt: now, ...data };
+        state.reviews.set(review.id, review);
+        return review;
       },
     },
     idempotencyRecord: {
@@ -544,5 +571,135 @@ describe('document upload (block 3: storage)', () => {
 
     expect(response.statusCode).toBe(404);
     expect(response.json().code).toBe('PRODUCT_VERSION_NOT_FOUND');
+  });
+});
+
+describe('classification case review (block 5: human review)', () => {
+  it('refuses to review when the caller role is not OWNER/ADMIN/REVIEWER', async () => {
+    const { makeApp, ownerIdentity } = createHarness();
+    const ownerApp = await makeApp();
+    const product = await createProduct(ownerApp);
+    const created = await ownerApp.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'review-rbac-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    const analystIdentity = { ...ownerIdentity, roles: ['ANALYST'] as const } as unknown as typeof ownerIdentity;
+    const analystApp = await makeApp(analystIdentity);
+    const response = await analystApp.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/review`,
+      headers: { 'Idempotency-Key': 'review-rbac-attempt' },
+      payload: { decision: 'APPROVED' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().code).toBe('FORBIDDEN_ROLE');
+  });
+
+  it('refuses to review a case that is not in NEEDS_REVIEW status', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'review-status-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id; // status DRAFT right after create
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/review`,
+      headers: { 'Idempotency-Key': 'review-status-attempt' },
+      payload: { decision: 'APPROVED' },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().code).toBe('INVALID_CASE_STATUS');
+  });
+
+  it('approves a case in NEEDS_REVIEW and selects the top-ranked candidate', async () => {
+    const { state, makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'review-approve-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    state.cases.get(caseId).status = 'NEEDS_REVIEW';
+    const topTariffCodeId = makeUuid('80000', 1);
+    state.candidates.set('cand-1', { id: 'cand-1', caseId, tariffCodeId: topTariffCodeId, rank: 1 });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/review`,
+      headers: { 'Idempotency-Key': 'review-approve-attempt' },
+      payload: { decision: 'APPROVED', notes: 'Se revisaron los candidatos, coincide con la fraccion.' },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json().status).toBe('APPROVED');
+    expect(state.cases.get(caseId).status).toBe('APPROVED');
+    expect(state.cases.get(caseId).selectedCodeId).toBe(topTariffCodeId);
+    expect(state.reviews.size).toBe(1);
+  });
+
+  it('rejects a case in NEEDS_REVIEW without setting a selected code', async () => {
+    const { state, makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'review-reject-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+    state.cases.get(caseId).status = 'NEEDS_REVIEW';
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/review`,
+      headers: { 'Idempotency-Key': 'review-reject-attempt' },
+      payload: { decision: 'REJECTED', notes: 'No coincide con la descripcion del producto.' },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json().status).toBe('REJECTED');
+    expect(state.cases.get(caseId).selectedCodeId).toBeUndefined();
+  });
+
+  it('sends a case with changes requested back to NEEDS_INFORMATION', async () => {
+    const { state, makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'review-changes-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+    state.cases.get(caseId).status = 'NEEDS_REVIEW';
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/review`,
+      headers: { 'Idempotency-Key': 'review-changes-attempt' },
+      payload: { decision: 'CHANGES_REQUESTED', notes: 'Falta evidencia de composicion del material.' },
+    });
+
+    expect(response.statusCode).toBe(202);
+    expect(response.json().status).toBe('NEEDS_INFORMATION');
+    expect(state.cases.get(caseId).status).toBe('NEEDS_INFORMATION');
   });
 });
