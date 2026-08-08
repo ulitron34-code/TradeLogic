@@ -1,10 +1,17 @@
 import { randomUUID } from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { db as defaultDb, type Prisma } from '@platform/db';
-import { ensureDevContext as defaultEnsureDevContext } from './context.js';
+import { env } from '@platform/config';
+import { db as defaultDb, scopeToOrganization, type Prisma } from '@platform/db';
+import { resolveAuthContext, type AuthContext } from './auth.js';
+import { ensureDevContext } from './context.js';
 import { hashPayload, replayOrStore } from './idempotency.js';
 import { enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted } from './queue.js';
+
+async function defaultResolveContext(request: FastifyRequest, db: typeof defaultDb): Promise<AuthContext> {
+  if (env.DEV_AUTH_BYPASS) return ensureDevContext();
+  return resolveAuthContext(request.headers.authorization, db);
+}
 
 const createProductBody = z.object({
   name: z.string().min(1).max(200),
@@ -24,7 +31,7 @@ const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 
 export type RouteDependencies = {
   db?: typeof defaultDb;
-  ensureDevContext?: typeof defaultEnsureDevContext;
+  resolveContext?: (request: FastifyRequest, db: typeof defaultDb) => Promise<AuthContext>;
   enqueueClassificationSubmitted?: typeof defaultEnqueueClassificationSubmitted;
 };
 
@@ -40,13 +47,13 @@ function requireIdempotencyKey(value: string | string[] | undefined) {
 
 export async function registerRoutes(app: FastifyInstance, dependencies: RouteDependencies = {}) {
   const db = dependencies.db ?? defaultDb;
-  const ensureDevContext = dependencies.ensureDevContext ?? defaultEnsureDevContext;
+  const resolveContext = dependencies.resolveContext ?? defaultResolveContext;
   const enqueueClassificationSubmitted = dependencies.enqueueClassificationSubmitted ?? defaultEnqueueClassificationSubmitted;
 
   app.get('/health', async () => ({ status: 'ok', service: 'api' }));
 
-  app.get('/api/v1/me', async () => {
-    const context = await ensureDevContext();
+  app.get('/api/v1/me', async (request) => {
+    const context = await resolveContext(request, db);
     return {
       id: context.user.id,
       organizationId: context.organization.id,
@@ -54,9 +61,10 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     };
   });
 
-  app.get('/api/v1/products', async () => {
-    const { organization } = await ensureDevContext();
-    const products = await db.product.findMany({
+  app.get('/api/v1/products', async (request) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const products = await scopedDb.product.findMany({
       where: { organizationId: organization.id },
       include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
       orderBy: { updatedAt: 'desc' },
@@ -65,10 +73,11 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   });
 
   app.post('/api/v1/products', async (request, reply) => {
-    const { organization } = await ensureDevContext();
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
     const body = createProductBody.parse(request.body);
 
-    const product = await db.product.create({
+    const product = await scopedDb.product.create({
       data: {
         organizationId: organization.id,
         name: body.name,
@@ -88,9 +97,10 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   });
 
   app.get('/api/v1/products/:id', async (request, reply) => {
-    const { organization } = await ensureDevContext();
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
     const params = paramsWithId.parse(request.params);
-    const product = await db.product.findFirst({
+    const product = await scopedDb.product.findFirst({
       where: { id: params.id, organizationId: organization.id },
       include: { versions: { orderBy: { version: 'desc' } } },
     });
@@ -100,7 +110,8 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   });
 
   app.post('/api/v1/classification-cases', async (request, reply) => {
-    const { user, organization } = await ensureDevContext();
+    const { user, organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
     const idempotencyKey = requireIdempotencyKey(request.headers['idempotency-key']);
     const body = createCaseBody.parse(request.body);
     const requestHash = hashPayload(body);
@@ -111,7 +122,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       scope: 'classification-cases:create',
       requestHash,
       build: async () => {
-        const product = await db.product.findFirst({
+        const product = await scopedDb.product.findFirst({
           where: { id: body.product_id, organizationId: organization.id },
           include: { versions: { orderBy: { version: 'desc' }, take: 1 } },
         });
@@ -122,7 +133,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
         }
 
         const selectedVersion = body.product_version_id
-          ? await db.productVersion.findFirst({
+          ? await scopedDb.productVersion.findFirst({
               where: { id: body.product_version_id, productId: product.id },
             })
           : product.versions[0];
@@ -133,7 +144,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           throw error;
         }
 
-        const classificationCase = await db.classificationCase.create({
+        const classificationCase = await scopedDb.classificationCase.create({
           data: {
             organizationId: organization.id,
             productId: product.id,
@@ -146,7 +157,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           },
         });
 
-        await db.auditEvent.create({
+        await scopedDb.auditEvent.create({
           data: {
             organizationId: organization.id,
             actorId: user.id,
@@ -169,13 +180,14 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           product_version_id: selectedVersion.id,
         };
       },
-    }, db);
+    }, scopedDb);
 
     return reply.code(202).send(response);
   });
 
   app.post('/api/v1/classification-cases/:caseId/submit', async (request, reply) => {
-    const { user, organization } = await ensureDevContext();
+    const { user, organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
     const params = paramsWithCaseId.parse(request.params);
     const idempotencyKey = requireIdempotencyKey(request.headers['idempotency-key']);
     const requestHash = hashPayload({ caseId: params.caseId });
@@ -186,7 +198,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       scope: 'classification-cases:submit',
       requestHash,
       build: async () => {
-        const existingCase = await db.classificationCase.findFirst({
+        const existingCase = await scopedDb.classificationCase.findFirst({
           where: { id: params.caseId, organizationId: organization.id },
         });
 
@@ -202,7 +214,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           throw error;
         }
 
-        const submittedCase = await db.classificationCase.update({
+        const submittedCase = await scopedDb.classificationCase.update({
           where: { id: existingCase.id },
           data: { status: 'INTAKE' },
         });
@@ -227,7 +239,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           },
         };
 
-        await db.auditEvent.create({
+        await scopedDb.auditEvent.create({
           data: {
             organizationId: organization.id,
             actorId: user.id,
@@ -249,15 +261,16 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           queued: true,
         };
       },
-    }, db);
+    }, scopedDb);
 
     return reply.code(202).send(response);
   });
 
   app.get('/api/v1/classification-cases/:caseId', async (request, reply) => {
-    const { organization } = await ensureDevContext();
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
     const params = paramsWithCaseId.parse(request.params);
-    const classificationCase = await db.classificationCase.findFirst({
+    const classificationCase = await scopedDb.classificationCase.findFirst({
       where: { id: params.caseId, organizationId: organization.id },
       include: {
         product: true,

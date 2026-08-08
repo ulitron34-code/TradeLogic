@@ -43,10 +43,13 @@ create table if not exists "Organization" (
 
 create table if not exists "User" (
   "id" uuid primary key default gen_random_uuid(),
+  "authUserId" uuid unique,
   "email" text not null unique,
   "displayName" text not null,
   "createdAt" timestamp(3) not null default current_timestamp
 );
+-- Si init.sql ya corrio antes de agregarse authUserId, esto lo agrega sin duplicar:
+alter table "User" add column if not exists "authUserId" uuid unique;
 
 create table if not exists "Membership" (
   "id" uuid primary key default gen_random_uuid(),

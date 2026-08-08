@@ -17,7 +17,8 @@
     "fastify": "^5.2.0",
     "zod": "^3.24.1",
     "bullmq": "^5.34.5",
-    "ioredis": "^5.4.2"
+    "ioredis": "^5.4.2",
+    "jose": "^5.9.6"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

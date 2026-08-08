@@ -14,6 +14,7 @@ process.env.JWT_SECRET ??= 'test-secret-at-least-32-characters-long';
 process.env.ENCRYPTION_KEY ??= 'test-encryption-key';
 process.env.FX_PROVIDER ??= 'banxico';
 process.env.REGULATORY_POLL_CRON ??= '0 * * * 1-5';
+process.env.SUPABASE_URL ??= 'https://example.supabase.co';
 process.env.LOG_LEVEL ??= 'silent';
 import type { FastifyInstance } from 'fastify';
 import { DEV_ORG_ID, DEV_USER_ID, electronicProductFixture } from './test/fixtures.js';
@@ -65,13 +66,33 @@ function createHarness() {
     displayName: 'Owner local',
     createdAt: now,
   };
+  const ownerIdentity = { user, organization, roles: ['OWNER'] as const };
+
+  const otherOrganization = {
+    id: makeUuid('90000', 1),
+    name: 'Organizacion competidora',
+    type: 'IMPORTER' as const,
+    taxId: null,
+    timezone: 'America/Mexico_City',
+    createdAt: now,
+    updatedAt: now,
+  };
+  const otherUser = {
+    id: makeUuid('91000', 1),
+    email: 'owner@competitor.local',
+    displayName: 'Owner competidor',
+    createdAt: now,
+  };
+  const otherIdentity = { user: otherUser, organization: otherOrganization, roles: ['OWNER'] as const };
 
   const db = {
     product: {
-      findMany: async () => Array.from(state.products.values()).map((product) => ({
-        ...product,
-        versions: Array.from(state.versions.values()).filter((version) => version.productId === product.id),
-      })),
+      findMany: async ({ where }: any = {}) => Array.from(state.products.values())
+        .filter((product) => !where?.organizationId || product.organizationId === where.organizationId)
+        .map((product) => ({
+          ...product,
+          versions: Array.from(state.versions.values()).filter((version) => version.productId === product.id),
+        })),
       create: async ({ data }: any) => {
         const product = {
           id: makeUuid('10000', state.nextProduct++),
@@ -151,11 +172,11 @@ function createHarness() {
     },
   };
 
-  async function makeApp() {
+  async function makeApp(identity: typeof ownerIdentity = ownerIdentity) {
     const { buildApp } = await import('./app.js');
     const app = await buildApp({
       db: db as any,
-      ensureDevContext: async () => ({ user, organization, roles: ['OWNER'] as const }),
+      resolveContext: async () => identity,
       enqueueClassificationSubmitted: async (event) => {
         state.queuedEvents.push(event);
       },
@@ -163,7 +184,7 @@ function createHarness() {
     return app;
   }
 
-  return { state, makeApp };
+  return { state, makeApp, ownerIdentity, otherIdentity };
 }
 
 async function createProduct(app: FastifyInstance) {
@@ -250,5 +271,88 @@ describe('classification case flow', () => {
     expect(state.queuedEvents).toHaveLength(1);
     expect(state.queuedEvents[0]!.payload.case_id).toBe(caseId);
     expect(state.cases.get(caseId)!.status).toBe('INTAKE');
+  });
+});
+
+describe('multi-tenant isolation (T-012)', () => {
+  it('never lists another organization\'s products', async () => {
+    const { makeApp, ownerIdentity, otherIdentity } = createHarness();
+    const ownerApp = await makeApp(ownerIdentity);
+    await createProduct(ownerApp);
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({ method: 'GET', url: '/api/v1/products' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toEqual([]);
+  });
+
+  it('returns 404, not the record, when reading another organization\'s product by id', async () => {
+    const { makeApp, ownerIdentity, otherIdentity } = createHarness();
+    const ownerApp = await makeApp(ownerIdentity);
+    const product = await createProduct(ownerApp);
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({ method: 'GET', url: `/api/v1/products/${product.id}` });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('refuses to create a classification case against another organization\'s product', async () => {
+    const { makeApp, ownerIdentity, otherIdentity } = createHarness();
+    const ownerApp = await makeApp(ownerIdentity);
+    const product = await createProduct(ownerApp);
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cross-org-case-create' },
+      payload: { product_id: product.id },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json().code).toBe('PRODUCT_NOT_FOUND');
+  });
+
+  it('returns 404, not the record, when reading another organization\'s classification case', async () => {
+    const { makeApp, ownerIdentity, otherIdentity } = createHarness();
+    const ownerApp = await makeApp(ownerIdentity);
+    const product = await createProduct(ownerApp);
+    const created = await ownerApp.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cross-org-case-read' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({ method: 'GET', url: `/api/v1/classification-cases/${caseId}` });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('refuses to submit another organization\'s classification case', async () => {
+    const { makeApp, ownerIdentity, otherIdentity } = createHarness();
+    const ownerApp = await makeApp(ownerIdentity);
+    const product = await createProduct(ownerApp);
+    const created = await ownerApp.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cross-org-case-submit' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/submit`,
+      headers: { 'Idempotency-Key': 'cross-org-case-submit-attempt' },
+    });
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json().code).toBe('CLASSIFICATION_CASE_NOT_FOUND');
   });
 });
