@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { env } from '@platform/config';
-import { db } from '@platform/db';
+import { db, type Prisma } from '@platform/db';
 import { rankTariffCandidates, requiresHumanReview } from '@platform/domain';
+import { claimsForCandidate, enrichClassification } from '@platform/ai';
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
@@ -104,16 +105,48 @@ new Worker('classification-analysis', async job => {
     return;
   }
 
+  // Capa de IA opcional: enriquece la explicacion de los candidatos ya
+  // rankeados con evidencia citada. Nunca cambia el ranking/score, y si
+  // ANTHROPIC_API_KEY no esta configurada (como hoy) o la respuesta falla
+  // cualquier validacion, enrichClassification devuelve null y el flujo
+  // deterministico sigue exactamente igual.
+  const enrichment = await enrichClassification({
+    product: {
+      description: productVersion.description,
+      attributes: productVersion.attributes as Record<string, unknown>,
+    },
+    candidates: rankedCandidates.map((candidate) => ({
+      id: candidate.id,
+      code: candidate.code,
+      nico: candidate.nico ?? null,
+      description: candidate.description,
+      score: candidate.score,
+    })),
+  });
+
   await db.classificationCandidate.deleteMany({ where: { caseId: classificationCase.id } });
   await db.classificationCandidate.createMany({
-    data: rankedCandidates.map((candidate, index) => ({
-      caseId: classificationCase.id,
-      tariffCodeId: candidate.id,
-      score: candidate.score,
-      rationale: candidate.rationale,
-      contradictions: candidate.contradictions,
-      rank: index + 1,
-    })),
+    data: rankedCandidates.map((candidate, index) => {
+      const aiClaims = claimsForCandidate(enrichment, candidate.id);
+      return {
+        caseId: classificationCase.id,
+        tariffCodeId: candidate.id,
+        score: candidate.score,
+        rationale: (aiClaims
+          ? {
+              ...candidate.rationale,
+              ai_enrichment: {
+                agent: enrichment!.agent,
+                version: enrichment!.version,
+                confidence: enrichment!.confidence,
+                claims: aiClaims,
+              },
+            }
+          : candidate.rationale) as Prisma.InputJsonValue,
+        contradictions: candidate.contradictions,
+        rank: index + 1,
+      };
+    }),
   });
 
   const totalContradictions = rankedCandidates.reduce(

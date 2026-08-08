@@ -2,6 +2,14 @@
 
 Actualizado: 2026-08-08
 
+## Avance aplicado en esta iteracion (2026-08-08, bloque 4: capa de IA)
+
+- `packages/ai` nuevo: cliente `@anthropic-ai/sdk` (`claude-opus-5`, salida estructurada via `output_config.format` contra `AgentResultJsonSchema`). El ranking/score deterministico de `@platform/domain` no cambia; la IA solo agrega `rationale.ai_enrichment` (claims con evidencia citada) a los candidatos que ya calculo el clasificador.
+- Validacion en dos capas antes de aceptar cualquier respuesta del modelo: schema `AgentResult` (zod, ya existia en `@platform/contracts`) y rechazo explicito (T-032) de cualquier `claim.evidence.sourceId` que no sea uno de los ids de `TariffCode` ya rankeados deterministicamente — cualquier fallo (sin API key, red, JSON invalido, schema invalido, cita inventada, refusal) hace que `enrichClassification` devuelva `null` sin lanzar, asi que `apps/worker` sigue exactamente igual sin esta capa.
+- `packages/contracts` ahora tambien exporta `AgentResultJsonSchema` (lee `schemas/agent-result.schema.json` en runtime) para pasarselo a Claude como `output_config.format`, reutilizando el mismo contrato que ya validaba con zod en vez de duplicarlo con ajv.
+- `enrichClassification` acepta un `createMessage` inyectable (mismo patron de dependencias que `RouteDependencies` en `apps/api`), lo que permitio probar el validador y el rechazo de citas con fixtures sin llamadas reales a Anthropic (9 pruebas nuevas en `packages/ai`).
+- Pendiente (fuera de alcance de este bloque, no probado en vivo): no hay `ANTHROPIC_API_KEY` real todavia, asi que la capa esta escrita y probada con fixtures pero no ejercida contra la API real. No se agrego el parametro `fallbacks` de refusal (server-side fallback) — la funcion ya degrada con seguridad ante un refusal (devuelve `null`), pero no reintenta en otro modelo; queda como mejora futura si el volumen de refusals en produccion lo justifica.
+
 ## Avance aplicado en esta iteracion (2026-08-08, bloque 3: storage)
 
 - `packages/storage` nuevo: cliente S3 (`@aws-sdk/client-s3` + `s3-request-presigner`), URL de subida firmada con TTL de 5 minutos, `HeadObject` para verificar lo realmente subido.
@@ -49,12 +57,11 @@ Actualizado: 2026-08-08
 
 ## Pendiente inmediato
 
-1. Capa de IA (Anthropic) sobre el clasificador determinista, con validacion de citas contra el schema `AgentResult`.
-2. UI real completa: crear producto (falta el formulario), ver/enviar casos, revision humana.
-3. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo).
-4. Agregar pruebas del worker con DB fake o repositorios abstraidos.
-5. Endpoint de revision humana (`POST .../review`) — `HumanReview` existe en el schema pero no hay ruta todavia.
-6. Pruebas de `POST /api/v1/documents/presign` y `POST /api/v1/documents` en `routes.test.ts` — el bloque 3 quedo sin cobertura automatizada, solo verificado por typecheck/build.
+1. UI real completa: crear producto (falta el formulario), ver/enviar casos, revision humana.
+2. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo).
+3. Agregar pruebas del worker con DB fake o repositorios abstraidos (incluido el punto de enganche de `enrichClassification`, hoy solo probado a nivel de `packages/ai`).
+4. Endpoint de revision humana (`POST .../review`) — `HumanReview` existe en el schema pero no hay ruta todavia.
+5. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
 
 ## Notas operativas
 
