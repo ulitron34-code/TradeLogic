@@ -15,7 +15,9 @@
     "ioredis": "^5.4.2",
     "@platform/db": "workspace:*",
     "@platform/domain": "workspace:*",
-    "@platform/ai": "workspace:*"
+    "@platform/ai": "workspace:*",
+    "@platform/storage": "workspace:*",
+    "@platform/regulatory": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

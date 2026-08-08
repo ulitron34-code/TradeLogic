@@ -2,6 +2,19 @@
 
 Actualizado: 2026-08-08
 
+## Plan original de 6 bloques: COMPLETO
+
+Los 6 bloques del plan aprobado el 07 Ago 2026 (`ancient-coalescing-hinton.md`) estan cerrados: CI/config, auth real + multiempresa, storage, capa de IA, UI real, ingesta regulatoria DOF. Lo que queda fuera de ese alcance original (verificacion en navegador real, pruebas del worker, expediente PDF, motor de costos, ampliar fuentes regulatorias mas alla de Hacienda/Economia) esta anotado como pendiente inmediato al final de este documento.
+
+## Avance aplicado en esta iteracion (2026-08-08, bloque 6: ingesta regulatoria DOF)
+
+- `packages/regulatory` nuevo: cliente contra los endpoints **reales** del DOF, verificados con el navegador (no los asumidos en el plan original — `WS_getDiarioFecha.php`/`BB_*.php` no existen; el sitio es HTML server-renderizado, no una API JSON). Detalle completo de la discrepancia, el parsing, y el filtrado en `docs/REGULATORY_INGESTION.md` (nuevo).
+- Bug real encontrado al probar contra una respuesta real: `nota_detalle.php` envuelve el documento real dentro de la pagina exterior del sitio, que trae su propio `<title>`; sin manejarlo, el titulo extraido siempre habria sido "DOF - Diario Oficial de la Federacion" en vez del titulo real de la nota.
+- `apps/worker`: el worker `regulatory-ingestion` (antes un `console.log`) ahora hace el flujo completo — job repetible BullMQ (`env.REGULATORY_POLL_CRON`, registro idempotente), descarga la edicion del dia, filtra por Hacienda/Economia, guarda el HTML crudo en S3 (reusando `packages/storage` del bloque 3), hace `upsert` de `RegulatorySource` (dedupe por `sha256`) y `RegulatoryProvision`, y corre deteccion de impacto deterministica (T-042, sin IA): fracciones arancelarias mencionadas que coinciden con un `TariffCode` ya usado como `selectedCodeId` de algun caso generan `RegulatoryImpact` + `Alert` (severidad `WARNING`).
+- `SourceAuthority.SHCP` agregado al enum para Hacienda (antes solo existia `SE` para Economia). La migracion esta generada en `packages/db/prisma/migrations/1_add_shcp_source_authority/` pero **no aplicada a produccion** — el rol `app_user` no tiene permiso de crear la shadow database que usa `prisma migrate dev` (restriccion de seguridad correcta, no un error). Aplicar con `prisma migrate deploy` cuando el usuario lo confirme explicitamente.
+- 17 pruebas nuevas en `packages/regulatory` contra fixtures grabados (recortes reales de las paginas del DOF, truncados por tamano donde hizo falta) — sin llamadas de red en la suite, como pedia el plan.
+- `packages/storage` gano `putRawObject()` (subida server-side directa, sin URL presignada) para que el worker pueda guardar el HTML crudo del DOF.
+
 ## Avance aplicado en esta iteracion (2026-08-08, bloque 5: UI real + revision humana)
 
 - `POST /api/v1/classification-cases/:caseId/review` nueva: primer RBAC real del repo (solo `OWNER`/`ADMIN`/`REVIEWER`, `RBAC.md`), solo transiciona desde `NEEDS_REVIEW`, crea `HumanReview`, y decide el siguiente estado — `APPROVED` (fija `selectedCodeId` con el candidato rank 1) o `REJECTED` son terminales; `CHANGES_REQUESTED` regresa el caso a `NEEDS_INFORMATION` para poder corregir y reenviar. 5 pruebas nuevas (RBAC, transicion invalida, y las tres decisiones).
@@ -64,11 +77,15 @@ Actualizado: 2026-08-08
 
 ## Pendiente inmediato
 
-1. Ingesta regulatoria DOF real (conector a `diariooficial.gob.mx`, verificado que responde JSON real en vivo) — unico bloque que queda del plan original de 6.
+El plan original de 6 bloques esta completo. Lo que queda es trabajo de endurecimiento fuera de ese alcance:
+
+1. **Aplicar la migracion de `SHCP` a produccion** (`prisma migrate deploy` con permisos de superusuario) — generada pero no aplicada, ver bloque 6 arriba.
 2. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
-3. Agregar pruebas del worker con DB fake o repositorios abstraidos (incluido el punto de enganche de `enrichClassification`, hoy solo probado a nivel de `packages/ai`).
+3. Agregar pruebas del worker con DB fake o repositorios abstraidos (incluye `classification-analysis`, `enrichClassification` en su punto de enganche, y `regulatoryIngestion.ts` — todos probados hoy solo a nivel de sus paquetes puros, no del worker completo).
 4. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
-5. Alertas de UI para regulacion (queda fuera del alcance actual, mencionado en el README original).
+5. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
+6. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
+7. Alertas de UI para regulacion, expediente PDF, motor de costos (quedan fuera del alcance del plan original, mencionados en el README).
 
 ## Notas operativas
 

@@ -50,3 +50,18 @@ export async function headObject(storageKey: string) {
     throw error;
   }
 }
+
+// Subida server-side directa, sin URL presignada: para procesos backend
+// (p.ej. el worker de ingesta regulatoria) que ya tienen el contenido en
+// memoria y no necesitan que un navegador lo suba.
+export async function putRawObject(options: { storageKey: string; body: string | Uint8Array; contentType: string }) {
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: options.storageKey,
+      Body: options.body,
+      ContentType: options.contentType,
+    }),
+  );
+  return { storageKey: options.storageKey };
+}

@@ -1,16 +1,43 @@
 import { randomUUID } from 'node:crypto';
-import { Worker } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { env } from '@platform/config';
 import { db, type Prisma } from '@platform/db';
 import { rankTariffCandidates, requiresHumanReview } from '@platform/domain';
 import { claimsForCandidate, enrichClassification } from '@platform/ai';
+import { runRegulatoryIngestion } from './regulatoryIngestion.js';
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
-new Worker('regulatory-ingestion', async job => {
-  console.log('processing regulatory source', job.data);
-}, { connection });
+const REGULATORY_INGESTION_QUEUE = 'regulatory-ingestion';
+
+// Registro idempotente: BullMQ dedupe los jobs repetibles por cola + patron
+// + jobId, asi que volver a llamar add() en cada arranque del worker no crea
+// duplicados mientras el patron no cambie.
+const regulatoryIngestionQueue = new Queue(REGULATORY_INGESTION_QUEUE, { connection });
+await regulatoryIngestionQueue.add(
+  'regulatory.ingestion.scheduled',
+  {},
+  { repeat: { pattern: env.REGULATORY_POLL_CRON }, jobId: 'regulatory-ingestion-scheduled' },
+);
+
+new Worker(
+  REGULATORY_INGESTION_QUEUE,
+  async () => {
+    const today = new Date();
+    const date = { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1, day: today.getUTCDate() };
+    try {
+      const result = await runRegulatoryIngestion(date);
+      console.log('regulatory ingestion run', { date, ...result });
+    } catch (error) {
+      // El DOF es un sitio legado sin SLA (ver docs/REGULATORY_INGESTION.md);
+      // un fallo aqui no debe tumbar el proceso del worker ni afectar la
+      // cola de clasificacion.
+      console.error('regulatory ingestion run failed', error);
+    }
+  },
+  { connection },
+);
 
 new Worker('classification-analysis', async job => {
   if (job.name !== 'classification.case.submitted') return;
