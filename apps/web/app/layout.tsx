@@ -16,7 +16,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   let me: { email: string; organizationName: string } | null = null;
   if (user) {
-    me = await apiFetch<{ email: string; organizationName: string }>('/api/v1/me');
+    // The API is a separate service and may be waking up or temporarily
+    // unable to reach Postgres. Do not let that transient failure replace the
+    // whole authenticated shell with Next's generic blank error page.
+    try {
+      me = await apiFetch<{ email: string; organizationName: string }>('/api/v1/me');
+    } catch {
+      me = null;
+    }
   }
 
   return (
