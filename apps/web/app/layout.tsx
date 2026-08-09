@@ -16,7 +16,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   let me: { email: string; organizationName: string } | null = null;
   if (user) {
-    me = await apiFetch<{ email: string; organizationName: string }>('/api/v1/me');
+    try {
+      me = await apiFetch<{ email: string; organizationName: string }>('/api/v1/me');
+    } catch {
+      me = null;
+    }
   }
 
   return (
