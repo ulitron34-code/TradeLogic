@@ -29,6 +29,8 @@ type FakeState = {
   documents: RecordMap<any>;
   candidates: RecordMap<any>;
   reviews: RecordMap<any>;
+  alerts: RecordMap<any>;
+  costScenarios: RecordMap<any>;
   auditEvents: any[];
   queuedEvents: any[];
   nextProduct: number;
@@ -37,6 +39,8 @@ type FakeState = {
   nextDocument: number;
   nextCandidate: number;
   nextReview: number;
+  nextAlert: number;
+  nextCostScenario: number;
 };
 
 function makeUuid(label: string, value: number) {
@@ -52,6 +56,8 @@ function createHarness() {
     documents: new Map(),
     candidates: new Map(),
     reviews: new Map(),
+    alerts: new Map(),
+    costScenarios: new Map(),
     auditEvents: [],
     queuedEvents: [],
     nextProduct: 1,
@@ -60,6 +66,8 @@ function createHarness() {
     nextDocument: 1,
     nextCandidate: 1,
     nextReview: 1,
+    nextAlert: 1,
+    nextCostScenario: 1,
   };
 
   const now = new Date();
@@ -193,6 +201,41 @@ function createHarness() {
         const review = { id: makeUuid('70000', state.nextReview++), createdAt: now, ...data };
         state.reviews.set(review.id, review);
         return review;
+      },
+    },
+    alert: {
+      findMany: async ({ where }: any) => {
+        return Array.from(state.alerts.values())
+          .filter((alert) => !where?.organizationId || alert.organizationId === where.organizationId)
+          .filter((alert) => !where?.status || alert.status === where.status)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      },
+      findFirst: async ({ where }: any) => {
+        const alert = state.alerts.get(where.id);
+        if (!alert || alert.organizationId !== where.organizationId) return null;
+        return alert;
+      },
+      update: async ({ where, data }: any) => {
+        const existing = state.alerts.get(where.id);
+        if (!existing) throw new Error('alert not found');
+        const updated = { ...existing, ...data };
+        state.alerts.set(where.id, updated);
+        return updated;
+      },
+    },
+    costScenario: {
+      create: async ({ data }: any) => {
+        const sequence = state.nextCostScenario++;
+        // Timestamp creciente por secuencia (no `now` fijo) para que las
+        // pruebas de "mas reciente primero" tengan un orden real que probar.
+        const scenario = { id: makeUuid('80000', sequence), createdAt: new Date(now.getTime() + sequence * 1000), ...data };
+        state.costScenarios.set(scenario.id, scenario);
+        return scenario;
+      },
+      findMany: async ({ where }: any) => {
+        return Array.from(state.costScenarios.values())
+          .filter((scenario) => scenario.caseId === where.caseId && scenario.organizationId === where.organizationId)
+          .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       },
     },
     idempotencyRecord: {
@@ -701,5 +744,224 @@ describe('classification case review (block 5: human review)', () => {
     expect(response.statusCode).toBe(202);
     expect(response.json().status).toBe('NEEDS_INFORMATION');
     expect(state.cases.get(caseId).status).toBe('NEEDS_INFORMATION');
+  });
+});
+
+describe('alerts', () => {
+  it('lists alerts scoped to the caller organization, newest first', async () => {
+    const { state, makeApp, ownerIdentity, otherIdentity } = createHarness();
+    const app = await makeApp();
+    const now = Date.now();
+    state.alerts.set('alert-1', {
+      id: 'alert-1',
+      organizationId: ownerIdentity.organization.id,
+      severity: 'WARNING',
+      status: 'OPEN',
+      title: 'Posible cambio normativo sobre 8517.62',
+      summary: 'DOF publico un acuerdo relevante',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(now - 1000),
+    });
+    state.alerts.set('alert-2', {
+      id: 'alert-2',
+      organizationId: ownerIdentity.organization.id,
+      severity: 'INFO',
+      status: 'OPEN',
+      title: 'Alerta mas reciente',
+      summary: 'Otra publicacion',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(now),
+    });
+    state.alerts.set('alert-other-org', {
+      id: 'alert-other-org',
+      organizationId: otherIdentity.organization.id,
+      severity: 'CRITICAL',
+      status: 'OPEN',
+      title: 'No deberia verse',
+      summary: '...',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(now),
+    });
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/alerts' });
+
+    expect(response.statusCode).toBe(200);
+    const ids = response.json().data.map((alert: { id: string }) => alert.id);
+    expect(ids).toEqual(['alert-2', 'alert-1']);
+  });
+
+  it('filters alerts by status', async () => {
+    const { state, makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp();
+    state.alerts.set('alert-open', {
+      id: 'alert-open',
+      organizationId: ownerIdentity.organization.id,
+      severity: 'WARNING',
+      status: 'OPEN',
+      title: 'Abierta',
+      summary: '...',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(),
+    });
+    state.alerts.set('alert-resolved', {
+      id: 'alert-resolved',
+      organizationId: ownerIdentity.organization.id,
+      severity: 'WARNING',
+      status: 'RESOLVED',
+      title: 'Resuelta',
+      summary: '...',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(),
+    });
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/alerts?status=RESOLVED' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toHaveLength(1);
+    expect(response.json().data[0].id).toBe('alert-resolved');
+  });
+
+  it('updates an alert status', async () => {
+    const { state, makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp();
+    const alertId = makeUuid('95000', 1);
+    state.alerts.set(alertId, {
+      id: alertId,
+      organizationId: ownerIdentity.organization.id,
+      severity: 'WARNING',
+      status: 'OPEN',
+      title: 'Abierta',
+      summary: '...',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(),
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${alertId}/status`,
+      payload: { status: 'ACKNOWLEDGED' },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().status).toBe('ACKNOWLEDGED');
+    expect(state.alerts.get(alertId).status).toBe('ACKNOWLEDGED');
+  });
+
+  it('returns 404 when updating an alert from another organization', async () => {
+    const { state, makeApp, otherIdentity } = createHarness();
+    const app = await makeApp();
+    const alertId = makeUuid('95000', 2);
+    state.alerts.set(alertId, {
+      id: alertId,
+      organizationId: otherIdentity.organization.id,
+      severity: 'WARNING',
+      status: 'OPEN',
+      title: 'Ajena',
+      summary: '...',
+      impact: {},
+      sourceRefs: {},
+      createdAt: new Date(),
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/alerts/${alertId}/status`,
+      payload: { status: 'DISMISSED' },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('cost scenarios', () => {
+  it('creates a cost scenario with the deterministic landed cost breakdown', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+      payload: {
+        customs_value: 10000,
+        freight: 500,
+        insurance: 100,
+        duty_rate_percent: 15,
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    const body = response.json();
+    expect(body.currency).toBe('MXN');
+    expect(body.outputs.totalLandedCost).toBe(14238.77);
+    expect(body.rulesetVersion).toBe(body.outputs.rulesetVersion);
+  });
+
+  it('returns 404 for a cost scenario request against a case in another organization', async () => {
+    const { makeApp, otherIdentity } = createHarness();
+    const ownerApp = await makeApp();
+    const product = await createProduct(ownerApp);
+    const created = await ownerApp.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-cross-org' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    const otherApp = await makeApp(otherIdentity);
+    const response = await otherApp.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+      payload: { customs_value: 1000, duty_rate_percent: 10 },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('lists cost scenarios for a case, newest first', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-list' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+      payload: { customs_value: 1000, duty_rate_percent: 5 },
+    });
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+      payload: { customs_value: 2000, duty_rate_percent: 5 },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toHaveLength(2);
+    expect(response.json().data[0].inputs.customs_value).toBe(2000);
   });
 });

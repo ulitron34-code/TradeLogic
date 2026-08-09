@@ -1,3 +1,74 @@
+// Motor de costo de importacion (landed cost), deterministico y sin
+// dependencias externas. El arancel se recibe como parametro en vez de
+// buscarse automaticamente porque hoy no hay una fuente de tasas
+// arancelarias reales seedeada (T-MEC/trato general varian por fraccion y
+// pais de origen) — inventar una tasa produciria un calculo financiero
+// incorrecto, asi que el usuario la captura explicitamente por ahora.
+//
+// Nota: vive en este archivo (no en un modulo separado) porque el bundler de
+// Next.js (webpack) no resuelve imports relativos con extension `.js` que
+// apuntan a un archivo `.ts` — a diferencia de tsc/tsx, que si lo hacen. Este
+// paquete lo consume apps/web directamente, asi que un import interno
+// `./landedCost.js` rompe el build de Next aunque tsc/vitest lo acepten.
+
+export type LandedCostInput = {
+  customsValue: number;
+  freight: number;
+  insurance: number;
+  dutyRatePercent: number;
+  ivaRatePercent?: number;
+  otherFees?: number;
+};
+
+export type LandedCostBreakdown = {
+  customsValueBase: number;
+  dutyAmount: number;
+  dta: number;
+  ivaBase: number;
+  ivaAmount: number;
+  otherFees: number;
+  totalLandedCost: number;
+  rulesetVersion: string;
+};
+
+// DTA (Derecho de Tramite Aduanero) ad valorem general segun la Ley Federal
+// de Derechos: 8 al millar del valor en aduana. No cubre los regimenes de
+// cuota fija ni las exenciones (p. ej. algunos programas IMMEX) — alcance
+// acotado, documentado en docs/IMPLEMENTATION_STATUS.md.
+const DTA_RATE_PERCENT = 0.8;
+const DEFAULT_IVA_RATE_PERCENT = 16;
+export const LANDED_COST_RULESET_VERSION = 'mx-2026.1';
+
+export function calculateLandedCost(input: LandedCostInput): LandedCostBreakdown {
+  if (input.customsValue < 0 || input.freight < 0 || input.insurance < 0 || input.dutyRatePercent < 0) {
+    throw new Error('Landed cost inputs must be non-negative');
+  }
+
+  const customsValueBase = round2(input.customsValue + input.freight + input.insurance);
+  const dutyAmount = round2(customsValueBase * (input.dutyRatePercent / 100));
+  const dta = round2(customsValueBase * (DTA_RATE_PERCENT / 100));
+  const ivaRate = input.ivaRatePercent ?? DEFAULT_IVA_RATE_PERCENT;
+  const ivaBase = round2(customsValueBase + dutyAmount + dta);
+  const ivaAmount = round2(ivaBase * (ivaRate / 100));
+  const otherFees = round2(input.otherFees ?? 0);
+  const totalLandedCost = round2(customsValueBase + dutyAmount + dta + ivaAmount + otherFees);
+
+  return {
+    customsValueBase,
+    dutyAmount,
+    dta,
+    ivaBase,
+    ivaAmount,
+    otherFees,
+    totalLandedCost,
+    rulesetVersion: LANDED_COST_RULESET_VERSION,
+  };
+}
+
+function round2(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
 export type ConfidenceBand = 'HIGH' | 'MEDIUM' | 'LOW' | 'CONFLICT';
 
 export type TariffCandidateInput = {

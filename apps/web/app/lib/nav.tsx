@@ -24,6 +24,12 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
           <Link href="/products" className="text-sm font-semibold">
             TradeLogic
           </Link>
+          <Link href="/products" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+            Productos
+          </Link>
+          <Link href="/alerts" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+            Alertas
+          </Link>
           <span className="text-sm text-neutral-500">{organizationName}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-neutral-500">

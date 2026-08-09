@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
+import { calculateLandedCost } from '@platform/domain';
 import { db as defaultDb, scopeToOrganization, type Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -39,8 +40,27 @@ const reviewCaseBody = z.object({
 // RBAC.md: "Aprobar caso critico" solo lo permiten Owner, Admin y Reviewer.
 const REVIEW_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
 
+const alertStatusBody = z.object({
+  status: z.enum(['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'RESOLVED', 'DISMISSED']),
+});
+
+const listAlertsQuery = z.object({
+  status: z.enum(['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'RESOLVED', 'DISMISSED']).optional(),
+});
+
+const costScenarioBody = z.object({
+  currency: z.string().length(3).default('MXN'),
+  customs_value: z.number().nonnegative(),
+  freight: z.number().nonnegative().default(0),
+  insurance: z.number().nonnegative().default(0),
+  duty_rate_percent: z.number().nonnegative(),
+  iva_rate_percent: z.number().nonnegative().optional(),
+  other_fees: z.number().nonnegative().optional(),
+});
+
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
+const paramsWithAlertId = z.object({ alertId: z.string().uuid() });
 
 const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
 
@@ -469,5 +489,92 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     }, scopedDb);
 
     return reply.code(202).send(response);
+  });
+
+  app.post('/api/v1/classification-cases/:caseId/cost-scenarios', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const body = costScenarioBody.parse(request.body);
+
+    const classificationCase = await scopedDb.classificationCase.findFirst({
+      where: { id: params.caseId, organizationId: organization.id },
+    });
+    if (!classificationCase) return reply.notFound('Classification case not found');
+
+    // Motor deterministico; el arancel se captura manualmente porque no hay
+    // todavia una fuente de tasas arancelarias reales seedeada (ver
+    // packages/domain/src/landedCost.ts). fxSnapshot queda vacio: este primer
+    // corte no hace conversion de moneda, asume que todos los montos ya
+    // estan en `currency`.
+    const breakdown = calculateLandedCost({
+      customsValue: body.customs_value,
+      freight: body.freight,
+      insurance: body.insurance,
+      dutyRatePercent: body.duty_rate_percent,
+      ...(body.iva_rate_percent !== undefined ? { ivaRatePercent: body.iva_rate_percent } : {}),
+      ...(body.other_fees !== undefined ? { otherFees: body.other_fees } : {}),
+    });
+
+    const scenario = await scopedDb.costScenario.create({
+      data: {
+        organizationId: organization.id,
+        caseId: classificationCase.id,
+        currency: body.currency,
+        inputs: body as Prisma.InputJsonValue,
+        outputs: breakdown as unknown as Prisma.InputJsonValue,
+        rulesetVersion: breakdown.rulesetVersion,
+        fxSnapshot: {},
+      },
+    });
+
+    return reply.code(201).send(scenario);
+  });
+
+  app.get('/api/v1/classification-cases/:caseId/cost-scenarios', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+
+    const classificationCase = await scopedDb.classificationCase.findFirst({
+      where: { id: params.caseId, organizationId: organization.id },
+    });
+    if (!classificationCase) return reply.notFound('Classification case not found');
+
+    const scenarios = await scopedDb.costScenario.findMany({
+      where: { caseId: classificationCase.id, organizationId: organization.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { data: scenarios };
+  });
+
+  app.get('/api/v1/alerts', async (request) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const query = listAlertsQuery.parse(request.query);
+
+    const alerts = await scopedDb.alert.findMany({
+      where: { organizationId: organization.id, ...(query.status ? { status: query.status } : {}) },
+      orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
+    });
+    return { data: alerts };
+  });
+
+  app.post('/api/v1/alerts/:alertId/status', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithAlertId.parse(request.params);
+    const body = alertStatusBody.parse(request.body);
+
+    const existing = await scopedDb.alert.findFirst({
+      where: { id: params.alertId, organizationId: organization.id },
+    });
+    if (!existing) return reply.notFound('Alert not found');
+
+    const updated = await scopedDb.alert.update({
+      where: { id: existing.id },
+      data: { status: body.status },
+    });
+    return updated;
   });
 }

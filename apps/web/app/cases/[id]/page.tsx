@@ -3,6 +3,7 @@ import { confidenceBand } from '@platform/domain';
 import { apiFetch, ApiError } from '../../lib/api';
 import { SubmitCaseButton } from './submit-case-button';
 import { ReviewActions } from './review-actions';
+import { CostCalculator, type CostScenario } from './cost-calculator';
 
 type Rationale = {
   summary?: string;
@@ -78,6 +79,9 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const me = await apiFetch<{ roles: string[] }>('/api/v1/me');
   const canReview = me.roles.some((role) => REVIEW_ROLES.has(role));
+  const { data: costScenarios } = await apiFetch<{ data: CostScenario[] }>(
+    `/api/v1/classification-cases/${classificationCase.id}/cost-scenarios`,
+  );
 
   const canSubmit = classificationCase.status === 'DRAFT' || classificationCase.status === 'NEEDS_INFORMATION';
   const showReviewActions = canReview && classificationCase.status === 'NEEDS_REVIEW';
@@ -142,6 +146,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           </ul>
         </>
       ) : null}
+
+      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">Costo de importación</h2>
+      <div className="mb-8">
+        <CostCalculator caseId={classificationCase.id} initialScenarios={costScenarios} />
+      </div>
 
       {classificationCase.reviews.length > 0 ? (
         <>

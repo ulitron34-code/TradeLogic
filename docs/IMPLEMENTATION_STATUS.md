@@ -4,7 +4,16 @@ Actualizado: 2026-08-08
 
 ## Plan original de 6 bloques: COMPLETO
 
-Los 6 bloques del plan aprobado el 07 Ago 2026 (`ancient-coalescing-hinton.md`) estan cerrados: CI/config, auth real + multiempresa, storage, capa de IA, UI real, ingesta regulatoria DOF. Lo que queda fuera de ese alcance original (verificacion en navegador real, pruebas del worker, expediente PDF, motor de costos, ampliar fuentes regulatorias mas alla de Hacienda/Economia) esta anotado como pendiente inmediato al final de este documento.
+Los 6 bloques del plan aprobado el 07 Ago 2026 (`ancient-coalescing-hinton.md`) estan cerrados: CI/config, auth real + multiempresa, storage, capa de IA, UI real, ingesta regulatoria DOF.
+
+## Avance aplicado en esta iteracion (2026-08-08, post-plan: primeros diferenciadores del plan maestro actualizado)
+
+Del `TradeLogic_Informe_Sesion_y_Plan_Maestro_v1.md` (entregado esta misma sesion, ver `E:\ADUANA`), se implementaron los dos diferenciadores que no tenian bloqueo externo (sin credenciales de WhatsApp, sin datos de tasas arancelarias reales, etc.):
+
+- **Pantalla de alertas** (`GET /api/v1/alerts`, `POST /api/v1/alerts/:alertId/status`, pagina `/alerts`): el modelo `Alert` ya existia desde el bloque 6 (lo llena el worker de ingesta regulatoria) pero no habia ninguna pantalla para verlas — era la brecha mas obvia entre lo construido y lo visible para el usuario. Transiciones de estado limitadas por el estado actual (`OPEN` -> `ACKNOWLEDGED`/`DISMISSED`, etc.), no un cambio de estado libre.
+- **Calculadora de landed cost** (`packages/domain` funcion pura `calculateLandedCost`, `POST`/`GET /api/v1/classification-cases/:caseId/cost-scenarios`, seccion nueva en `/cases/[id]`): usa el modelo `CostScenario` que ya existia en el schema desde el bloque 2 (tenia RLS aplicada) pero nunca se habia usado. Calcula DTA (8 al millar, formula real de la Ley Federal de Derechos), IVA (16% por defecto, parametrizable), y arancel — **el arancel se captura manualmente** porque no hay una fuente de tasas arancelarias reales (T-MEC/general) seedeada; inventar una tasa habria producido un calculo financiero incorrecto. Documentado como limitacion explicita en la UI, no oculto.
+- Bug real encontrado al construir esto: el bundler de Next.js (webpack) no resuelve imports relativos internos con extension `.js` que apuntan a un archivo `.ts` (a diferencia de `tsc`/`tsx`, que si lo hacen via `moduleResolution: NodeNext`). Al separar `calculateLandedCost` en su propio archivo dentro de `packages/domain` con un barrel export en `index.ts`, el build de `apps/web` fallaba con "Module not found" aunque `tsc` y `vitest` lo aceptaban sin problema. Se resolvio manteniendo la funcion dentro de `index.ts` (sin modulo interno separado) ya que `apps/web` consume este paquete directamente.
+- 5 pruebas nuevas para la calculadora (`packages/domain`), 7 pruebas nuevas para las rutas de alertas y cost-scenarios (`apps/api` pasa de 23 a 30 pruebas).
 
 ## Avance aplicado en esta iteracion (2026-08-08, bloque 6: ingesta regulatoria DOF)
 
@@ -85,7 +94,9 @@ El plan original de 6 bloques esta completo. Lo que queda es trabajo de endureci
 4. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
 5. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
 6. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
-7. Alertas de UI para regulacion, expediente PDF, motor de costos (quedan fuera del alcance del plan original, mencionados en el README).
+7. Conseguir una fuente real de tasas arancelarias (T-MEC/trato general) para que la calculadora de landed cost deje de requerir el arancel manual — hoy es la limitacion mas visible del motor de costos.
+8. Expediente en PDF (queda fuera del alcance del plan original).
+9. Del plan maestro actualizado, siguen pendientes por bloqueos externos: digest semanal por correo/WhatsApp (necesita credenciales de mensajeria), portal white-label para despachos (decision de diseño/producto antes de programar), bot de WhatsApp Business (necesita cuenta de WhatsApp Business API), conciliacion IMMEX (modulo nuevo, requiere diseño de datos).
 
 ## Notas operativas
 
