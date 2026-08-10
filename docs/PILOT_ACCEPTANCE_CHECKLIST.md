@@ -13,6 +13,7 @@ Guardar estos archivos en `artifacts/` durante el piloto. No se versionan en Git
 - `deployment-targets.json`: generado por `npm run record:deployment-targets -- --api-base-url ... --web-base-url ... --output artifacts/deployment-targets.json`; no contiene secretos, solo URLs publicas, dashboards y commit.
 - `smoke-production.json`: generado por `npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json`.
 - `smoke-authenticated.json`: generado por `npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json` con un JWT real de cuenta piloto.
+- `tariff-import-input.json`: generado por `npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json`; prueba 20,227 registros listos para importacion y claves unicas.
 - `tariff-catalog-verification.json`: resumen manual en JSON de los resultados de `supabase/verify_tariff_catalog.sql` despues de importar el catalogo FA/NICO.
 
 ## Criterios de cierre
@@ -32,4 +33,4 @@ Despues de guardar los archivos anteriores:
 npm run verify:pilot-evidence -- --artifacts-dir artifacts
 ```
 
-El verificador no reemplaza la revision humana del recorrido UI; solo evita cerrar el piloto sin los cuatro archivos minimos de evidencia operativa.
+El verificador no reemplaza la revision humana del recorrido UI; solo evita cerrar el piloto sin los cinco archivos minimos de evidencia operativa.

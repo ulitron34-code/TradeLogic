@@ -62,6 +62,19 @@ function requireDeploymentTargets(summary, filePath) {
   }
 }
 
+function requireTariffImportInput(summary, filePath) {
+  if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
+  if (summary.expectedRecords !== 20227 || summary.records !== 20227) {
+    throw new Error(`${filePath} must prove 20227 tariff input records`);
+  }
+  if (summary.uniqueImportKeys !== 20227) {
+    throw new Error(`${filePath} must prove 20227 unique import keys`);
+  }
+  if (!summary.sourceVersions || Object.keys(summary.sourceVersions).length === 0) {
+    throw new Error(`${filePath} missing sourceVersions summary`);
+  }
+}
+
 function requireTariffVerification(summary, filePath) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
   if (summary.expectedRows !== 20227 && summary.rows !== 20227) {
@@ -85,6 +98,7 @@ function main() {
   const targetsPath = path.join(artifactsDir, 'deployment-targets.json');
   const productionPath = path.join(artifactsDir, 'smoke-production.json');
   const authenticatedPath = path.join(artifactsDir, 'smoke-authenticated.json');
+  const tariffInputPath = path.join(artifactsDir, 'tariff-import-input.json');
   const tariffPath = path.join(artifactsDir, 'tariff-catalog-verification.json');
 
   const targets = readJson(targetsPath);
@@ -96,6 +110,9 @@ function main() {
   const authenticated = readJson(authenticatedPath);
   requireSmoke(authenticated, authenticatedPath, ['auth-context', 'products-list', 'cases-list', 'alerts-list']);
 
+  const tariffInput = readJson(tariffInputPath);
+  requireTariffImportInput(tariffInput, tariffInputPath);
+
   const tariff = readJson(tariffPath);
   requireTariffVerification(tariff, tariffPath);
 
@@ -103,7 +120,7 @@ function main() {
     status: 'ok',
     artifactsDir,
     checkedAt: new Date().toISOString(),
-    files: [targetsPath, productionPath, authenticatedPath, tariffPath],
+    files: [targetsPath, productionPath, authenticatedPath, tariffInputPath, tariffPath],
   }, null, 2));
 }
 
