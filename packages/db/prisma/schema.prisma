@@ -173,6 +173,12 @@ model TariffCode {
   code String
   nico String?
   description String
+  chapter String?
+  heading String?
+  legalNotes String?
+  sourceUrl String?
+  generalRate Decimal? @db.Decimal(8,4)
+  rateUnit String?
   validFrom DateTime
   validTo DateTime?
   sourceVersion String
