@@ -277,10 +277,13 @@ function createHarness() {
   // ejecutan, ya que no hay S3/MinIO real corriendo en la suite).
   const storageObjects = new Map<string, { sizeBytes: number }>();
 
-  async function makeApp(identity: typeof ownerIdentity = ownerIdentity) {
+  async function makeApp(identity: typeof ownerIdentity = ownerIdentity, options: { databaseReady?: boolean } = {}) {
     const { buildApp } = await import('./app.js');
     const app = await buildApp({
       db: db as any,
+      readinessCheck: async () => {
+        if (options.databaseReady === false) throw new Error('database unavailable');
+      },
       resolveContext: async () => identity,
       enqueueClassificationSubmitted: async (event) => {
         state.queuedEvents.push(event);
@@ -311,6 +314,18 @@ async function createProduct(app: FastifyInstance) {
 }
 
 describe('classification case flow', () => {
+  it('reports API liveness separately from database readiness', async () => {
+    const { makeApp } = createHarness();
+    const readyApp = await makeApp();
+    expect((await readyApp.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    expect((await readyApp.inject({ method: 'GET', url: '/ready' })).json()).toMatchObject({ status: 'ready', database: 'ok' });
+
+    const unavailableApp = await makeApp(undefined, { databaseReady: false });
+    const response = await unavailableApp.inject({ method: 'GET', url: '/ready' });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ status: 'not_ready', database: 'unavailable', retryable: true });
+  });
+
   it('creates products and cases with idempotent replay', async () => {
     const { makeApp } = createHarness();
     const app = await makeApp();

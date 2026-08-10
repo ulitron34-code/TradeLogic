@@ -89,6 +89,7 @@ const createDocumentBody = z.object({
 
 export type RouteDependencies = {
   db?: typeof defaultDb;
+  readinessCheck?: () => Promise<void>;
   resolveContext?: (request: FastifyRequest, db: typeof defaultDb) => Promise<AuthContext>;
   enqueueClassificationSubmitted?: typeof defaultEnqueueClassificationSubmitted;
   presignUpload?: typeof defaultPresignUpload;
@@ -107,12 +108,22 @@ function requireIdempotencyKey(value: string | string[] | undefined) {
 
 export async function registerRoutes(app: FastifyInstance, dependencies: RouteDependencies = {}) {
   const db = dependencies.db ?? defaultDb;
+  const readinessCheck = dependencies.readinessCheck ?? (async () => { await db.$queryRaw`SELECT 1`; });
   const resolveContext = dependencies.resolveContext ?? defaultResolveContext;
   const enqueueClassificationSubmitted = dependencies.enqueueClassificationSubmitted ?? defaultEnqueueClassificationSubmitted;
   const presignUpload = dependencies.presignUpload ?? defaultPresignUpload;
   const headObject = dependencies.headObject ?? defaultHeadObject;
 
   app.get('/health', async () => ({ status: 'ok', service: 'api' }));
+
+  app.get('/ready', async (_request, reply) => {
+    try {
+      await readinessCheck();
+      return { status: 'ready', service: 'api', database: 'ok' };
+    } catch {
+      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'unavailable', retryable: true });
+    }
+  });
 
   app.get('/api/v1/me', async (request) => {
     const context = await resolveContext(request, db);

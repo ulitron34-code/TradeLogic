@@ -70,4 +70,5 @@ Nota 2026-08-10: `packages/storage` ya incluye el adapter S3 compatible y el wor
 - Disclaimer legal visible en expediente/resultados criticos.
 - Backups Supabase habilitados.
 - Logs de API y worker visibles.
+- Health checks configurados: `/health` confirma proceso vivo y `/ready` confirma conectividad con Postgres; Render debe usar `/ready` como health check del API.
 - No hay secretos en repo.

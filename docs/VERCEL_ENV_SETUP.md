@@ -55,7 +55,7 @@ Hay que agregar adapter serverless:
 ## Verificacion post-deploy
 
 - Web carga sin errores.
-- `GET <API_BASE_URL>/health` responde `{ status: "ok" }`.
+- `GET <API_BASE_URL>/health` responde `{ status: "ok" }`; `GET <API_BASE_URL>/ready` valida además que Postgres esté disponible y devuelve HTTP 503 si no lo está.
 - API puede crear producto y caso.
 - Worker procesa `classification.case.submitted`.
 - Logs no muestran secretos.
