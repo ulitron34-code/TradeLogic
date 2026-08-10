@@ -33,6 +33,8 @@ git push -u origin master
 
 El archivo `render.yaml` contiene el blueprint reproducible para el API y el worker. El API usa `/ready` como health check y todas las credenciales quedan como variables `sync: false`; deben configurarse en Render antes del primer deploy.
 
+El API aplica las migraciones con `prisma migrate deploy` en `preDeployCommand`. La carga del catálogo oficial `data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv` debe ejecutarse después, como operación controlada con `pnpm db:tariff-import ... --apply`, para no mezclar una carga masiva con el arranque del servicio.
+
 ### Web
 
 - Fuente: `apps/web`

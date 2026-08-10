@@ -4,6 +4,7 @@ services:
     runtime: node
     plan: starter
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/api... build
+    preDeployCommand: pnpm --filter @platform/db prisma migrate deploy
     startCommand: pnpm --filter @platform/api start
     healthCheckPath: /ready
     envVars:
