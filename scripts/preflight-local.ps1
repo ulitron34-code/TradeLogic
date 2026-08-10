@@ -20,9 +20,11 @@ $required = @(
   'docs/VERCEL_ENV_SETUP.md',
   'docs/TESTING.md',
   'docs/DEPLOYMENT_RUNBOOK.md',
+  'docs/PILOT_ACCEPTANCE_CHECKLIST.md',
   'scripts/smoke-production.cjs',
   'scripts/smoke-authenticated.cjs',
   'scripts/verify-tariff-source.cjs',
+  'scripts/verify-pilot-evidence.cjs',
   'supabase/verify_tariff_catalog.sql',
   'render.yaml'
 )

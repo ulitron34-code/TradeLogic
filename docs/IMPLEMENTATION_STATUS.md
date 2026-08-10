@@ -11,6 +11,7 @@ Actualizado: 2026-08-10
 
 ## Correccion de estado (2026-08-10)
 
+- Se agrego `docs/PILOT_ACCEPTANCE_CHECKLIST.md` y `npm run verify:pilot-evidence` para exigir evidencia minima antes de cerrar piloto: smoke publico, smoke autenticado y verificacion post-import del catalogo.
 - Se agrego `supabase/verify_tariff_catalog.sql` para verificar post-import en Supabase, en modo read-only con `rollback`, conteo total, distribucion de fuentes, duplicados, NICO y tasas porcentuales.
 - Se documento `docs/DEPLOYMENT_RUNBOOK.md` con tableros Supabase/Render/Vercel, secuencia post-push, smoke publico/autenticado y criterios no-go.
 - Se agrego `scripts/verify-tariff-source.cjs` y `npm run verify:tariff-source` para proteger el CSV oficial FA/NICO con hash SHA-256, conteo de 20,227 filas y columnas obligatorias en CI y en el script dedicado; PowerShell preflight lo ejecuta cuando Node.js esta en PATH.

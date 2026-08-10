@@ -32,7 +32,8 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --api-base-url htt
 ```
 
 7. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.
-8. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
+8. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
+9. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
 
 ## Criterios de no-go
 

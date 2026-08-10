@@ -1,0 +1,34 @@
+# Checklist de aceptacion del piloto
+
+Actualizado: 2026-08-10
+
+## Objetivo
+
+Cerrar un piloto controlado con evidencia reproducible del flujo completo: deploy vivo, base conectada, catalogo oficial cargado, sesion autenticada y datos visibles por organizacion.
+
+## Evidencia requerida
+
+Guardar estos archivos en `artifacts/` durante el piloto. No se versionan en Git.
+
+- `smoke-production.json`: generado por `npm run smoke:production -- --api-base-url ... --web-base-url ... --output artifacts/smoke-production.json`.
+- `smoke-authenticated.json`: generado por `npm run smoke:authenticated -- --api-base-url ... --output artifacts/smoke-authenticated.json` con un JWT real de cuenta piloto.
+- `tariff-catalog-verification.json`: resumen manual en JSON de los resultados de `supabase/verify_tariff_catalog.sql` despues de importar el catalogo FA/NICO.
+
+## Criterios de cierre
+
+- API publica responde `/health` y `/ready`, con `database: ok`.
+- Web publica responde sin error 5xx.
+- Smoke autenticado resuelve `/api/v1/me`, productos, casos y alertas.
+- Supabase confirma 20,227 filas de catalogo importadas y sin checks fallidos.
+- La UI permite completar al menos un recorrido manual: login -> producto -> evidencia -> caso -> submit -> revision -> expediente PDF.
+- Cualquier bloqueo se registra con fecha, entorno, usuario piloto y decision de go/no-go.
+
+## Verificacion local de evidencia
+
+Despues de guardar los archivos anteriores:
+
+```bash
+npm run verify:pilot-evidence -- --artifacts-dir artifacts
+```
+
+El verificador no reemplaza la revision humana del recorrido UI; solo evita cerrar el piloto sin los tres archivos minimos de evidencia operativa.
