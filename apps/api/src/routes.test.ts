@@ -1029,6 +1029,7 @@ describe('cost scenarios', () => {
         freight: 500,
         insurance: 100,
         duty_rate_percent: 15,
+        duty_rate_source: 'Criterio manual documentado',
       },
     });
 
@@ -1055,12 +1056,32 @@ describe('cost scenarios', () => {
     const response = await otherApp.inject({
       method: 'POST',
       url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
-      payload: { customs_value: 1000, duty_rate_percent: 10 },
+      payload: { customs_value: 1000, duty_rate_percent: 10, duty_rate_source: 'Criterio manual documentado' },
     });
 
     expect(response.statusCode).toBe(404);
   });
 
+  it('requires a source when a manual duty rate is supplied', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-manual-source-required' },
+      payload: { product_id: product.id },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${created.json().id}/cost-scenarios`,
+      payload: { customs_value: 1000, duty_rate_percent: 10 },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json().code).toBe('MANUAL_RATE_SOURCE_REQUIRED');
+  });
   it('does not silently assume zero when no official or manual rate exists', async () => {
     const { makeApp } = createHarness();
     const app = await makeApp();
@@ -1097,12 +1118,12 @@ describe('cost scenarios', () => {
     await app.inject({
       method: 'POST',
       url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
-      payload: { customs_value: 1000, duty_rate_percent: 5 },
+      payload: { customs_value: 1000, duty_rate_percent: 5, duty_rate_source: 'Criterio manual documentado' },
     });
     await app.inject({
       method: 'POST',
       url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
-      payload: { customs_value: 2000, duty_rate_percent: 5 },
+      payload: { customs_value: 2000, duty_rate_percent: 5, duty_rate_source: 'Criterio manual documentado' },
     });
 
     const response = await app.inject({

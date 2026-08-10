@@ -55,6 +55,7 @@ const costScenarioBody = z.object({
   freight: z.number().nonnegative().default(0),
   insurance: z.number().nonnegative().default(0),
   duty_rate_percent: z.number().nonnegative().optional(),
+  duty_rate_source: z.string().trim().min(1).max(500).optional(),
   iva_rate_percent: z.number().nonnegative().optional(),
   other_fees: z.number().nonnegative().optional(),
 });
@@ -714,7 +715,10 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     if (!classificationCase) return reply.notFound('Classification case not found');
 
     let dutyRatePercent = body.duty_rate_percent;
-    let dutyRateSource = body.duty_rate_percent === undefined ? 'UNAVAILABLE' : 'MANUAL_OVERRIDE';
+    let dutyRateSource = body.duty_rate_percent === undefined ? 'UNAVAILABLE' : body.duty_rate_source;
+    if (body.duty_rate_percent !== undefined && !body.duty_rate_source) {
+      return reply.code(422).send({ code: 'MANUAL_RATE_SOURCE_REQUIRED', message: 'Captura la fuente o fundamento de la tasa manual.' });
+    }
     if (dutyRatePercent === undefined && classificationCase.selectedCodeId) {
       const now = new Date();
       const selectedTariffCode = await scopedDb.tariffCode.findFirst({

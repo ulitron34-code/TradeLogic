@@ -10,8 +10,8 @@ Actualizado: 2026-08-10
 
 Estos enlaces son tableros de administracion. Para los smoke tests se necesitan las URLs publicas de runtime:
 
-- API publica de Render: `https://...onrender.com`
-- Web publica de Vercel: `https://...vercel.app` o dominio custom
+- API publica de Render: `https://tradelogic-api.onrender.com`
+- Web publica de Vercel: `https://tradelogic-git-main-ulitron34-codes-projects.vercel.app`
 
 ## Secuencia despues de cada push
 
@@ -22,7 +22,7 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 5. Registrar las URLs publicas en evidencia local sin secretos:
 
 ```bash
-npm run record:deployment-targets -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/deployment-targets.json
+npm run record:deployment-targets -- --api-base-url https://tradelogic-api.onrender.com --web-base-url https://tradelogic-git-main-ulitron34-codes-projects.vercel.app --output artifacts/deployment-targets.json
 ```
 
 6. Ejecutar smoke publico leyendo esas URLs:

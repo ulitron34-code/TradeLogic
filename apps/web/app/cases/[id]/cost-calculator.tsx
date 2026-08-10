@@ -46,12 +46,19 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
     const form = new FormData(event.currentTarget);
     try {
       const dutyRate = String(form.get('duty_rate_percent') ?? '').trim();
-      const payload: Record<string, number> = {
+      const payload: Record<string, number | string> = {
         customs_value: Number(form.get('customs_value')),
         freight: Number(form.get('freight') || 0),
         insurance: Number(form.get('insurance') || 0),
       };
-      if (dutyRate) payload.duty_rate_percent = Number(dutyRate);
+      if (dutyRate) {
+        payload.duty_rate_percent = Number(dutyRate);
+        const dutyRateSource = String(form.get('duty_rate_source') ?? '').trim();
+        if (!dutyRateSource) {
+          throw new Error('Captura la fuente o fundamento de la tasa manual.');
+        }
+        payload.duty_rate_source = dutyRateSource;
+      }
       const scenario = await apiFetchClient<CostScenario>(`/api/v1/classification-cases/${caseId}/cost-scenarios`, {
         method: 'POST',
         body: JSON.stringify(payload),
@@ -113,6 +120,15 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
                 className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
               />
             </label>
+            <label className="col-span-2 flex flex-col gap-1 text-sm">
+              Fuente del arancel manual
+              <input
+                name="duty_rate_source"
+                type="text"
+                placeholder="Ej. TIGIE/SNICE, tratado preferencial, criterio interno revisado"
+                className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+              />
+            </label>
             <label className="flex flex-col gap-1 text-sm">
               Flete (opcional)
               <input
@@ -135,7 +151,7 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
             </label>
           </div>
           <p className="text-xs text-neutral-400">
-            IVA se calcula al 16% por defecto. Si el caso tiene un código seleccionado con IGI oficial vigente, TradeLogic lo utiliza automáticamente; captura una tasa solo para un escenario manual con fundamento.
+            IVA se calcula al 16% por defecto. Si el caso tiene un código seleccionado con IGI oficial vigente, TradeLogic lo utiliza automáticamente; captura una tasa manual solo cuando tengas una fuente o fundamento verificable.
           </p>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex gap-2">
