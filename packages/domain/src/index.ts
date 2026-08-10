@@ -76,6 +76,10 @@ export type TariffCandidateInput = {
   code: string;
   nico?: string | null;
   description: string;
+  sourceUrl?: string | null;
+  legalNotes?: string | null;
+  validFrom?: string | Date | null;
+  validTo?: string | Date | null;
   sourceVersion: string;
 };
 
@@ -87,11 +91,15 @@ export type ProductClassificationInput = {
 export type RankedTariffCandidate = TariffCandidateInput & {
   score: number;
   matchedTerms: string[];
-  rationale: {
-    summary: string;
-    matched_terms: string[];
-    deterministic_rules: string[];
-    source_version: string;
+    rationale: {
+      summary: string;
+      matched_terms: string[];
+      deterministic_rules: string[];
+      source_version: string;
+      source_url?: string;
+      legal_notes?: string;
+      valid_from?: string;
+      valid_to?: string;
   };
   contradictions: string[];
 };
@@ -145,6 +153,10 @@ function scoreCandidate(candidate: TariffCandidateInput, productTermSet: Set<str
         'Penalizacion por contradicciones basicas de material/uso',
       ],
       source_version: candidate.sourceVersion,
+      ...(candidate.sourceUrl ? { source_url: candidate.sourceUrl } : {}),
+      ...(candidate.legalNotes ? { legal_notes: candidate.legalNotes } : {}),
+      ...(candidate.validFrom ? { valid_from: new Date(candidate.validFrom).toISOString() } : {}),
+      ...(candidate.validTo ? { valid_to: new Date(candidate.validTo).toISOString() } : {}),
     },
   };
 }
@@ -196,3 +208,11 @@ function inferContradictions(candidate: TariffCandidateInput, productTermSet: Se
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
+
+export {
+  tariffCatalogKey,
+  validateTariffCatalog,
+  type NormalizedTariffCatalogRecord,
+  type TariffCatalogRecord,
+  type TariffCatalogValidation,
+} from './tariffCatalog.js';
