@@ -9,7 +9,8 @@ jobs:
         with: { version: 9.15.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: timeout 10m pnpm install --frozen-lockfile --reporter=append-only --network-concurrency=4
       - run: pnpm verify:structure
       - run: pnpm typecheck
       - run: pnpm test
