@@ -1,9 +1,9 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
-import { assessLegalRisk, calculateLandedCost, renderCaseDossierPdf } from '@platform/domain';
-import { db as defaultDb, scopeToOrganization, type Prisma } from '@platform/db';
+import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
+import { db as defaultDb, persistHistoricalAuditRun, scopeToOrganization, type Prisma } from '@platform/db';
 import {
   buildStorageKey,
   headObject as defaultHeadObject,
@@ -57,6 +57,13 @@ const costScenarioBody = z.object({
   duty_rate_percent: z.number().nonnegative(),
   iva_rate_percent: z.number().nonnegative().optional(),
   other_fees: z.number().nonnegative().optional(),
+});
+
+const historicalAuditBody = z.object({
+  source_filename: z.string().min(1).max(255),
+  source_sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  source_version: z.string().min(1).max(100),
+  csv: z.string().min(1).max(10_000_000),
 });
 
 const paramsWithId = z.object({ id: z.string().uuid() });
@@ -694,6 +701,53 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       orderBy: { createdAt: 'desc' },
     });
     return { data: scenarios };
+  });
+
+  app.post('/api/v1/historical-audits', async (request, reply) => {
+    const { user, organization } = await resolveContext(request, db);
+    const body = historicalAuditBody.parse(request.body);
+    const sourceSha256 = createHash('sha256').update(body.csv, 'utf8').digest('hex');
+    if (sourceSha256.toLowerCase() !== body.source_sha256.toLowerCase()) {
+      return reply.code(400).send({ code: 'SOURCE_SHA256_MISMATCH', message: 'source_sha256 does not match the uploaded CSV' });
+    }
+    const rows = parseHistoricalDeclarationsCsv(body.csv);
+    const now = new Date();
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const tariffCodes = await scopedDb.tariffCode.findMany({ where: { countryCode: 'MX', validFrom: { lte: now }, OR: [{ validTo: null }, { validTo: { gt: now } }], rateUnit: 'PERCENT' } });
+    const rates = tariffCodes.flatMap((tariffCode) => tariffCode.generalRate === null ? [] : [{ tariffCode: tariffCode.code, nico: tariffCode.nico, ratePercent: Number(tariffCode.generalRate), sourceVersion: tariffCode.sourceVersion, sourceUrl: tariffCode.sourceUrl ?? '' }]);
+    const results = analyzeHistoricalDeclarations(rows, rates);
+    const summary = {
+      total: results.length,
+      potentialOverpayment: results.filter((result) => result.status === 'POTENTIAL_OVERPAYMENT').length,
+      potentialUnderpayment: results.filter((result) => result.status === 'POTENTIAL_UNDERPAYMENT').length,
+      reviewRequired: results.filter((result) => result.status === 'REVIEW_REQUIRED').length,
+      noDifference: results.filter((result) => result.status === 'NO_DIFFERENCE').length,
+    };
+    const persisted = await persistHistoricalAuditRun(scopedDb as typeof defaultDb, {
+      organizationId: organization.id,
+      createdById: user.id,
+      sourceFilename: body.source_filename,
+      sourceSha256,
+      sourceVersion: body.source_version,
+      summary,
+      declarations: rows.map((row, index) => ({
+        rowNumber: row.rowNumber,
+        entryDate: new Date(row.entryDate),
+        tariffCode: row.tariffCode,
+        nico: row.nico ?? null,
+        countryOfOrigin: row.countryOfOrigin,
+        customsValue: row.customsValue,
+        declaredDutyRatePercent: row.declaredDutyRatePercent ?? null,
+        declaredDutyAmount: row.declaredDutyAmount,
+        expectedDutyAmount: results[index]?.expectedDutyAmount ?? null,
+        difference: results[index]?.difference ?? null,
+        status: results[index]?.status ?? 'REVIEW_REQUIRED',
+        reason: results[index]?.reason ?? 'No se pudo analizar el registro.',
+        rateSourceVersion: results[index]?.rateSourceVersion ?? null,
+        rateSourceUrl: results[index]?.rateSourceUrl ?? null,
+      })),
+    });
+    return reply.code(201).send({ ...persisted, summary, results });
   });
 
   app.get('/api/v1/alerts', async (request) => {

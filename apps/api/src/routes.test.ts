@@ -993,3 +993,22 @@ describe('cost scenarios', () => {
     expect(response.json().data[0].inputs.customs_value).toBe(2000);
   });
 });
+
+describe('historical audit import', () => {
+  it('rejects a CSV whose claimed SHA-256 does not match the content', async () => {
+    const { makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp(ownerIdentity);
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/historical-audits',
+      payload: {
+        source_filename: 'historical.csv',
+        source_sha256: 'a'.repeat(64),
+        source_version: 'audit-2026.1',
+        csv: 'entry_date,tariff_code,country_of_origin,customs_value,declared_duty_amount\n2026-01-01,85011001,US,1000,50',
+      },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().code).toBe('SOURCE_SHA256_MISMATCH');
+  });
+});

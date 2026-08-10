@@ -52,6 +52,7 @@
 - Added comparison against explicitly sourced/versioned rates; it reports potential overpayment, potential underpayment, no difference, or review required when no rate is available.
 - Added idempotent run/declaration persistence and migration with source fingerprint, summary, row number, and result provenance.
 - The database schema validates successfully; a production import still requires an official rate catalog and a controlled pilot dataset.
+- Added `POST /api/v1/historical-audits`, which verifies the CSV fingerprint, reads only current `PERCENT` rates from the organization-scoped catalog, persists the run, and returns row-level findings.
 
 ## Validation gate
 

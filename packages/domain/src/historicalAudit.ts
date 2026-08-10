@@ -33,12 +33,14 @@ export function parseHistoricalDeclarationsCsv(csv: string): HistoricalDeclarati
   for (const header of required) if (!headers.includes(header)) throw new Error(`Missing historical audit column: ${header}`);
   return rows.slice(1).filter((row) => row.some((value) => value.trim() !== '')).map((row, index) => {
     const value = (name: string) => row[headers.indexOf(name)]?.trim() ?? '';
+    const entryDate = value('entry_date');
+    if (!entryDate || Number.isNaN(new Date(entryDate).getTime())) throw new Error(`Invalid entry_date at row ${index + 2}`);
     const customsValue = parseMoney(value('customs_value'), 'customs_value');
     const declaredDutyAmount = parseMoney(value('declared_duty_amount'), 'declared_duty_amount');
     const declaredRate = value('declared_duty_rate_percent');
     return {
       rowNumber: index + 2,
-      entryDate: value('entry_date'),
+      entryDate,
       tariffCode: normalizeTariffCode(value('tariff_code')),
       ...(value('nico') ? { nico: value('nico') } : {}),
       countryOfOrigin: value('country_of_origin').toUpperCase(),
