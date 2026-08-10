@@ -21,6 +21,7 @@ docs/SUPABASE_PRISMA_SETUP.md
 docs/VERCEL_ENV_SETUP.md
 docs/TESTING.md
 scripts/smoke-production.cjs
+scripts/smoke-authenticated.cjs
 render.yaml
 "
 

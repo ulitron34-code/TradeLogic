@@ -11,7 +11,8 @@ Actualizado: 2026-08-10
 
 ## Correccion de estado (2026-08-10)
 
-- CI valida preflight shell y sintaxis/ayuda del smoke test para evitar que el control operativo se rompa sin notarlo.
+- Se agrego `scripts/smoke-authenticated.cjs` y `npm run smoke:authenticated` para validar con JWT real, en modo read-only, `/me`, productos, casos y alertas.
+- CI valida preflight shell y sintaxis/ayuda de los smoke tests para evitar que el control operativo se rompa sin notarlo.
 - Se agrego `scripts/smoke-production.cjs` y `npm run smoke:production` para validar `/health`, `/ready` y web despues de cada deploy, sin credenciales ni dependencias extra; tambien puede guardar evidencia JSON con `--output`.
 - Se reforzo el flujo guiado de productos en `apps/web`: listado con metricas operativas, estado vacio accionable, formulario sin tarjetas anidadas, detalle de producto con pasos de evidencia/clasificacion y navegacion superior responsive.
 El worker ya cuenta con pruebas inyectables en `apps/worker/src/classificationAnalysis.test.ts` y `apps/worker/src/regulatoryIngestion.test.ts`. La refactorizacion de `classification-analysis` permite probar ranking, persistencia de candidatos, estados finales y bloqueo por falta de version del producto. La suite del worker queda en 7 pruebas; la validacion completa de monorepo (test, typecheck y build) esta en verde.

@@ -21,6 +21,8 @@ jobs:
         run: |
           node --check scripts/smoke-production.cjs
           node scripts/smoke-production.cjs --help
+          node --check scripts/smoke-authenticated.cjs
+          node scripts/smoke-authenticated.cjs --help
       - name: Typecheck
         run: pnpm typecheck
       - name: Test

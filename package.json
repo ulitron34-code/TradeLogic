@@ -17,7 +17,8 @@
     "preflight:win": "powershell -ExecutionPolicy Bypass -File scripts/preflight-local.ps1",
     "preflight:sh": "sh scripts/preflight-local.sh",
     "go-nogo:local": "npm run verify:structure && npm run preflight:win && npm run typecheck && npm run test && npm run build",
-    "smoke:production": "node scripts/smoke-production.cjs"
+    "smoke:production": "node scripts/smoke-production.cjs",
+    "smoke:authenticated": "node scripts/smoke-authenticated.cjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
