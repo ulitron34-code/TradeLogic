@@ -31,6 +31,13 @@
 - Added the recurring `jurisprudence-ingestion` worker queue and its configurable cron schedule.
 - The migration and source package are present locally; publication and database execution remain pending until the GitHub/Vercel path and Supabase migration runner are available.
 
+## Risk and origin foundation
+
+- Added a deterministic, explainable legal-risk indicator with factor-level points, ruleset version, human-review gate, and non-legal-advice disclaimer.
+- Added a source-backed T-MEC origin-rule contract supporting tariff shift, regional value content, and required-process rules.
+- Origin evaluation preserves source URL/version, distinguishes `ELIGIBLE`, `NOT_ELIGIBLE`, and `NEEDS_REVIEW`, and never treats missing evidence as proven eligibility.
+- These are calculation foundations only; production use still requires loading official agreement rules and professional validation.
+
 ## Validation gate
 
 - The full monorepo build passes for all 10 packages.

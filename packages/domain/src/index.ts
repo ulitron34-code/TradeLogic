@@ -222,3 +222,15 @@ export {
   type RegulatoryRequirementRecord,
   type RegulatoryRequirementValidation,
 } from './regulatoryRequirement.js';
+export {
+  assessLegalRisk,
+  evaluateOrigin,
+  LEGAL_RISK_DISCLAIMER,
+  LEGAL_RISK_RULESET_VERSION,
+  type LegalRiskInput,
+  type LegalRiskResult,
+  type OriginInput,
+  type OriginResult,
+  type OriginRule,
+  type RiskBand,
+} from './tradeCompliance.js';
