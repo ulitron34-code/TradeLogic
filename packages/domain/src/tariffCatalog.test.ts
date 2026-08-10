@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { tariffCatalogKey, validateTariffCatalog } from './tariffCatalog.js';
+import { parseTariffCatalogCsv, tariffCatalogKey, validateTariffCatalog } from './tariffCatalog.js';
 
 const base = {
   countryCode: 'mx',
@@ -11,6 +11,16 @@ const base = {
 };
 
 describe('validateTariffCatalog', () => {
+  it('parses quoted Spanish CSV columns before validation', () => {
+    const parsed = parseTariffCatalogCsv(
+      'Fracción arancelaria,NICO,Descripción,IGI,Vigencia desde\n3926.90.99,99,"Manufacturas, de plástico",10%,2026-01-01',
+      { sourceVersion: 'LIGIE-MX-2026', sourceUrl: 'https://example.test/ligie' },
+    );
+    const result = validateTariffCatalog(parsed);
+    expect(result.errors).toEqual([]);
+    expect(result.records[0]).toMatchObject({ code: '3926.90.99', description: 'Manufacturas, de plástico', generalRate: 10 });
+  });
+
   it('normalizes a valid record without inventing regulatory data', () => {
     const result = validateTariffCatalog([base]);
     expect(result.errors).toEqual([]);

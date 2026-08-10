@@ -27,6 +27,12 @@ export type TariffCatalogValidation = {
   errors: string[];
 };
 
+export type TariffCatalogCsvOptions = {
+  sourceVersion: string;
+  sourceUrl?: string;
+  defaultValidFrom?: string | Date;
+};
+
 const CODE_PATTERN = /^\d{4}\.\d{2}\.\d{2}$/;
 const NICO_PATTERN = /^\d{2}$/;
 
@@ -79,6 +85,37 @@ export function validateTariffCatalog(input: unknown): TariffCatalogValidation {
   }
 
   return { records, errors };
+}
+
+/** Converts a simple UTF-8 CSV export into records for validateTariffCatalog. */
+export function parseTariffCatalogCsv(csv: string, options: TariffCatalogCsvOptions): unknown[] {
+  const rows = parseCsvRows(csv);
+  if (rows.length < 2) return [];
+  const headers = rows[0]!.map(normalizeHeader);
+  const indexOf = (...names: string[]) => names.map(normalizeHeader).map(name => headers.indexOf(name)).find(index => index >= 0) ?? -1;
+  const codeIndex = indexOf('code', 'fraccion', 'fraccion arancelaria', 'fraccion_arancelaria');
+  const descriptionIndex = indexOf('description', 'descripcion', 'descripcion de la mercancia');
+  const nicoIndex = indexOf('nico');
+  const validFromIndex = indexOf('validfrom', 'vigencia desde', 'vigencia_desde');
+  const validToIndex = indexOf('validto', 'vigencia hasta', 'vigencia_hasta');
+  const rateIndex = indexOf('generalrate', 'igi', 'arancel');
+  const rateUnitIndex = indexOf('rateunit', 'unidad de tasa', 'tipo de arancel');
+
+  return rows.slice(1).filter(row => row.some(cell => cell.trim())).map(row => {
+    const rateText = cell(row, rateIndex);
+    return {
+      countryCode: cell(row, indexOf('countrycode', 'pais')) || 'MX',
+      code: cell(row, codeIndex),
+      nico: cell(row, nicoIndex) || null,
+      description: cell(row, descriptionIndex),
+      generalRate: rateText && /^\d+(?:[.,]\d+)?\s*%?$/.test(rateText) ? rateText.replace('%', '').trim() : null,
+      rateUnit: cell(row, rateUnitIndex) || (rateText && !/^\d/.test(rateText) ? rateText : null),
+      validFrom: cell(row, validFromIndex) || options.defaultValidFrom || new Date().toISOString(),
+      validTo: cell(row, validToIndex) || null,
+      sourceVersion: cell(row, indexOf('sourceversion', 'version')) || options.sourceVersion,
+      sourceUrl: cell(row, indexOf('sourceurl', 'fuente')) || options.sourceUrl || null,
+    };
+  });
 }
 
 export function tariffCatalogKey(record: Pick<NormalizedTariffCatalogRecord, 'countryCode' | 'code' | 'nico' | 'validFrom'>): string {
@@ -152,4 +189,47 @@ function parseRate(value: unknown): number | null {
   if (value === undefined || value === null || value === '') return null;
   const rate = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
   return Number.isFinite(rate) && rate >= 0 ? rate : null;
+}
+
+function parseCsvRows(csv: string): string[][] {
+  const text = csv.replace(/^\uFEFF/, '');
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cellValue = '';
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const character = text[i]!;
+    const next = text[i + 1];
+    if (character === '"' && quoted && next === '"') {
+      cellValue += '"';
+      i += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (character === ',' && !quoted) {
+      row.push(cellValue);
+      cellValue = '';
+    } else if ((character === '\n' || character === '\r') && !quoted) {
+      if (character === '\r' && next === '\n') i += 1;
+      row.push(cellValue);
+      rows.push(row);
+      row = [];
+      cellValue = '';
+    } else {
+      cellValue += character;
+    }
+  }
+  if (cellValue.length > 0 || row.length > 0) {
+    row.push(cellValue);
+    rows.push(row);
+  }
+  return rows;
+}
+
+function normalizeHeader(value: string): string {
+  return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/ /g, '');
+}
+
+function cell(row: string[], index: number): string {
+  return index >= 0 ? (row[index] ?? '').trim() : '';
 }
