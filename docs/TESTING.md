@@ -29,7 +29,7 @@ Casos cubiertos:
 
 ## Estado actual
 
-- La suite completa pasa con 19 tareas Turbo y 89 pruebas; incluye API, dominio, base de datos, IA, regulatorio, jurisprudencia y worker.
+- La suite completa pasa con 19 tareas Turbo y 87 pruebas; incluye API, dominio, base de datos, IA, regulatorio, jurisprudencia y worker.
 - El catalogo oficial NICO/LIGIE de 11,507 registros tiene una prueba de integridad que valida claves unicas, NICO de dos digitos y ausencia de tasas inventadas.
 - Las pruebas API incluyen aislamiento multiempresa para productos, casos, documentos, alertas, escenarios de costo y auditorias.
 

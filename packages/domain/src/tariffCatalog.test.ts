@@ -21,6 +21,16 @@ describe('validateTariffCatalog', () => {
     expect(result.records.every(record => record.countryCode === 'MX' && record.nico && record.generalRate === null)).toBe(true);
   });
 
+  it('validates the current SNICE FA/NICO catalog with IGI, IGE and effective modifications', async () => {
+    const csv = await readFile(new URL('../../../data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv', import.meta.url), 'utf8');
+    const parsed = parseTariffCatalogCsv(csv, { sourceVersion: 'SNICE-LIGIE-BASE-2021-11-19' });
+    const result = validateTariffCatalog(parsed);
+    expect(result.errors).toEqual([]);
+    expect(result.records).toHaveLength(20227);
+    expect(result.records.some(record => record.generalRate === 10 && record.exportRateUnit === 'Ex.')).toBe(true);
+    expect(result.records.some(record => record.validFrom.toISOString().startsWith('2026-04-24') && record.sourceVersion === 'SNICE-TIGIE-MOD-ABRIL-2026')).toBe(true);
+  });
+
   it('parses quoted Spanish CSV columns before validation', () => {
     const parsed = parseTariffCatalogCsv(
       'Fracción arancelaria,NICO,Descripción,IGI,Vigencia desde\n3926.90.99,99,"Manufacturas, de plástico",10%,2026-01-01',

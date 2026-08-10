@@ -18,14 +18,14 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 
 | Capacidad | Estado actual | Trabajo para cerrar | Evidencia de cierre |
 |---|---|---|---|
-| Clasificacion determinista | Implementada localmente: catalogo oficial NICO/LIGIE y ranking versionado | Cargar modificaciones con vigencia y reglas interpretativas por fuente | Fixtures oficiales, ranking explicable y piloto |
+| Clasificacion determinista | Implementada localmente: catalogo oficial NICO/LIGIE, IGI/IGE y ranking versionado | Reglas interpretativas por fuente y piloto | Fixtures oficiales, ranking explicable y piloto |
 | Evidencia de producto | Implementada: documentos, hash, vinculo y bloqueo de aprobacion | Suficiencia y extraccion por requisito | Evidencia vinculada a cada decision |
 | Candidatos y confianza | Implementada en MVP | Calibracion con dataset piloto y explicacion de descarte | Pruebas de ranking y revision humana |
 | Jurisprudencia | Implementada localmente: cliente SJF, schema, ingesta y pgvector | Integrar precedentes al expediente y verificar ejecucion remota | Caso con precedentes citados y URLs verificables |
 | Riesgo legal | Indicador explicable implementado | Validacion profesional y calibracion con escenarios reales | Escenarios reproducibles y disclaimer |
 | NOM/permisos/regulaciones | Requisitos versionados y vigilancia DOF implementados | Cargar catalogos oficiales por autoridad y fraccion | Checklist con fuente y vigencia |
 | T-MEC/origen | Reglas versionadas y evaluacion implementadas | Cargar reglas oficiales y validar escenarios reales | Calculo con fuente y fecha |
-| Landed cost | Formula y escenarios implementados; arancel manual por falta de tasas oficiales | Cargar tasas oficiales versionadas | Casos de calculo auditables |
+| Landed cost | Formula y escenarios implementados; tasas oficiales versionadas disponibles para importacion | Integrar seleccion de regimen/preferencia y validar escenarios | Casos de calculo auditables |
 | Alertas | Persistencia, worker y pantalla implementados | Validar entrega, deduplicacion y accion desde cambio real | Alerta generada por un cambio real |
 | Expediente PDF | Snapshot, fundamento, evidencia y auditoria implementados localmente | Verificar endpoint y migraciones en produccion | PDF renderizado y revisado |
 | Auditoria historica | Importacion, comparacion y hallazgos implementados localmente | Piloto con declaraciones y tasas oficiales | Dataset de prueba y reporte |
@@ -44,7 +44,7 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 
 ## Primer entregable tecnico
 
-El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial NICO/LIGIE de 11,507 registros y la prueba de cobertura ya estan implementados localmente. El siguiente cierre es cargar modificaciones con vigencia y ejecutar la migracion/importacion en un entorno controlado.
+El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial FA/NICO con IGI/IGE, las modificaciones con vigencia y las pruebas de cobertura ya estan implementados localmente. El siguiente cierre es ejecutar la migracion/importacion en un entorno controlado y conectar el calculo al regimen/preferencia aplicable.
 
 ## Criterio de finalizacion del proyecto
 

@@ -178,8 +178,11 @@ model TariffCode {
   heading String?
   legalNotes String?
   sourceUrl String?
+  unitOfMeasure String?
   generalRate Decimal? @db.Decimal(8,4)
   rateUnit String?
+  exportRate Decimal? @db.Decimal(8,4)
+  exportRateUnit String?
   validFrom DateTime
   validTo DateTime?
   sourceVersion String

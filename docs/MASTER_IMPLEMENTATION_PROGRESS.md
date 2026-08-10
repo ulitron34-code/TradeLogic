@@ -7,8 +7,8 @@
 - A dependency-free CSV adapter now accepts the common Spanish LIGIE/NICO column names and preserves non-percentage rate text instead of coercing it to a false percentage.
 - Idempotent persistence updates an existing effective version and creates a new version when the effective date changes.
 - Tests pass for validation, persistence behavior, deterministic ranking, and landed cost.
-- Loaded an official SNICE NICO/LIGIE workbook (April 2024) into 11,507 unique fraction+NICO CSV records with source fingerprint and no inferred rates. The catalog is now available for controlled import; 2026 tariff modifications remain separate effective versions.
-- An official SNICE April 2026 modification workbook was downloaded, hashed, extracted to 185 normalized CSV rows, and accepted by the TypeScript validator. It remains marked as `downloaded_not_loaded` because it is a modification set, not the complete base catalog.
+- Loaded the official SNICE FA/NICO workbook published in April 2026 and merged its 8,183 fracciones, 11,507 NICO records, and 185 April 2026 tariff modifications into a 20,227-row versioned CSV. IGI and IGE preserve numeric percentages and non-percentage text such as `Ex.` and `Prohibida`; affected base rows close on 2026-04-24.
+- Added a manifest with SHA-256 fingerprints for the official workbook, modification input, and derived catalog. The derived catalog is validated by an automated domain test and is ready for controlled database import.
 
 ## Review control
 
@@ -19,7 +19,7 @@
 
 - Added a versioned `RegulatoryRequirement` relation to tariff codes with authority, requirement type, source URL, source version, effective dates, mandatory flag, and notes.
 - Added validation, effective-window logic, idempotent persistence, migration, and tests.
-- No NOM, permit, or authority requirement is populated without an authoritative source; the catalog remains explicitly pending source-backed loading.
+- No NOM, permit, or authority requirement is populated without an authoritative source; tariff nomenclature/rates are now source-backed, while regulatory requirement catalogs remain pending source-backed loading.
 - Case detail now requests only currently effective requirements and displays authority, type, source version, mandatory status, and source link beside each tariff candidate.
 
 ## Jurisprudence foundation
@@ -51,14 +51,14 @@
 - Added a CSV parser for historical declarations with tariff-code normalization, money validation, and required-column checks.
 - Added comparison against explicitly sourced/versioned rates; it reports potential overpayment, potential underpayment, no difference, or review required when no rate is available.
 - Added idempotent run/declaration persistence and migration with source fingerprint, summary, row number, and result provenance.
-- The database schema validates successfully; a production import still requires an official rate catalog and a controlled pilot dataset.
+- The database schema now includes unit of measure, IGI, IGE, and rate-unit metadata; production import still requires migration deployment and a controlled pilot dataset.
 - Added `POST /api/v1/historical-audits`, which verifies the CSV fingerprint, reads only current `PERCENT` rates from the organization-scoped catalog, persists the run, and returns row-level findings.
 - Added `/audits` to the web navigation with a guided CSV upload, client-side SHA-256 calculation, summary counters, and row-level results.
 
 ## Validation gate
 
 - The full monorepo build passes for all 11 packages, including API, web, worker, database, jurisprudence, and the new audit workflow.
-- The full Turbo test task passes: 19 tasks and 89 assertions across API, domain, database, AI, regulatory, jurisprudence, and worker packages.
+- The full Turbo test task passes: 19 tasks and 87 assertions across API, domain, database, AI, regulatory, jurisprudence, and worker packages.
 - The full monorepo typecheck passes for all 11 packages.
 - The isolated pnpm installation now reproduces cleanly from the frozen lockfile after moving only stale generated dependency folders out of the way.
 - Worker tests now cover pgvector query parameterization, idempotent jurisprudence ingestion, and the optional embedding path without Redis or network calls.

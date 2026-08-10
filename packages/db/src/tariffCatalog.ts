@@ -9,8 +9,11 @@ export type TariffCatalogPersistenceRecord = {
   heading: string | null;
   legalNotes: string | null;
   sourceUrl: string | null;
+  unitOfMeasure?: string | null;
   generalRate: number | string | null;
   rateUnit: string | null;
+  exportRate?: number | string | null;
+  exportRateUnit?: string | null;
   validFrom: Date;
   validTo: Date | null;
   sourceVersion: string;
@@ -50,8 +53,11 @@ export async function upsertTariffCatalog(
         heading: record.heading,
         legalNotes: record.legalNotes,
         sourceUrl: record.sourceUrl,
+        unitOfMeasure: record.unitOfMeasure ?? null,
         generalRate: record.generalRate,
         rateUnit: record.rateUnit,
+        exportRate: record.exportRate ?? null,
+        exportRateUnit: record.exportRateUnit ?? null,
         validFrom: record.validFrom,
         validTo: record.validTo,
         sourceVersion: record.sourceVersion,

@@ -7,8 +7,11 @@ export type TariffCatalogRecord = {
   heading?: string | null;
   legalNotes?: string | null;
   sourceUrl?: string | null;
+  unitOfMeasure?: string | null;
   generalRate?: number | string | null;
   rateUnit?: string | null;
+  exportRate?: number | string | null;
+  exportRateUnit?: string | null;
   validFrom: string | Date;
   validTo?: string | Date | null;
   sourceVersion: string;
@@ -100,6 +103,9 @@ export function parseTariffCatalogCsv(csv: string, options: TariffCatalogCsvOpti
   const validToIndex = indexOf('validto', 'vigencia hasta', 'vigencia_hasta');
   const rateIndex = indexOf('generalrate', 'igi', 'arancel');
   const rateUnitIndex = indexOf('rateunit', 'unidad de tasa', 'tipo de arancel');
+  const exportRateIndex = indexOf('exportrate', 'ige', 'arancel exportacion');
+  const exportRateUnitIndex = indexOf('exportrateunit', 'unidad de tasa exportacion', 'tipo de arancel exportacion');
+  const unitOfMeasureIndex = indexOf('unitofmeasure', 'unidad de medida', 'umt');
 
   return rows.slice(1).filter(row => row.some(cell => cell.trim())).map(row => {
     const rateText = cell(row, rateIndex);
@@ -110,6 +116,9 @@ export function parseTariffCatalogCsv(csv: string, options: TariffCatalogCsvOpti
       description: cell(row, descriptionIndex),
       generalRate: rateText && /^\d+(?:[.,]\d+)?\s*%?$/.test(rateText) ? rateText.replace('%', '').trim() : null,
       rateUnit: cell(row, rateUnitIndex) || (rateText && !/^\d/.test(rateText) ? rateText : null),
+      exportRate: cell(row, exportRateIndex) && /^\d+(?:[.,]\d+)?\s*%?$/.test(cell(row, exportRateIndex)) ? cell(row, exportRateIndex).replace('%', '').trim() : null,
+      exportRateUnit: cell(row, exportRateUnitIndex) || (cell(row, exportRateIndex) && !/^\d/.test(cell(row, exportRateIndex)) ? cell(row, exportRateIndex) : null),
+      unitOfMeasure: cell(row, unitOfMeasureIndex) || null,
       validFrom: cell(row, validFromIndex) || options.defaultValidFrom || new Date().toISOString(),
       validTo: cell(row, validToIndex) || null,
       sourceVersion: cell(row, indexOf('sourceversion', 'version')) || options.sourceVersion,
@@ -140,8 +149,11 @@ function normalizeRecord(raw: unknown):
   const heading = nullableString(value.heading);
   const legalNotes = nullableString(value.legalNotes);
   const sourceUrl = nullableString(value.sourceUrl);
+  const unitOfMeasure = nullableString(value.unitOfMeasure);
   const rateUnit = nullableString(value.rateUnit);
+  const exportRateUnit = nullableString(value.exportRateUnit);
   const generalRate = parseRate(value.generalRate);
+  const exportRate = parseRate(value.exportRate);
   const sourceVersion = String(value.sourceVersion ?? '').trim();
   const validFrom = parseDate(value.validFrom);
   const validTo = value.validTo === undefined || value.validTo === null || value.validTo === '' ? null : parseDate(value.validTo);
@@ -152,6 +164,9 @@ function normalizeRecord(raw: unknown):
   if (!description) return { error: 'description is required.' };
   if (value.generalRate !== undefined && value.generalRate !== null && value.generalRate !== '' && generalRate === null) {
     return { error: 'generalRate must be a non-negative number.' };
+  }
+  if (value.exportRate !== undefined && value.exportRate !== null && value.exportRate !== '' && exportRate === null) {
+    return { error: 'exportRate must be a non-negative number.' };
   }
   if (!sourceVersion) return { error: 'sourceVersion is required.' };
   if (!validFrom) return { error: 'validFrom must be a valid date.' };
@@ -170,8 +185,11 @@ function normalizeRecord(raw: unknown):
       heading,
       legalNotes,
       sourceUrl,
+      unitOfMeasure,
       generalRate,
       rateUnit,
+      exportRate,
+      exportRateUnit,
       validFrom,
       validTo,
       sourceVersion,

@@ -7,6 +7,7 @@
 - Camara de Diputados, texto y reformas de la LIGIE: https://www.diputados.gob.mx/LeyesBiblio/ref/ligie_2022.htm
 - SAT, consulta oficial de clasificacion arancelaria y NICO: https://wwwmat.sat.gob.mx/tramites/71719/presenta-tu-consulta-de-clasificacion-arancelaria
 - SNICE, descarga oficial NICO/LIGIE (abril 2024): https://www.snice.gob.mx/~oracle/SNICE_DOCS/NICO-ABRIL24-LIGIE_20240415-20240415.XLSX
+- SNICE, fracciones arancelarias oficial (FA/NICO, archivo publicado en abril de 2026): https://www.snice.gob.mx/~oracle/SNICE_DOCS/FRACCIONESARANCELARIAS-LIGIE_20260420-20260420.xlsx
 
 ## Politica de ingesta
 
@@ -18,4 +19,4 @@
 
 ## Estado
 
-El archivo oficial NICO/LIGIE de abril de 2024 ya esta incorporado como `data/tariff-sources/2024/NICO-ABRIL24-LIGIE.csv`, extraido desde una copia XLSX cuyo SHA-256 es `86A16096525B0FDBC0D3CD5005AE44FBCBCE356C6A9BA7AD16684AEF956ACD46`. Contiene 11,507 claves unicas de fraccion + NICO, sin tasas arancelarias; por eso el importador conserva `generalRate` vacio y no inventa porcentajes. La ingesta a base de datos debe ejecutarse en un entorno controlado antes de produccion, y las modificaciones 2026 deben cargarse como versiones efectivas separadas.
+El archivo oficial FA/NICO publicado por SNICE ya esta integrado como `data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv`, junto con su manifiesto JSON. El derivado tiene 20,227 registros: 8,183 fracciones, 11,507 NICO y las 185 modificaciones de abril de 2026. Conserva IGI e IGE numericos cuando son porcentajes y el texto de `Ex.`, `Prohibida` o cuotas cuando no son porcentajes. Las filas afectadas cierran su vigencia base el 2026-04-24 antes de iniciar la version modificada. La ingesta a base de datos debe ejecutarse en un entorno controlado antes de produccion.

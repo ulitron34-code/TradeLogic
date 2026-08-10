@@ -1,0 +1,18 @@
+{
+  "kind": "official_ligie_nico_base_plus_modifications",
+  "baseSourceUrl": "https://www.snice.gob.mx/~oracle/SNICE_DOCS/FRACCIONESARANCELARIAS-LIGIE_20260420-20260420.xlsx",
+  "baseSourceSha256": "8370D3A35CA0BF89772BCBFFD1EC2A01DAE03A0D5905532FD6AB4BE12E26BCB7",
+  "baseSourceVersion": "SNICE-LIGIE-BASE-2021-11-19",
+  "baseValidFrom": "2021-11-19",
+  "modificationSource": "data/tariff-sources/2026/MODIFICACIONES-ABRIL2026-LIGIE.csv",
+  "modificationSourceSha256": "92DEC436238FE46652FAF6359A7E90FE4BB5F696CBA3027327CDA9EE50281B93",
+  "modificationSourceVersion": "SNICE-TIGIE-MOD-ABRIL-2026",
+  "modificationValidFrom": "2026-04-24",
+  "derivedCsv": "LIGIE-NICO-2026-04-24.csv",
+  "derivedCsvSha256": "BFA25F8D38D30F9C6BBCDEFCA6F41FA0D4C9D4F89D054A386042AA7F7880DD67",
+  "derivedRows": 20227,
+  "faRows": 8183,
+  "nicoRows": 11507,
+  "modificationRows": 185,
+  "notes": "IGI and IGE are preserved as numeric rates when percentage values and as rate-unit text for Ex., Prohibida, and quota formulas. Affected base rows close on 2026-04-24 before modification versions begin."
+}
