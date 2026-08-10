@@ -38,6 +38,7 @@ const schema = z.object({
   ANTHROPIC_API_KEY: z.string().optional(),
   FX_PROVIDER: z.string().min(1),
   REGULATORY_POLL_CRON: z.string().min(1),
+  JURISPRUDENCE_POLL_CRON: z.string().min(1).default('0 12 * * 5'),
   LOG_LEVEL: z.string().default('info'),
   OTEL_EXPORTER_OTLP_ENDPOINT: optionalUrl,
 });

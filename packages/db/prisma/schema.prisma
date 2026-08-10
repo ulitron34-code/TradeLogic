@@ -265,6 +265,28 @@ model RegulatoryImpact {
   createdAt DateTime @default(now())
   provision RegulatoryProvision @relation(fields:[provisionId], references:[id])
 }
+
+// Catalogo compartido de tesis del Semanario Judicial de la Federacion.
+// embedding se consulta con pgvector mediante SQL crudo porque Prisma no
+// expone columnas Unsupported en el query builder.
+model JurisprudenceCase {
+  id String @id @default(uuid()) @db.Uuid
+  ius Int @unique
+  claveTesis String
+  tipoTesis String
+  rubro String
+  texto String
+  sala String?
+  fuente String?
+  localizacion String?
+  fechaPublicacion DateTime?
+  tariffFractionRefs String[]
+  sourceUrl String
+  embeddingModel String?
+  embedding Unsupported("vector(1536)")?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 model Alert {
   id String @id @default(uuid()) @db.Uuid
   organizationId String @db.Uuid

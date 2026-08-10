@@ -6,10 +6,12 @@ import { db, type Prisma } from '@platform/db';
 import { rankTariffCandidates, requiresHumanReview } from '@platform/domain';
 import { claimsForCandidate, enrichClassification } from '@platform/ai';
 import { runRegulatoryIngestion } from './regulatoryIngestion.js';
+import { runJurisprudenceIngestion } from './jurisprudenceIngestion.js';
 
 const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
 
 const REGULATORY_INGESTION_QUEUE = 'regulatory-ingestion';
+const JURISPRUDENCE_INGESTION_QUEUE = 'jurisprudence-ingestion';
 
 // Registro idempotente: BullMQ dedupe los jobs repetibles por cola + patron
 // + jobId, asi que volver a llamar add() en cada arranque del worker no crea
@@ -19,6 +21,13 @@ await regulatoryIngestionQueue.add(
   'regulatory.ingestion.scheduled',
   {},
   { repeat: { pattern: env.REGULATORY_POLL_CRON }, jobId: 'regulatory-ingestion-scheduled' },
+);
+
+const jurisprudenceIngestionQueue = new Queue(JURISPRUDENCE_INGESTION_QUEUE, { connection });
+await jurisprudenceIngestionQueue.add(
+  'jurisprudence.ingestion.scheduled',
+  {},
+  { repeat: { pattern: env.JURISPRUDENCE_POLL_CRON }, jobId: 'jurisprudence-ingestion-scheduled' },
 );
 
 new Worker(
@@ -38,6 +47,15 @@ new Worker(
   },
   { connection },
 );
+
+new Worker(JURISPRUDENCE_INGESTION_QUEUE, async () => {
+  try {
+    const result = await runJurisprudenceIngestion();
+    console.log('jurisprudence ingestion run', result);
+  } catch (error) {
+    console.error('jurisprudence ingestion run failed', error);
+  }
+}, { connection });
 
 new Worker('classification-analysis', async job => {
   if (job.name !== 'classification.case.submitted') return;

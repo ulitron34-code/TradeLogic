@@ -22,8 +22,18 @@
 - No NOM, permit, or authority requirement is populated without an authoritative source; the catalog remains explicitly pending source-backed loading.
 - Case detail now requests only currently effective requirements and displays authority, type, source version, mandatory status, and source link beside each tariff candidate.
 
+## Jurisprudence foundation
+
+- Added a versioned `JurisprudenceCase` store with IUS uniqueness, source URL, tariff-fraction references, and optional pgvector embedding.
+- Added an SCJN/SJF client with deterministic search payloads, HTML-to-text normalization, and detail retrieval.
+- Added idempotent worker ingestion for tariff/legal seed queries and optional `text-embedding-3-small` vectors; embeddings never block ingestion when the provider is unavailable.
+- Added pgvector cosine-similarity retrieval primitives for future case-level recommendations.
+- Added the recurring `jurisprudence-ingestion` worker queue and its configurable cron schedule.
+- The migration and source package are present locally; publication and database execution remain pending until the GitHub/Vercel path and Supabase migration runner are available.
+
 ## Validation gate
 
 - The full monorepo build passes for all 10 packages.
 - The full Turbo test task passes: 17 tasks, 72 assertions across API, domain, database, AI, and regulatory packages.
 - The full monorepo typecheck passes for all 10 packages.
+- The new jurisprudence package is included in the workspace lockfile. A subsequent build attempt compiled the web package successfully but was stopped by a Windows `EBUSY` lock while pnpm recreated generated `node_modules` links; this is an environment/install issue to retry before declaring the new package green.
