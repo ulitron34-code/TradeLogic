@@ -39,6 +39,8 @@ services:
         sync: false
       - key: ENCRYPTION_KEY
         sync: false
+      - key: REGULATORY_POLL_CRON
+        value: "0 * * * 1-5"
       - key: FX_PROVIDER
         value: banxico
       - key: LOG_LEVEL
@@ -53,6 +55,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: APP_BASE_URL
+        sync: false
+      - key: API_BASE_URL
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
