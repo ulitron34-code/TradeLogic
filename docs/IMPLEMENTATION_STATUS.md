@@ -96,7 +96,7 @@ El plan original de 6 bloques esta completo. Lo que queda es trabajo de endureci
 
 1. **Aplicar la migracion de `SHCP` a produccion** (`prisma migrate deploy` con permisos de superusuario) — generada pero no aplicada, ver bloque 6 arriba.
 2. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
-3. Agregar pruebas del worker con DB fake o repositorios abstraidos (incluye `classification-analysis`, `enrichClassification` en su punto de enganche, y `regulatoryIngestion.ts` — todos probados hoy solo a nivel de sus paquetes puros, no del worker completo).
+3. Completar pruebas de integracion del worker desplegado con Redis/DB reales; ya existen pruebas inyectables para `classification-analysis` y `regulatoryIngestion.ts`, incluido el manejo de `enrichClassification` en su punto de enganche.
 4. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
 5. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
 6. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).

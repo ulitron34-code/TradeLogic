@@ -58,7 +58,7 @@
 ## Validation gate
 
 - The full monorepo build passes for all 11 packages, including API, web, worker, database, jurisprudence, and the new audit workflow.
-- The full Turbo test task passes: 19 tasks and 94 assertions across API, domain, database, AI, regulatory, jurisprudence, and worker packages.
+- The full Turbo test task passes: 19 tasks and 95 assertions across API, domain, database, AI, regulatory, jurisprudence, and worker packages.
 - The full monorepo typecheck passes for all 11 packages.
 - The isolated pnpm installation now reproduces cleanly from the frozen lockfile after moving only stale generated dependency folders out of the way.
 - Worker tests now cover pgvector query parameterization, idempotent jurisprudence ingestion, and the optional embedding path without Redis or network calls.
