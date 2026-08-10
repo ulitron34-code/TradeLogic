@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRegulatoryRequirementEffective, validateRegulatoryRequirement } from './regulatoryRequirement';
+import { isRegulatoryRequirementEffective, validateRegulatoryRequirement } from './regulatoryRequirement.js';
 
 const base = {
   tariffCodeId: 'code-1',

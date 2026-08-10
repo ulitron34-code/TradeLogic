@@ -36,6 +36,7 @@ describe('upsertTariffCatalog', () => {
             create: async ({ data }: any) => rows.push({ ...data, id: String(nextId++) }),
             update: async ({ where, data }: any) => {
               const row = rows.find(item => item.id === where.id);
+              if (!row) throw new Error(`Missing tariff row ${where.id}`);
               Object.assign(row, data);
             },
           },

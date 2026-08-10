@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { upsertRegulatoryRequirements } from './regulatoryRequirement';
+import { SourceAuthority } from '@prisma/client';
+import { upsertRegulatoryRequirements } from './regulatoryRequirement.js';
 
 describe('upsertRegulatoryRequirements', () => {
   it('updates the same version and creates a new effective version', async () => {
@@ -15,7 +16,7 @@ describe('upsertRegulatoryRequirements', () => {
       },
     };
     const client: any = { $transaction: async (callback: any) => callback(transaction) };
-    const first = { tariffCodeId: 'code-1', authority: 'SAT', requirementType: 'PERMIT', title: 'Permiso', sourceUrl: 'https://sat.gob.mx', sourceVersion: '2026.1', validFrom: new Date('2026-01-01') };
+    const first = { tariffCodeId: 'code-1', authority: SourceAuthority.SAT, requirementType: 'PERMIT', title: 'Permiso', sourceUrl: 'https://sat.gob.mx', sourceVersion: '2026.1', validFrom: new Date('2026-01-01') };
     expect(await upsertRegulatoryRequirements(client, [first])).toEqual({ created: 1, updated: 0 });
     expect(await upsertRegulatoryRequirements(client, [{ ...first, notes: 'actualizado' }])).toEqual({ created: 0, updated: 1 });
     expect(await upsertRegulatoryRequirements(client, [{ ...first, validFrom: new Date('2027-01-01'), sourceVersion: '2027.1' }])).toEqual({ created: 1, updated: 0 });
