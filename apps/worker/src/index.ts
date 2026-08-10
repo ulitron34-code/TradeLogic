@@ -122,6 +122,10 @@ new Worker('classification-analysis', async job => {
       code: code.code,
       nico: code.nico,
       description: code.description,
+      sourceUrl: code.sourceUrl,
+      legalNotes: code.legalNotes,
+      validFrom: code.validFrom,
+      validTo: code.validTo,
       sourceVersion: code.sourceVersion,
     })),
   );
