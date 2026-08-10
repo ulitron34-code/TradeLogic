@@ -11,3 +11,4 @@ export {
   type FetchHtml,
 } from './dofClient.js';
 export { extractTariffFractionMentions } from './impact.js';
+export { htmlToPlainText } from './html.js';

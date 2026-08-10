@@ -118,6 +118,9 @@ importers:
       '@platform/regulatory':
         specifier: workspace:*
         version: link:../../packages/regulatory
+      '@platform/jurisprudence':
+        specifier: workspace:*
+        version: link:../../packages/jurisprudence
       '@platform/storage':
         specifier: workspace:*
         version: link:../../packages/storage

@@ -26,7 +26,9 @@ export type HistoricalAuditResult = {
 export function parseHistoricalDeclarationsCsv(csv: string): HistoricalDeclaration[] {
   const rows = parseCsv(csv);
   if (rows.length < 2) return [];
-  const headers = rows[0].map(normalizeHeader);
+  const headerRow = rows[0];
+  if (!headerRow) return [];
+  const headers = headerRow.map(normalizeHeader);
   const required = ['entry_date', 'tariff_code', 'country_of_origin', 'customs_value', 'declared_duty_amount'];
   for (const header of required) if (!headers.includes(header)) throw new Error(`Missing historical audit column: ${header}`);
   return rows.slice(1).filter((row) => row.some((value) => value.trim() !== '')).map((row, index) => {

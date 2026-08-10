@@ -55,7 +55,8 @@
 
 ## Validation gate
 
-- The full monorepo build passes for all 10 packages.
-- The full Turbo test task passes: 17 tasks, 72 assertions across API, domain, database, AI, and regulatory packages.
-- The full monorepo typecheck passes for all 10 packages.
+- The full monorepo build passes for all 11 packages, including API, web, worker, database, jurisprudence, and the new audit workflow.
+- The full Turbo test task passes: 19 tasks and 84 assertions across API, domain, database, AI, regulatory, and jurisprudence packages.
+- The full monorepo typecheck passes for all 11 packages.
+- The isolated pnpm installation now reproduces cleanly from the frozen lockfile after moving only stale generated dependency folders out of the way.
 - The new jurisprudence package is included in the workspace lockfile. A subsequent build attempt compiled the web package successfully but was stopped by a Windows `EBUSY` lock while pnpm recreated generated `node_modules` links; this is an environment/install issue to retry before declaring the new package green.
