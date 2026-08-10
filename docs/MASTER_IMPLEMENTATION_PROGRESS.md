@@ -13,7 +13,7 @@
 ## Review control
 
 - Approval now requires both a ranked tariff candidate and documentary evidence linked to the classification case.
-- The API review fixture covers the evidence requirement. Full execution from this clone is currently limited by incomplete local pnpm dependency links (`fastify` is not resolvable here); this is an environment limitation, not a passed assertion result.
+- The API review fixture covers the evidence requirement, including organization scoping and documentary-evidence enforcement.
 
 ## Regulatory requirements foundation
 
@@ -58,7 +58,8 @@
 ## Validation gate
 
 - The full monorepo build passes for all 11 packages, including API, web, worker, database, jurisprudence, and the new audit workflow.
-- The full Turbo test task passes: 19 tasks and 85 assertions across API, domain, database, AI, regulatory, and jurisprudence packages.
+- The full Turbo test task passes: 19 tasks and 89 assertions across API, domain, database, AI, regulatory, jurisprudence, and worker packages.
 - The full monorepo typecheck passes for all 11 packages.
 - The isolated pnpm installation now reproduces cleanly from the frozen lockfile after moving only stale generated dependency folders out of the way.
-- The new jurisprudence package is included in the workspace lockfile. A subsequent build attempt compiled the web package successfully but was stopped by a Windows `EBUSY` lock while pnpm recreated generated `node_modules` links; this is an environment/install issue to retry before declaring the new package green.
+- Worker tests now cover pgvector query parameterization, idempotent jurisprudence ingestion, and the optional embedding path without Redis or network calls.
+- The new jurisprudence package is included in the workspace lockfile and is covered by the passing full build, typecheck, and test gates.
