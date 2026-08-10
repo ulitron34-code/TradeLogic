@@ -1,0 +1,12 @@
+{
+  "sourceUrl": "https://www.snice.gob.mx/~oracle/SNICE_DOCS/MODIFICACIONES-ABRIL2026-LIGIE_20260427-20260427.xlsx",
+  "retrievedAt": "2026-08-09T21:56:17-06:00",
+  "sha256": "84FEDA0C67621A7E3B3D25CEBDF522CBDD3D3D397BD266C7F5C73E190890EF81",
+  "derivedCsv": "MODIFICACIONES-ABRIL2026-LIGIE.csv",
+  "derivedCsvSha256": "3DF1BD162CB20F8A60F55EB70DEA4410DD65B3DE18DCE8C69448875351CAD041",
+  "derivedRows": 185,
+  "file": "MODIFICACIONES-ABRIL2026-LIGIE.xlsx",
+  "kind": "official_tariff_modification_set",
+  "status": "downloaded_not_loaded",
+  "reason": "This workbook contains tariff changes, not the complete LIGIE/NICO catalog. It must be merged with a verified base edition before production ingestion."
+}
