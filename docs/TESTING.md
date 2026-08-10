@@ -27,8 +27,14 @@ Casos cubiertos:
 - Producto electronico rankea una fraccion electrica sobre una plastica generica.
 - Contradiccion textil/circuito fuerza revision humana.
 
+## Estado actual
+
+- La suite completa pasa con 19 tareas Turbo y 89 pruebas; incluye API, dominio, base de datos, IA, regulatorio, jurisprudencia y worker.
+- El catalogo oficial NICO/LIGIE de 11,507 registros tiene una prueba de integridad que valida claves unicas, NICO de dos digitos y ausencia de tasas inventadas.
+- Las pruebas API incluyen aislamiento multiempresa para productos, casos, documentos, alertas, escenarios de costo y auditorias.
+
 ## Pendiente
 
-- Ejecutar la suite cuando `pnpm install` complete sin cortes de red.
-- Agregar pruebas del worker con DB fake o repositorios abstraidos.
-- Agregar pruebas anti-fuga multiempresa para cada repositorio real.
+- Ejecutar pruebas contra PostgreSQL/Supabase y Redis reales despues de publicar migraciones.
+- Completar el smoke test navegador con una cuenta piloto y validar el worker desplegado.
+- Agregar pruebas de repositorios Prisma reales con dos organizaciones en un entorno controlado.

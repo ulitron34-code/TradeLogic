@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { isTariffCodeEffective, parseTariffCatalogCsv, tariffCatalogKey, validateTariffCatalog } from './tariffCatalog.js';
 
@@ -11,6 +12,15 @@ const base = {
 };
 
 describe('validateTariffCatalog', () => {
+  it('validates the checked-in official SNICE NICO catalog without inventing rates', async () => {
+    const csv = await readFile(new URL('../../../data/tariff-sources/2024/NICO-ABRIL24-LIGIE.csv', import.meta.url), 'utf8');
+    const parsed = parseTariffCatalogCsv(csv, { sourceVersion: 'SNICE-NICO-2024-04-15' });
+    const result = validateTariffCatalog(parsed);
+    expect(result.errors).toEqual([]);
+    expect(result.records).toHaveLength(11507);
+    expect(result.records.every(record => record.countryCode === 'MX' && record.nico && record.generalRate === null)).toBe(true);
+  });
+
   it('parses quoted Spanish CSV columns before validation', () => {
     const parsed = parseTariffCatalogCsv(
       'Fracción arancelaria,NICO,Descripción,IGI,Vigencia desde\n3926.90.99,99,"Manufacturas, de plástico",10%,2026-01-01',

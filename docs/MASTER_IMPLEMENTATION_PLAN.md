@@ -1,51 +1,51 @@
-# TradeLogic — Plan maestro de implementación y validación
+# TradeLogic - Plan maestro de implementacion y validacion
 
-Actualizado: 2026-08-09
+Actualizado: 2026-08-10
 
-Este documento es el control de alcance del proyecto. Separa lo que existe en el código de lo que está visible en la interfaz, desplegado y probado con datos reales. No se considera una función completa hasta que tenga código, persistencia, UI o API cuando corresponda, pruebas y evidencia de ejecución.
+Este documento separa lo que existe en el codigo de lo que esta visible, desplegado y probado con datos reales. Una capacidad no se considera completa hasta que tenga codigo, persistencia, UI o API cuando corresponda, pruebas y evidencia de ejecucion.
 
-## Orden de ejecución
+## Orden de ejecucion
 
-1. Núcleo de clasificación arancelaria y catálogo normativo.
-2. Jurisprudencia defendible y búsqueda semántica.
+1. Nucleo de clasificacion arancelaria y catalogo normativo.
+2. Jurisprudencia defendible y busqueda semantica.
 3. Regulaciones, NOM, permisos, riesgo y reglas de origen.
-4. Costos, auditoría histórica y expediente PDF.
+4. Costos, auditoria historica y expediente PDF.
 5. Experiencia de usuario, onboarding y flujos por rol.
-6. Endurecimiento de los seis bloques técnicos: base de datos, worker, seguridad, pruebas y despliegue.
-7. Piloto controlado y medición de resultados.
+6. Endurecimiento de los seis bloques tecnicos: base de datos, worker, seguridad, pruebas y despliegue.
+7. Piloto controlado y medicion de resultados.
 
 ## Matriz de alcance
 
-| Capacidad | Estado inicial verificado | Trabajo para cerrar | Evidencia de cierre |
+| Capacidad | Estado actual | Trabajo para cerrar | Evidencia de cierre |
 |---|---|---|---|
-| Clasificación determinista | Parcial: ranking contra catálogo semilla | Catálogo LIGIE/NICO versionado, reglas, vigencia y cobertura | Fixtures representativos y casos explicables |
-| Evidencia de producto | Parcial: documentos y hash de cliente | Reglas de suficiencia, extracción y validación por requisito | Evidencia vinculada a cada decisión |
-| Candidatos y confianza | Implementado en MVP | Calibración, contradicciones, umbrales y explicación de descarte | Pruebas de ranking y revisión humana |
-| Jurisprudencia | Cliente SJF, schema y embeddings en trabajo local | Ingesta, búsqueda pgvector e integración al resultado | Caso con precedentes citados y URLs verificables |
-| Riesgo legal | Pendiente | Modelo transparente y revisión profesional, sin presentar certeza jurídica | Escenarios reproducibles y disclaimer |
-| NOM/permisos/regulaciones | Enum y vigilancia DOF parcial | Catálogo de requisitos por fracción y autoridad | Checklist con fuente y vigencia |
-| T-MEC/origen | Pendiente | Reglas de origen y fuentes versionadas | Cálculo con fuente y fecha |
-| Landed cost | Parcial: fórmula con arancel manual | Tasas versionadas, moneda, impuestos y escenarios | Casos de cálculo auditables |
-| Alertas | Persistencia, worker y pantalla parcial | Entrega, prioridades, deduplicación y acciones | Alerta generada desde un cambio real |
-| Expediente PDF | Pendiente | Snapshot de producto, evidencia, fundamento, decisión y auditoría | PDF renderizado y revisado |
-| Auditoría histórica | Pendiente | Importación, comparación y detección de sobrepagos | Dataset de prueba y reporte |
-| UX/onboarding | Dashboard y navegación en progreso | Flujo guiado, estados vacíos, roles y ayuda contextual | Prueba manual por rol |
-| Producción | API conectada; worker/migraciones por verificar | Render worker/Redis, migraciones, backups y observabilidad | Smoke test de producción |
+| Clasificacion determinista | Implementada localmente: catalogo oficial NICO/LIGIE y ranking versionado | Cargar modificaciones con vigencia y reglas interpretativas por fuente | Fixtures oficiales, ranking explicable y piloto |
+| Evidencia de producto | Implementada: documentos, hash, vinculo y bloqueo de aprobacion | Suficiencia y extraccion por requisito | Evidencia vinculada a cada decision |
+| Candidatos y confianza | Implementada en MVP | Calibracion con dataset piloto y explicacion de descarte | Pruebas de ranking y revision humana |
+| Jurisprudencia | Implementada localmente: cliente SJF, schema, ingesta y pgvector | Integrar precedentes al expediente y verificar ejecucion remota | Caso con precedentes citados y URLs verificables |
+| Riesgo legal | Indicador explicable implementado | Validacion profesional y calibracion con escenarios reales | Escenarios reproducibles y disclaimer |
+| NOM/permisos/regulaciones | Requisitos versionados y vigilancia DOF implementados | Cargar catalogos oficiales por autoridad y fraccion | Checklist con fuente y vigencia |
+| T-MEC/origen | Reglas versionadas y evaluacion implementadas | Cargar reglas oficiales y validar escenarios reales | Calculo con fuente y fecha |
+| Landed cost | Formula y escenarios implementados; arancel manual por falta de tasas oficiales | Cargar tasas oficiales versionadas | Casos de calculo auditables |
+| Alertas | Persistencia, worker y pantalla implementados | Validar entrega, deduplicacion y accion desde cambio real | Alerta generada por un cambio real |
+| Expediente PDF | Snapshot, fundamento, evidencia y auditoria implementados localmente | Verificar endpoint y migraciones en produccion | PDF renderizado y revisado |
+| Auditoria historica | Importacion, comparacion y hallazgos implementados localmente | Piloto con declaraciones y tasas oficiales | Dataset de prueba y reporte |
+| UX/onboarding | Dashboard, navegacion, productos, casos, alertas y auditorias implementados | Flujo guiado, estados vacios, roles y ayuda contextual | Prueba manual por rol |
+| Produccion | API/web preparados localmente; push, migraciones y worker remotos pendientes | Publicar, migrar, ejecutar worker y observar | Smoke test de produccion |
 
-## Reglas de implementación
+## Reglas de implementacion
 
-- La IA propone y explica; no puede alterar un resultado determinista sin una decisión humana explícita.
-- Cada dato regulatorio debe conservar autoridad, fuente, fecha de publicación, vigencia y versión.
-- Ningún cálculo financiero o fiscal usará una tasa inventada o sin fuente.
-- La jurisprudencia se mostrará como antecedente, no como resolución vinculante.
-- El aislamiento entre organizaciones debe probarse en base de datos y API.
-- No se elimina una capacidad existente para simplificar la interfaz; se oculta complejidad detrás de flujos claros.
-- Las migraciones se aplican primero en un entorno controlado y se verifican antes de producción.
+- La IA propone y explica; no altera un resultado determinista sin decision humana explicita.
+- Cada dato regulatorio conserva autoridad, fuente, fecha de publicacion, vigencia y version.
+- Ningun calculo financiero o fiscal usa una tasa inventada o sin fuente.
+- La jurisprudencia se muestra como antecedente, no como resolucion vinculante.
+- El aislamiento entre organizaciones se prueba en base de datos y API.
+- No se elimina una capacidad existente para simplificar la interfaz; se oculta complejidad detras de flujos claros.
+- Las migraciones se aplican primero en un entorno controlado y se verifican antes de produccion.
 
-## Primer entregable técnico
+## Primer entregable tecnico
 
-Cerrar el inventario del catálogo arancelario y diseñar el contrato versionado de `TariffCode`: fuente, edición, vigencia, código, NICO, descripción, notas, tasa y relaciones regulatorias. Después se implementará la carga idempotente y las pruebas de cobertura antes de ampliar el clasificador.
+El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial NICO/LIGIE de 11,507 registros y la prueba de cobertura ya estan implementados localmente. El siguiente cierre es cargar modificaciones con vigencia y ejecutar la migracion/importacion en un entorno controlado.
 
-## Criterio de finalización del proyecto
+## Criterio de finalizacion del proyecto
 
-TradeLogic se considerará terminado solo cuando el flujo completo —producto, evidencia, clasificación, fundamento, costo, revisión, expediente y alerta— funcione en producción, esté aislado por organización, tenga pruebas automatizadas y haya sido validado con un piloto real.
+TradeLogic se considerara terminado solo cuando el flujo completo -producto, evidencia, clasificacion, fundamento, costo, revision, expediente y alerta- funcione en produccion, este aislado por organizacion, tenga pruebas automatizadas y haya sido validado con un piloto real.

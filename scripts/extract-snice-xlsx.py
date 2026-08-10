@@ -70,11 +70,23 @@ def read_rows(path: Path) -> list[list[str]]:
         return rows
 
 
+def normalized_header(value: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", value.upper().replace("Á", "A").replace("É", "E").replace("Í", "I").replace("Ó", "O").replace("Ú", "U").replace("Ñ", "N"))
+
+
 def extract(path: Path, output: Path, source_version: str, source_url: str, valid_from: str) -> int:
     rows = read_rows(path)
-    header_row = next((index for index, row in enumerate(rows) if any("CÓDIGO" in cell.upper() or "CODIGO" in cell.upper() for cell in row)), None)
+    header_row = next((index for index, row in enumerate(rows) if any(normalized_header(cell) in {"CODIGO", "FRACCIONARANCELARIA"} for cell in row)), None)
     if header_row is None:
-        raise ValueError("Could not find the CÓDIGO header row")
+        raise ValueError("Could not find a code header row")
+
+    headers = [normalized_header(cell) for cell in rows[header_row]]
+    code_index = next((index for index, value in enumerate(headers) if value in {"CODIGO", "FRACCIONARANCELARIA"}), None)
+    nico_index = next((index for index, value in enumerate(headers) if value == "NICO"), None)
+    description_index = next((index for index, value in enumerate(headers) if value.startswith("DESCRIPCION")), None)
+    rate_index = next((index for index, value in enumerate(headers) if "ARANCEL" in value and "IMPORT" in value), None)
+    if code_index is None or description_index is None:
+        raise ValueError("Could not identify code and description columns")
 
     output.parent.mkdir(parents=True, exist_ok=True)
     count = 0
@@ -82,15 +94,16 @@ def extract(path: Path, output: Path, source_version: str, source_url: str, vali
         writer = csv.DictWriter(stream, fieldnames=["countryCode", "code", "nico", "description", "generalRate", "rateUnit", "validFrom", "validTo", "sourceVersion", "sourceUrl"])
         writer.writeheader()
         for row in rows[header_row + 1 :]:
-            code = row[2].strip() if len(row) > 2 else ""
-            description = row[3].strip() if len(row) > 3 else ""
+            code = row[code_index].strip() if len(row) > code_index else ""
+            nico = row[nico_index].strip() if nico_index is not None and len(row) > nico_index else ""
+            description = row[description_index].strip() if len(row) > description_index else ""
             if not re.fullmatch(r"\d{4}\.\d{2}\.\d{2}", code) or not description:
                 continue
-            import_rate = row[5].strip() if len(row) > 5 else ""
+            import_rate = row[rate_index].strip() if rate_index is not None and len(row) > rate_index else ""
             writer.writerow({
                 "countryCode": "MX",
                 "code": code,
-                "nico": "",
+                "nico": nico if re.fullmatch(r"\d{2}", nico) else "",
                 "description": description,
                 "generalRate": import_rate if re.fullmatch(r"\d+(?:\.\d+)?", import_rate) else "",
                 "rateUnit": "PERCENT" if re.fullmatch(r"\d+(?:\.\d+)?", import_rate) else import_rate,
