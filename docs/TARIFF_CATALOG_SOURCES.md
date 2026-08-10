@@ -31,6 +31,12 @@ Antes de tocar una base de datos, ejecutar el dry-run. Este paso valida el CSV c
 pnpm db:tariff-import -- --input data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv --source-version LIGIE-NICO-2026-04-24 --source-url https://www.snice.gob.mx/~oracle/SNICE_DOCS/FRACCIONESARANCELARIAS-LIGIE_20260420-20260420.xlsx --expected-records 20227
 ```
 
+Antes de la carga real, validar la entrada versionada sin dependencias de pnpm/tsx ni conexion a base de datos:
+
+```bash
+npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json
+```
+
 La carga real debe ejecutarse solo desde el entorno controlado que apunta a Supabase/produccion. El importador abre Prisma unicamente cuando se usa `--apply` y aborta si el conteo validado no es exactamente 20,227:
 
 ```bash

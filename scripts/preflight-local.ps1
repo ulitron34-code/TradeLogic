@@ -25,6 +25,7 @@ $required = @(
   'scripts/smoke-authenticated.cjs',
   'scripts/record-deployment-targets.cjs',
   'scripts/verify-tariff-source.cjs',
+  'scripts/verify-tariff-import-input.cjs',
   'scripts/verify-pilot-evidence.cjs',
   'supabase/verify_tariff_catalog.sql',
   'render.yaml'
@@ -67,6 +68,7 @@ foreach ($pattern in $secretPatterns) {
 $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCommand) {
   & $nodeCommand.Source scripts/verify-tariff-source.cjs | Out-Null
+  & $nodeCommand.Source scripts/verify-tariff-import-input.cjs | Out-Null
   & $nodeCommand.Source --check scripts/record-deployment-targets.cjs | Out-Null
   & $nodeCommand.Source scripts/record-deployment-targets.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/smoke-production.cjs | Out-Null

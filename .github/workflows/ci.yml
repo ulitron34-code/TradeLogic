@@ -19,6 +19,8 @@ jobs:
         run: pnpm preflight:sh
       - name: Verify tariff source integrity
         run: pnpm verify:tariff-source
+      - name: Verify tariff import input
+        run: pnpm verify:tariff-import-input
       - name: Validate operational scripts
         run: |
           node --check scripts/record-deployment-targets.cjs

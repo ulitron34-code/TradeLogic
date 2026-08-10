@@ -38,8 +38,9 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 ```
 
 8. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.
-9. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
-10. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
+9. Antes de importar FA/NICO, guardar evidencia de entrada con `npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json`.
+10. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
+11. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
 
 ## Criterios de no-go
 
