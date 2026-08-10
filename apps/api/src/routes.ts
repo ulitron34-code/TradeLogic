@@ -446,7 +446,10 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       build: async () => {
         const existingCase = await scopedDb.classificationCase.findFirst({
           where: { id: params.caseId, organizationId: organization.id },
-          include: { candidates: { orderBy: { rank: 'asc' }, take: 1 } },
+          include: {
+            candidates: { orderBy: { rank: 'asc' }, take: 1 },
+            evidence: { select: { id: true } },
+          },
         });
 
         if (!existingCase) {
@@ -467,6 +470,18 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
         const nextStatus =
           body.decision === 'APPROVED' ? 'APPROVED' : body.decision === 'REJECTED' ? 'REJECTED' : 'NEEDS_INFORMATION';
         const topCandidate = existingCase.candidates[0];
+
+        if (body.decision === 'APPROVED' && !topCandidate) {
+          const error = new Error('Cannot approve a case without a ranked tariff candidate');
+          Object.assign(error, { statusCode: 409, code: 'MISSING_TARIFF_CANDIDATE' });
+          throw error;
+        }
+
+        if (body.decision === 'APPROVED' && existingCase.evidence.length === 0) {
+          const error = new Error('Cannot approve a case without documentary evidence');
+          Object.assign(error, { statusCode: 409, code: 'MISSING_DOCUMENTARY_EVIDENCE' });
+          throw error;
+        }
 
         const reviewedCase = await scopedDb.classificationCase.update({
           where: { id: existingCase.id },
