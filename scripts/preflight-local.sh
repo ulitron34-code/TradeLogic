@@ -20,8 +20,10 @@ docs/PUBLISHING_SETUP.md
 docs/SUPABASE_PRISMA_SETUP.md
 docs/VERCEL_ENV_SETUP.md
 docs/TESTING.md
+docs/DEPLOYMENT_RUNBOOK.md
 scripts/smoke-production.cjs
 scripts/smoke-authenticated.cjs
+scripts/verify-tariff-source.cjs
 render.yaml
 "
 
@@ -30,5 +32,6 @@ for f in $required; do
 done
 
 node -e "for (const f of ['package.json','MANIFEST.json','apps/api/package.json','apps/worker/package.json','packages/db/package.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
+node scripts/verify-tariff-source.cjs >/dev/null
 
 echo "Preflight structure OK"

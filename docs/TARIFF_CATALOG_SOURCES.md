@@ -21,6 +21,8 @@
 
 El archivo oficial FA/NICO publicado por SNICE ya esta integrado como `data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv`, junto con su manifiesto JSON. El derivado tiene 20,227 registros: 8,183 fracciones, 11,507 NICO y las 185 modificaciones de abril de 2026. Conserva IGI e IGE numericos cuando son porcentajes y el texto de `Ex.`, `Prohibida` o cuotas cuando no son porcentajes. Las filas afectadas cierran su vigencia base el 2026-04-24 antes de iniciar la version modificada.
 
+La integridad del derivado se valida con npm run verify:tariff-source: calcula SHA-256, cuenta filas CSV respetando campos entre comillas y confirma las columnas obligatorias contra el manifiesto.
+
 ## Ingesta controlada
 
 Antes de tocar una base de datos, ejecutar el dry-run. Este paso valida el CSV completo y confirma que el conteo coincide con el manifiesto oficial derivado:

@@ -19,8 +19,10 @@ $required = @(
   'docs/SUPABASE_PRISMA_SETUP.md',
   'docs/VERCEL_ENV_SETUP.md',
   'docs/TESTING.md',
+  'docs/DEPLOYMENT_RUNBOOK.md',
   'scripts/smoke-production.cjs',
   'scripts/smoke-authenticated.cjs',
+  'scripts/verify-tariff-source.cjs',
   'render.yaml'
 )
 
@@ -56,6 +58,13 @@ foreach ($pattern in $secretPatterns) {
   if ($hit) {
     throw "Potential secret-like value found by pattern '$pattern' in $($hit.Path)"
   }
+}
+
+$nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+if ($nodeCommand) {
+  & $nodeCommand.Source scripts/verify-tariff-source.cjs | Out-Null
+} else {
+  Write-Warning 'Node.js not found on PATH; skipping tariff source integrity check in PowerShell preflight. Run npm run verify:tariff-source where Node.js is available.'
 }
 
 Write-Output 'Preflight structure OK'

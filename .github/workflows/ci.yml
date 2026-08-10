@@ -17,6 +17,8 @@ jobs:
         run: pnpm verify:structure
       - name: Run shell preflight
         run: pnpm preflight:sh
+      - name: Verify tariff source integrity
+        run: pnpm verify:tariff-source
       - name: Validate production smoke script
         run: |
           node --check scripts/smoke-production.cjs
