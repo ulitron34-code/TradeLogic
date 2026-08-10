@@ -21,3 +21,9 @@
 - Added validation, effective-window logic, idempotent persistence, migration, and tests.
 - No NOM, permit, or authority requirement is populated without an authoritative source; the catalog remains explicitly pending source-backed loading.
 - Case detail now requests only currently effective requirements and displays authority, type, source version, mandatory status, and source link beside each tariff candidate.
+
+## Validation gate
+
+- The full monorepo build passes for all 10 packages.
+- The full Turbo test task passes: 17 tasks, 72 assertions across API, domain, database, AI, and regulatory packages.
+- The full monorepo typecheck passes for all 10 packages.
