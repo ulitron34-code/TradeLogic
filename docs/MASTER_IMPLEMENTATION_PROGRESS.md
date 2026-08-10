@@ -46,6 +46,13 @@
 - The renderer is dependency-free and covered by domain tests; production render/download still requires the API and migration deployment path to be verified remotely.
 - The case UI now exposes a protected download button that obtains the Supabase session token and downloads the generated PDF.
 
+## Auditoría histórica
+
+- Added a CSV parser for historical declarations with tariff-code normalization, money validation, and required-column checks.
+- Added comparison against explicitly sourced/versioned rates; it reports potential overpayment, potential underpayment, no difference, or review required when no rate is available.
+- Added idempotent run/declaration persistence and migration with source fingerprint, summary, row number, and result provenance.
+- The database schema validates successfully; a production import still requires an official rate catalog and a controlled pilot dataset.
+
 ## Validation gate
 
 - The full monorepo build passes for all 10 packages.

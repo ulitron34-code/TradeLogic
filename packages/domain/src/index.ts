@@ -240,3 +240,10 @@ export {
   DOSSIER_RULESET_VERSION,
   type CaseDossierInput,
 } from './caseDossier.js';
+export {
+  analyzeHistoricalDeclarations,
+  parseHistoricalDeclarationsCsv,
+  type HistoricalAuditRate,
+  type HistoricalAuditResult,
+  type HistoricalDeclaration,
+} from './historicalAudit.js';

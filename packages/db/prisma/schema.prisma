@@ -86,6 +86,7 @@ model Organization {
   alerts Alert[]
   auditEvents AuditEvent[]
   idempotencyRecords IdempotencyRecord[]
+  historicalAuditRuns HistoricalAuditRun[]
 }
 model User {
   id String @id @default(uuid()) @db.Uuid
@@ -360,4 +361,41 @@ model IdempotencyRecord {
   organization Organization @relation(fields:[organizationId], references:[id])
   @@unique([organizationId, scope, key])
   @@index([organizationId, createdAt])
+}
+
+model HistoricalAuditRun {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  createdById String @db.Uuid
+  sourceFilename String
+  sourceSha256 String
+  sourceVersion String
+  status String @default("ANALYZED")
+  summary Json
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields:[organizationId], references:[id])
+  declarations HistoricalDeclaration[]
+  @@index([organizationId, createdAt])
+}
+
+model HistoricalDeclaration {
+  id String @id @default(uuid()) @db.Uuid
+  runId String @db.Uuid
+  rowNumber Int
+  entryDate DateTime
+  tariffCode String
+  nico String?
+  countryOfOrigin String
+  customsValue Decimal @db.Decimal(20,4)
+  declaredDutyRatePercent Decimal? @db.Decimal(8,4)
+  declaredDutyAmount Decimal @db.Decimal(20,4)
+  expectedDutyAmount Decimal? @db.Decimal(20,4)
+  difference Decimal? @db.Decimal(20,4)
+  status String
+  reason String
+  rateSourceVersion String?
+  rateSourceUrl String?
+  run HistoricalAuditRun @relation(fields:[runId], references:[id])
+  @@unique([runId, rowNumber])
+  @@index([tariffCode, status])
 }

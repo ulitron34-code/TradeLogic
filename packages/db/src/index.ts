@@ -5,6 +5,7 @@ export {
   upsertRegulatoryRequirements,
   type RegulatoryRequirementPersistenceRecord,
 } from './regulatoryRequirement.js';
+export { persistHistoricalAuditRun, type HistoricalAuditRunPersistence } from './historicalAudit.js';
 
 // Document.sizeBytes es BigInt en Postgres; JSON.stringify no sabe serializar
 // BigInt de forma nativa y Fastify tira TypeError al responder cualquier ruta
