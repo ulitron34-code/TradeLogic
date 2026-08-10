@@ -1,9 +1,12 @@
 #!/usr/bin/env node
+const { mkdir, writeFile } = require('node:fs/promises');
+const path = require('node:path');
+
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-production.cjs --api-base-url https://api.example.com [--web-base-url https://app.example.com] [--timeout-ms 10000]
+  node scripts/smoke-production.cjs --api-base-url https://api.example.com [--web-base-url https://app.example.com] [--timeout-ms 10000] [--output smoke-result.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -25,6 +28,7 @@ function parseArgs(argv) {
     if (arg === '--api-base-url') options.apiBaseUrl = value;
     else if (arg === '--web-base-url') options.webBaseUrl = value;
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
+    else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
   }
@@ -87,6 +91,13 @@ function assertReady(result) {
   }
 }
 
+async function writeSummary(outputPath, summary) {
+  if (!outputPath) return;
+  const resolved = path.resolve(outputPath);
+  await mkdir(path.dirname(resolved), { recursive: true });
+  await writeFile(resolved, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -97,19 +108,21 @@ async function main() {
   const checks = [];
   const health = await fetchJson(`${options.apiBaseUrl}/health`, options.timeoutMs);
   assertHealth(health);
-  checks.push({ name: 'api-health', status: health.status, ok: true });
+  checks.push({ name: 'api-health', url: health.url, status: health.status, ok: true });
 
   const ready = await fetchJson(`${options.apiBaseUrl}/ready`, options.timeoutMs);
   assertReady(ready);
-  checks.push({ name: 'api-ready', status: ready.status, ok: true, database: ready.body.database });
+  checks.push({ name: 'api-ready', url: ready.url, status: ready.status, ok: true, database: ready.body.database });
 
   if (options.webBaseUrl) {
     const web = await fetchPage(options.webBaseUrl, options.timeoutMs);
     if (!web.ok) throw new Error(`${web.url} returned HTTP ${web.status}`);
-    checks.push({ name: 'web-root', status: web.status, ok: true, bytes: web.bytes });
+    checks.push({ name: 'web-root', url: web.url, status: web.status, ok: true, bytes: web.bytes });
   }
 
-  console.log(JSON.stringify({ status: 'ok', checks }, null, 2));
+  const summary = { status: 'ok', checkedAt: new Date().toISOString(), checks };
+  await writeSummary(options.output, summary);
+  console.log(JSON.stringify(summary, null, 2));
 }
 
 main().catch((error) => {

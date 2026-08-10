@@ -38,13 +38,12 @@ Casos cubiertos:
 - Ejecutar pruebas contra PostgreSQL/Supabase y Redis reales despues de publicar migraciones.
 - Completar el smoke test navegador con una cuenta piloto y validar el worker desplegado.
 - Agregar pruebas de repositorios Prisma reales con dos organizaciones en un entorno controlado.
-
 ## Smoke test de produccion
 
 Despues de cada deploy, ejecutar el smoke test sin credenciales para validar que API y web respondan antes de iniciar pruebas autenticadas:
 
 ```bash
-npm run smoke:production -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB
+npm run smoke:production -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/smoke-production.json
 ```
 
 Tambien puede usar variables de entorno:
@@ -58,5 +57,7 @@ Criterio de exito:
 - `GET /health` responde HTTP 2xx con `status: ok`.
 - `GET /ready` responde HTTP 2xx con `status: ready` y `database: ok`.
 - La web, si se proporciona `--web-base-url`, responde con HTTP menor a 500.
+
+Si se usa `--output`, guardar el JSON junto con la evidencia del deploy o piloto. Ese archivo incluye fecha de ejecucion, URLs consultadas, codigos HTTP y resultado de cada check.
 
 Este smoke test no reemplaza la prueba autenticada de producto -> evidencia -> caso -> revision; solo confirma que el despliegue quedo vivo y conectado a base de datos.
