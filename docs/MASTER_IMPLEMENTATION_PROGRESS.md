@@ -8,3 +8,4 @@
 - Idempotent persistence updates an existing effective version and creates a new version when the effective date changes.
 - Tests pass for validation, persistence behavior, deterministic ranking, and landed cost.
 - Remaining requirement: load an official LIGIE/NICO dataset and add representative coverage fixtures. No regulatory rate or note is inferred.
+- An official SNICE April 2026 modification workbook was downloaded, hashed, extracted to 185 normalized CSV rows, and accepted by the TypeScript validator. It remains marked as `downloaded_not_loaded` because it is a modification set, not the complete base catalog.
