@@ -37,6 +37,7 @@
 - Added a source-backed T-MEC origin-rule contract supporting tariff shift, regional value content, and required-process rules.
 - Origin evaluation preserves source URL/version, distinguishes `ELIGIBLE`, `NOT_ELIGIBLE`, and `NEEDS_REVIEW`, and never treats missing evidence as proven eligibility.
 - These are calculation foundations only; production use still requires loading official agreement rules and professional validation.
+- Case detail API now returns the explainable risk assessment and the web case screen displays score, band, factors, and the disclaimer.
 
 ## Validation gate
 

@@ -58,6 +58,13 @@ type ClassificationCaseDetail = {
   product: { id: string; name: string; sku: string | null };
   candidates: Candidate[];
   reviews: Review[];
+  riskAssessment?: {
+    score: number;
+    band: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    requiresHumanReview: boolean;
+    disclaimer: string;
+    factors: { code: string; label: string; points: number; explanation: string }[];
+  };
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -123,6 +130,28 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
       {canSubmit ? <div className="mb-8">
         <SubmitCaseButton caseId={classificationCase.id} />
       </div> : null}
+
+      {classificationCase.riskAssessment ? (
+        <section className="mb-8 rounded border border-amber-200 bg-amber-50 p-4 text-amber-950">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-semibold">Indicador operativo de riesgo</h2>
+            <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold">
+              {classificationCase.riskAssessment.band} · {classificationCase.riskAssessment.score}/100
+            </span>
+          </div>
+          <p className="mt-2 text-sm">
+            {classificationCase.riskAssessment.requiresHumanReview
+              ? 'Requiere revisión humana antes de usar el resultado.'
+              : 'Sin señales críticas según las reglas actuales.'}
+          </p>
+          <ul className="mt-3 flex flex-col gap-1 text-sm">
+            {classificationCase.riskAssessment.factors.map((factor) => (
+              <li key={factor.code}>• {factor.label}: +{factor.points} — {factor.explanation}</li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-amber-800">{classificationCase.riskAssessment.disclaimer}</p>
+        </section>
+      ) : null}
 
       {classificationCase.candidates.length > 0 ? (
         <>

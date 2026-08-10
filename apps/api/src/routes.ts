@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
-import { calculateLandedCost } from '@platform/domain';
+import { assessLegalRisk, calculateLandedCost } from '@platform/domain';
 import { db as defaultDb, scopeToOrganization, type Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -437,7 +437,24 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     });
 
     if (!classificationCase) return reply.notFound('Classification case not found');
-    return classificationCase;
+    const topCandidate = classificationCase.candidates[0];
+    const riskAssessment = assessLegalRisk({
+      classificationScore: topCandidate ? Number(topCandidate.score) : Number(classificationCase.confidence ?? 0),
+      contradictions: topCandidate && Array.isArray(topCandidate.contradictions) ? topCandidate.contradictions.length : 0,
+      documentaryEvidenceCount: classificationCase.evidence.length,
+      regulatoryChecks: classificationCase.candidates.flatMap((candidate) =>
+        (candidate.tariffCode.regulatoryRequirements ?? []).map((requirement) => ({
+          title: requirement.title,
+          mandatory: requirement.mandatory,
+          satisfied: false,
+          sourceUrl: requirement.sourceUrl,
+        })),
+      ),
+      hasHumanReview: classificationCase.reviews.length > 0,
+      hasOriginEvidence: classificationCase.evidence.some((evidence) => evidence.claimType.toLowerCase().includes('origin')),
+      hasValuationEvidence: classificationCase.evidence.some((evidence) => evidence.claimType.toLowerCase().includes('valuation')),
+    });
+    return { ...classificationCase, riskAssessment };
   });
 
   app.post('/api/v1/classification-cases/:caseId/review', async (request, reply) => {

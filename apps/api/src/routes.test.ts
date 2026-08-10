@@ -439,6 +439,26 @@ describe('multi-tenant isolation (T-012)', () => {
     expect(response.statusCode).toBe(404);
   });
 
+  it('returns an explainable legal-risk assessment with case details', async () => {
+    const { makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp(ownerIdentity);
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'case-risk-assessment' },
+      payload: { product_id: product.id },
+    });
+    const response = await app.inject({ method: 'GET', url: `/api/v1/classification-cases/${created.json().id}` });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().riskAssessment).toMatchObject({
+      rulesetVersion: 'mx-tradelogic-risk-2026.1',
+      requiresHumanReview: true,
+    });
+    expect(Array.isArray(response.json().riskAssessment.factors)).toBe(true);
+  });
+
   it('refuses to submit another organization\'s classification case', async () => {
     const { makeApp, ownerIdentity, otherIdentity } = createHarness();
     const ownerApp = await makeApp(ownerIdentity);
