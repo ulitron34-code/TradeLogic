@@ -58,6 +58,8 @@ git push -u origin master
 
 ## Checklist go-live tecnico
 
+Nota 2026-08-10: `packages/storage` ya incluye el adapter S3 compatible y el worker puede guardar objetos crudos con `putRawObject()`. Falta validar las variables y ejecutar el despliegue contra los servicios remotos.
+
 - `pnpm install` completo.
 - `pnpm db:generate` exitoso.
 - `pnpm db:migrate` contra ambiente correcto.

@@ -2,6 +2,10 @@
 
 Actualizado: 2026-08-08
 
+## Correccion de estado (2026-08-10)
+
+El worker ya cuenta con pruebas inyectables en `apps/worker/src/classificationAnalysis.test.ts` y `apps/worker/src/regulatoryIngestion.test.ts`. La refactorizacion de `classification-analysis` permite probar ranking, persistencia de candidatos, estados finales y bloqueo por falta de version del producto. La suite del worker queda en 7 pruebas; la validacion completa de monorepo (test, typecheck y build) esta en verde.
+
 ## Plan original de 6 bloques: COMPLETO
 
 Los 6 bloques del plan aprobado el 07 Ago 2026 (`ancient-coalescing-hinton.md`) estan cerrados: CI/config, auth real + multiempresa, storage, capa de IA, UI real, ingesta regulatoria DOF.
@@ -85,6 +89,8 @@ Del `TradeLogic_Informe_Sesion_y_Plan_Maestro_v1.md` (entregado esta misma sesio
 - Referencia de `F:\13apps` documentada para capturar patrones reutilizados de COBITO.
 
 ## Pendiente inmediato
+
+La lista historica de abajo conserva decisiones y bloqueos externos; los puntos de pruebas del worker deben leerse junto con la correccion de estado anterior.
 
 El plan original de 6 bloques esta completo. Lo que queda es trabajo de endurecimiento fuera de ese alcance:
 

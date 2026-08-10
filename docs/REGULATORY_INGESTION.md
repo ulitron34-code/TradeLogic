@@ -35,6 +35,8 @@ Alcance acotado para este bloque (T-042): solo se procesan notas cuya seccion de
 
 ## Pruebas
 
+Actualizacion 2026-08-10: ademas de las 17 pruebas de fixtures de `packages/regulatory`, `apps/worker` ya prueba el punto de enganche con dependencias inyectables: filtrado por autoridad, persistencia, impactos, alertas y deduplicacion. La migracion de produccion sigue siendo un paso operativo pendiente.
+
 `packages/regulatory` tiene 17 pruebas contra fixtures grabados (recortes reales de `index_111.php` y `nota_detalle.php`, capturados el 08 Ago 2026 y truncados por tamano donde hace falta) — sin llamadas de red en la suite. El punto de enganche en `apps/worker/src/regulatoryIngestion.ts` acepta dependencias inyectables (`db`, `fetchDailyEditions`, `fetchNoteDetail`, `putRawObject`) siguiendo el mismo patron que `RouteDependencies` en `apps/api`, pero no tiene pruebas propias todavia — ver el pendiente general de pruebas del worker en `docs/IMPLEMENTATION_STATUS.md`.
 
 ## Migracion pendiente de aplicar
