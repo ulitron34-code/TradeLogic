@@ -101,8 +101,13 @@ new Worker('classification-analysis', async job => {
     return;
   }
 
+  const now = new Date();
   const tariffCodes = await db.tariffCode.findMany({
-    where: { countryCode: 'MX', validTo: null },
+    where: {
+      countryCode: 'MX',
+      validFrom: { lte: now },
+      OR: [{ validTo: null }, { validTo: { gt: now } }],
+    },
     orderBy: [{ code: 'asc' }, { nico: 'asc' }],
     take: 250,
   });
