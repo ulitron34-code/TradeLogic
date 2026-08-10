@@ -9,3 +9,8 @@
 - Tests pass for validation, persistence behavior, deterministic ranking, and landed cost.
 - Remaining requirement: load an official LIGIE/NICO dataset and add representative coverage fixtures. No regulatory rate or note is inferred.
 - An official SNICE April 2026 modification workbook was downloaded, hashed, extracted to 185 normalized CSV rows, and accepted by the TypeScript validator. It remains marked as `downloaded_not_loaded` because it is a modification set, not the complete base catalog.
+
+## Review control
+
+- Approval now requires both a ranked tariff candidate and documentary evidence linked to the classification case.
+- The API review fixture covers the evidence requirement. Full execution from this clone is currently limited by incomplete local pnpm dependency links (`fastify` is not resolvable here); this is an environment limitation, not a passed assertion result.
