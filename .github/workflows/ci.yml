@@ -19,12 +19,14 @@ jobs:
         run: pnpm preflight:sh
       - name: Verify tariff source integrity
         run: pnpm verify:tariff-source
-      - name: Validate production smoke script
+      - name: Validate operational scripts
         run: |
           node --check scripts/smoke-production.cjs
           node scripts/smoke-production.cjs --help
           node --check scripts/smoke-authenticated.cjs
           node scripts/smoke-authenticated.cjs --help
+          node --check scripts/verify-pilot-evidence.cjs
+          node scripts/verify-pilot-evidence.cjs --help
       - name: Typecheck
         run: pnpm typecheck
       - name: Test
