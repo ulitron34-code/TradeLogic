@@ -94,6 +94,8 @@ La lista historica de abajo conserva decisiones y bloqueos externos; los puntos 
 
 El plan original de 6 bloques esta completo. Lo que queda es trabajo de endurecimiento fuera de ese alcance:
 
+Actualizacion 2026-08-10: la jurisprudencia ya no queda aislada en el catalogo. El endpoint de detalle de caso y el expediente PDF buscan tesis del SJF cuyas referencias de fraccion coinciden con los candidatos deterministas, y muestran IUS, clave, rubro, fuente, URL y motivo de coincidencia. La coincidencia es informativa y no altera el ranking.
+
 1. **Aplicar la migracion de `SHCP` a produccion** (`prisma migrate deploy` con permisos de superusuario) — generada pero no aplicada, ver bloque 6 arriba.
 2. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
 3. Completar pruebas de integracion del worker desplegado con Redis/DB reales; ya existen pruebas inyectables para `classification-analysis` y `regulatoryIngestion.ts`, incluido el manejo de `enrichClassification` en su punto de enganche.

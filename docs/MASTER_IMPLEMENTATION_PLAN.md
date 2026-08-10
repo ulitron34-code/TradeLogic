@@ -21,7 +21,7 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 | Clasificacion determinista | Implementada localmente: catalogo oficial NICO/LIGIE, IGI/IGE y ranking versionado | Reglas interpretativas por fuente y piloto | Fixtures oficiales, ranking explicable y piloto |
 | Evidencia de producto | Implementada: documentos, hash, vinculo y bloqueo de aprobacion | Suficiencia y extraccion por requisito | Evidencia vinculada a cada decision |
 | Candidatos y confianza | Implementada en MVP | Calibracion con dataset piloto y explicacion de descarte | Pruebas de ranking y revision humana |
-| Jurisprudencia | Implementada localmente: cliente SJF, schema, ingesta y pgvector | Integrar precedentes al expediente y verificar ejecucion remota | Caso con precedentes citados y URLs verificables |
+| Jurisprudencia | Implementada localmente: cliente SJF, schema, ingesta, pgvector e integracion por fraccion al caso/expediente | Verificar ejecucion remota y calibrar relevancia con piloto | Caso con precedentes citados y URLs verificables |
 | Riesgo legal | Indicador explicable implementado | Validacion profesional y calibracion con escenarios reales | Escenarios reproducibles y disclaimer |
 | NOM/permisos/regulaciones | Requisitos versionados y vigilancia DOF implementados | Cargar catalogos oficiales por autoridad y fraccion | Checklist con fuente y vigencia |
 | T-MEC/origen | Reglas versionadas y evaluacion implementadas | Cargar reglas oficiales y validar escenarios reales | Calculo con fuente y fecha |
