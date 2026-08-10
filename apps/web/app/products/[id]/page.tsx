@@ -3,10 +3,20 @@ import { apiFetch, ApiError } from '../../lib/api';
 import { EvidenceUploader } from './evidence-uploader';
 import { StartCaseButton } from './start-case-button';
 
+type Document = {
+  id: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  sourceType: string;
+  createdAt: string;
+};
+
 type ProductVersion = {
   id: string;
   version: number;
   description: string;
+  documents: Document[];
 };
 
 type Product = {
@@ -67,7 +77,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
                   <h2 className="text-base font-semibold">Evidencia</h2>
                   <p className="text-sm text-neutral-500">Sube documentos que respalden composicion, funcion, origen, uso y presentacion comercial.</p>
                 </div>
-                <EvidenceUploader productVersionId={latestVersion.id} initialDocuments={[]} />
+                <EvidenceUploader productVersionId={latestVersion.id} initialDocuments={latestVersion.documents ?? []} />
               </section>
 
               <section className="rounded-lg border border-neutral-200 p-5 dark:border-neutral-800">

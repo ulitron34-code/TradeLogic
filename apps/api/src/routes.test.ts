@@ -139,7 +139,14 @@ function createHarness() {
       findFirst: async ({ where }: any) => {
         const product = state.products.get(where.id);
         if (!product || product.organizationId !== where.organizationId) return null;
-        const versions = Array.from(state.versions.values()).filter((version) => version.productId === product.id);
+        const versions = Array.from(state.versions.values())
+          .filter((version) => version.productId === product.id)
+          .map((version) => ({
+            ...version,
+            documents: Array.from(state.documents.values())
+              .filter((document) => document.productVersionId === version.id)
+              .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()),
+          }));
         return { ...product, versions };
       },
     },
@@ -157,7 +164,8 @@ function createHarness() {
     },
     document: {
       create: async ({ data }: any) => {
-        const document = { id: makeUuid('50000', state.nextDocument++), ...data };
+        const sequence = state.nextDocument++;
+        const document = { id: makeUuid('50000', sequence), createdAt: new Date(now.getTime() + sequence * 1000), ...data };
         state.documents.set(document.id, document);
         return document;
       },
@@ -552,6 +560,42 @@ describe('document upload (block 3: storage)', () => {
     expect(response.json().sizeBytes).toBe(1024);
   });
 
+  it('returns product evidence documents from product detail', async () => {
+    const { makeApp, storageObjects } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const versionId = product.versions[0].id;
+
+    const presigned = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents/presign',
+      payload: { filename: 'ficha-tecnica.pdf', mimeType: 'application/pdf' },
+    });
+    const { storage_key: storageKey } = presigned.json();
+    storageObjects.set(storageKey, { sizeBytes: 2048 });
+
+    const documentResponse = await app.inject({
+      method: 'POST',
+      url: '/api/v1/documents',
+      payload: {
+        storage_key: storageKey,
+        filename: 'ficha-tecnica.pdf',
+        mime_type: 'application/pdf',
+        size_bytes: 2048,
+        sha256: 'b'.repeat(64),
+        source_type: 'PRODUCT_EVIDENCE',
+        product_version_id: versionId,
+      },
+    });
+    expect(documentResponse.statusCode).toBe(201);
+
+    const detailResponse = await app.inject({ method: 'GET', url: `/api/v1/products/${product.id}` });
+
+    expect(detailResponse.statusCode).toBe(200);
+    expect(detailResponse.json().versions[0].documents).toEqual([
+      expect.objectContaining({ filename: 'ficha-tecnica.pdf', mimeType: 'application/pdf', sizeBytes: 2048 }),
+    ]);
+  });
   it('rejects registration when the object was never uploaded', async () => {
     const { makeApp, ownerIdentity } = createHarness();
     const app = await makeApp();

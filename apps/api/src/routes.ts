@@ -177,7 +177,17 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const params = paramsWithId.parse(request.params);
     const product = await scopedDb.product.findFirst({
       where: { id: params.id, organizationId: organization.id },
-      include: { versions: { orderBy: { version: 'desc' } } },
+      include: {
+        versions: {
+          orderBy: { version: 'desc' },
+          include: {
+            documents: {
+              orderBy: { createdAt: 'desc' },
+              select: { id: true, filename: true, mimeType: true, sizeBytes: true, sourceType: true, createdAt: true },
+            },
+          },
+        },
+      },
     });
 
     if (!product) return reply.notFound('Product not found');
