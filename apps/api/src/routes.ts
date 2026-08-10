@@ -54,7 +54,7 @@ const costScenarioBody = z.object({
   customs_value: z.number().nonnegative(),
   freight: z.number().nonnegative().default(0),
   insurance: z.number().nonnegative().default(0),
-  duty_rate_percent: z.number().nonnegative(),
+  duty_rate_percent: z.number().nonnegative().optional(),
   iva_rate_percent: z.number().nonnegative().optional(),
   other_fees: z.number().nonnegative().optional(),
 });
@@ -657,16 +657,34 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     });
     if (!classificationCase) return reply.notFound('Classification case not found');
 
-    // Motor deterministico; el arancel se captura manualmente porque no hay
-    // todavia una fuente de tasas arancelarias reales seedeada (ver
-    // packages/domain/src/landedCost.ts). fxSnapshot queda vacio: este primer
-    // corte no hace conversion de moneda, asume que todos los montos ya
-    // estan en `currency`.
+    let dutyRatePercent = body.duty_rate_percent;
+    let dutyRateSource = body.duty_rate_percent === undefined ? 'UNAVAILABLE' : 'MANUAL_OVERRIDE';
+    if (dutyRatePercent === undefined && classificationCase.selectedCodeId) {
+      const now = new Date();
+      const selectedTariffCode = await scopedDb.tariffCode.findFirst({
+        where: {
+          id: classificationCase.selectedCodeId,
+          countryCode: 'MX',
+          validFrom: { lte: now },
+          OR: [{ validTo: null }, { validTo: { gt: now } }],
+        },
+      });
+      if (selectedTariffCode?.rateUnit === 'PERCENT' && selectedTariffCode.generalRate !== null) {
+        dutyRatePercent = Number(selectedTariffCode.generalRate);
+        dutyRateSource = `${selectedTariffCode.sourceVersion}:${selectedTariffCode.sourceUrl ?? 'source-url-missing'}`;
+      }
+    }
+    if (dutyRatePercent === undefined) {
+      return reply.code(422).send({ code: 'OFFICIAL_RATE_UNAVAILABLE', message: 'No hay una tasa IGI porcentual versionada para el codigo seleccionado; captura una tasa manual con fundamento.' });
+    }
+
+    // Motor deterministico. Los montos se asumen expresados en `currency`;
+    // la conversion de moneda queda fuera de este escenario.
     const breakdown = calculateLandedCost({
       customsValue: body.customs_value,
       freight: body.freight,
       insurance: body.insurance,
-      dutyRatePercent: body.duty_rate_percent,
+      dutyRatePercent,
       ...(body.iva_rate_percent !== undefined ? { ivaRatePercent: body.iva_rate_percent } : {}),
       ...(body.other_fees !== undefined ? { otherFees: body.other_fees } : {}),
     });
@@ -676,7 +694,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
         organizationId: organization.id,
         caseId: classificationCase.id,
         currency: body.currency,
-        inputs: body as Prisma.InputJsonValue,
+        inputs: { ...body, duty_rate_percent: dutyRatePercent, duty_rate_source: dutyRateSource } as Prisma.InputJsonValue,
         outputs: breakdown as unknown as Prisma.InputJsonValue,
         rulesetVersion: breakdown.rulesetVersion,
         fxSnapshot: {},

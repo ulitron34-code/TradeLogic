@@ -32,6 +32,7 @@ type FakeState = {
   reviews: RecordMap<any>;
   alerts: RecordMap<any>;
   costScenarios: RecordMap<any>;
+  tariffCodes: RecordMap<any>;
   auditEvents: any[];
   queuedEvents: any[];
   nextProduct: number;
@@ -60,6 +61,7 @@ function createHarness() {
     reviews: new Map(),
     alerts: new Map(),
     costScenarios: new Map(),
+    tariffCodes: new Map(),
     auditEvents: [],
     queuedEvents: [],
     nextProduct: 1,
@@ -244,6 +246,11 @@ function createHarness() {
           .filter((scenario) => scenario.caseId === where.caseId && scenario.organizationId === where.organizationId)
           .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       },
+    },
+    tariffCode: {
+      findFirst: async ({ where }: any) => Array.from(state.tariffCodes.values()).find((record: any) =>
+        record.id === where.id && record.countryCode === where.countryCode && record.validFrom <= where.validFrom.lte &&
+        (record.validTo === null || record.validTo > where.OR[1].validTo.gt)) ?? null,
     },
     idempotencyRecord: {
       findUnique: async ({ where }: any) => {
@@ -908,6 +915,41 @@ describe('alerts', () => {
 });
 
 describe('cost scenarios', () => {
+  it('uses the selected current official IGI rate when no manual rate is supplied', async () => {
+    const { makeApp, state } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-official-rate' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+    const tariffCodeId = makeUuid('88000', 1);
+    state.cases.get(caseId).selectedCodeId = tariffCodeId;
+    state.tariffCodes.set(tariffCodeId, {
+      id: tariffCodeId,
+      countryCode: 'MX',
+      generalRate: 10,
+      rateUnit: 'PERCENT',
+      validFrom: new Date('2021-11-19'),
+      validTo: null,
+      sourceVersion: 'SNICE-LIGIE-BASE-2021-11-19',
+      sourceUrl: 'https://www.snice.gob.mx/ligie',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+      payload: { customs_value: 1000 },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().inputs.duty_rate_percent).toBe(10);
+    expect(response.json().inputs.duty_rate_source).toContain('SNICE-LIGIE-BASE-2021-11-19');
+  });
+
   it('creates a cost scenario with the deterministic landed cost breakdown', async () => {
     const { makeApp } = createHarness();
     const app = await makeApp();
@@ -958,6 +1000,27 @@ describe('cost scenarios', () => {
     });
 
     expect(response.statusCode).toBe(404);
+  });
+
+  it('does not silently assume zero when no official or manual rate exists', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-rate-required' },
+      payload: { product_id: product.id },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${created.json().id}/cost-scenarios`,
+      payload: { customs_value: 1000 },
+    });
+
+    expect(response.statusCode).toBe(422);
+    expect(response.json().code).toBe('OFFICIAL_RATE_UNAVAILABLE');
   });
 
   it('lists cost scenarios for a case, newest first', async () => {

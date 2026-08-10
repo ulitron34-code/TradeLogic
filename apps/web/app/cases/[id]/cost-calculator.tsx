@@ -7,6 +7,7 @@ import { apiFetchClient } from '../../lib/api-client';
 export type CostScenario = {
   id: string;
   currency: string;
+  inputs?: { duty_rate_percent?: number; duty_rate_source?: string };
   outputs: {
     customsValueBase: number;
     dutyAmount: number;
@@ -44,14 +45,16 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
 
     const form = new FormData(event.currentTarget);
     try {
+      const dutyRate = String(form.get('duty_rate_percent') ?? '').trim();
+      const payload: Record<string, number> = {
+        customs_value: Number(form.get('customs_value')),
+        freight: Number(form.get('freight') || 0),
+        insurance: Number(form.get('insurance') || 0),
+      };
+      if (dutyRate) payload.duty_rate_percent = Number(dutyRate);
       const scenario = await apiFetchClient<CostScenario>(`/api/v1/classification-cases/${caseId}/cost-scenarios`, {
         method: 'POST',
-        body: JSON.stringify({
-          customs_value: Number(form.get('customs_value')),
-          freight: Number(form.get('freight') || 0),
-          insurance: Number(form.get('insurance') || 0),
-          duty_rate_percent: Number(form.get('duty_rate_percent')),
-        }),
+        body: JSON.stringify(payload),
       });
       setScenarios((current) => [scenario, ...current]);
       router.refresh();
@@ -72,6 +75,7 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
                 <span className="font-medium">Costo total: {formatCurrency(scenario.outputs.totalLandedCost, scenario.currency)}</span>
                 <span className="text-xs text-neutral-400">{new Date(scenario.createdAt).toLocaleDateString('es-MX')}</span>
               </div>
+              {scenario.inputs?.duty_rate_source ? <p className="mb-2 text-xs text-neutral-500">Tasa IGI: {scenario.inputs.duty_rate_percent}% · Fuente: {scenario.inputs.duty_rate_source}</p> : null}
               <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-neutral-500">
                 {Object.entries(FIELD_LABEL).map(([key, label]) => (
                   <div key={key} className="flex justify-between gap-2">
@@ -100,13 +104,12 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Arancel (%)
+              Arancel (%) (opcional)
               <input
                 name="duty_rate_percent"
                 type="number"
                 step="0.01"
                 min="0"
-                required
                 className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
               />
             </label>
@@ -132,7 +135,7 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
             </label>
           </div>
           <p className="text-xs text-neutral-400">
-            IVA se calcula al 16% por defecto. El arancel se captura manualmente: todavía no hay una fuente de tasas arancelarias reales cargada en la plataforma.
+            IVA se calcula al 16% por defecto. Si el caso tiene un código seleccionado con IGI oficial vigente, TradeLogic lo utiliza automáticamente; captura una tasa solo para un escenario manual con fundamento.
           </p>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex gap-2">
