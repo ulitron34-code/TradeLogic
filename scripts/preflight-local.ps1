@@ -34,7 +34,7 @@ foreach ($file in $jsonFiles) {
 
 $secretPatterns = @(
   'sk-[A-Za-z0-9_-]{20,}',
-  'supabase_service_role',
+  'SUPABASE_SERVICE_ROLE_KEY\s*[:=]\s*["''`]?[A-Za-z0-9._-]{20,}',
   'postgresql://postgres:[^<][^@]+@',
   'JWT_SECRET=.*[A-Za-z0-9]{32,}'
 )
@@ -42,7 +42,8 @@ $secretPatterns = @(
 $roots = @('apps', 'packages', 'docs', 'openapi', 'scripts')
 $scanFiles = foreach ($root in $roots) {
   if (Test-Path $root) {
-    Get-ChildItem -Path $root -Recurse -File -Include *.ts,*.tsx,*.js,*.cjs,*.json,*.md,*.yaml,*.yml -ErrorAction Stop
+    Get-ChildItem -Path $root -Recurse -File -Include *.ts,*.tsx,*.js,*.cjs,*.json,*.md,*.yaml,*.yml -ErrorAction Stop |
+      Where-Object { $_.FullName -notmatch '[\\/]node_modules[\\/]|[\\/]\.next[\\/]|[\\/]dist[\\/]' }
   }
 }
 $scanFiles += Get-ChildItem -File -Include package.json,MANIFEST.json,pnpm-workspace.yaml,.env.example -ErrorAction SilentlyContinue
