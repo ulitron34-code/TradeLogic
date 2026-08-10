@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-const { mkdir, writeFile } = require('node:fs/promises');
+const { mkdir, readFile, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--timeout-ms 10000] [--output smoke-authenticated.json]
+  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 10000] [--output smoke-authenticated.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -26,22 +26,14 @@ function parseArgs(argv) {
     if (!arg.startsWith('--')) throw new Error(`Unexpected argument: ${arg}`);
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${arg}`);
     if (arg === '--api-base-url') options.apiBaseUrl = value;
+    else if (arg === '--targets') options.targets = value;
     else if (arg === '--token') options.token = value;
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
     else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
   }
-  if (options.help) return options;
-
-  const token = options.token ?? process.env.TRADELOGIC_ACCESS_TOKEN ?? process.env.SUPABASE_ACCESS_TOKEN;
-  if (!token) throw new Error('--token is required when TRADELOGIC_ACCESS_TOKEN or SUPABASE_ACCESS_TOKEN is not set');
-
-  return {
-    ...options,
-    token,
-    apiBaseUrl: normalizeBaseUrl(options.apiBaseUrl ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL),
-  };
+  return options;
 }
 
 function parseTimeout(value) {
@@ -50,6 +42,14 @@ function parseTimeout(value) {
     throw new Error('--timeout-ms must be an integer greater than or equal to 100');
   }
   return timeoutMs;
+}
+
+async function resolveDeploymentTargets(targetsPath) {
+  if (!targetsPath) return {};
+  const resolved = path.resolve(targetsPath);
+  const payload = JSON.parse(await readFile(resolved, 'utf8'));
+  if (payload.status && payload.status !== 'ok') throw new Error(`${resolved} status is not ok`);
+  return { apiBaseUrl: payload.runtime?.apiBaseUrl };
 }
 
 function normalizeBaseUrl(value) {
@@ -113,10 +113,15 @@ async function main() {
     return;
   }
 
-  const requestOptions = { token: options.token, timeoutMs: options.timeoutMs };
+  const token = options.token ?? process.env.TRADELOGIC_ACCESS_TOKEN ?? process.env.SUPABASE_ACCESS_TOKEN;
+  if (!token) throw new Error('--token is required when TRADELOGIC_ACCESS_TOKEN or SUPABASE_ACCESS_TOKEN is not set');
+  const targets = await resolveDeploymentTargets(options.targets);
+  const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? targets.apiBaseUrl ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL);
+
+  const requestOptions = { token, timeoutMs: options.timeoutMs };
   const checks = [];
 
-  const me = await fetchJson(`${options.apiBaseUrl}/api/v1/me`, requestOptions);
+  const me = await fetchJson(`${apiBaseUrl}/api/v1/me`, requestOptions);
   assertMe(me);
   checks.push({
     name: 'auth-context',
@@ -128,15 +133,15 @@ async function main() {
     roles: Array.isArray(me.body.roles) ? me.body.roles : [],
   });
 
-  const products = await fetchJson(`${options.apiBaseUrl}/api/v1/products`, requestOptions);
+  const products = await fetchJson(`${apiBaseUrl}/api/v1/products`, requestOptions);
   assertArrayEnvelope(products);
   checks.push(summarizeArray(products, 'products-list'));
 
-  const cases = await fetchJson(`${options.apiBaseUrl}/api/v1/classification-cases`, requestOptions);
+  const cases = await fetchJson(`${apiBaseUrl}/api/v1/classification-cases`, requestOptions);
   assertArrayEnvelope(cases);
   checks.push(summarizeArray(cases, 'cases-list'));
 
-  const alerts = await fetchJson(`${options.apiBaseUrl}/api/v1/alerts`, requestOptions);
+  const alerts = await fetchJson(`${apiBaseUrl}/api/v1/alerts`, requestOptions);
   assertArrayEnvelope(alerts);
   checks.push(summarizeArray(alerts, 'alerts-list'));
 

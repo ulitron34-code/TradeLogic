@@ -24,6 +24,7 @@ docs/DEPLOYMENT_RUNBOOK.md
 docs/PILOT_ACCEPTANCE_CHECKLIST.md
 scripts/smoke-production.cjs
 scripts/smoke-authenticated.cjs
+scripts/record-deployment-targets.cjs
 scripts/verify-tariff-source.cjs
 scripts/verify-pilot-evidence.cjs
 supabase/verify_tariff_catalog.sql
@@ -36,6 +37,13 @@ done
 
 node -e "for (const f of ['package.json','MANIFEST.json','apps/api/package.json','apps/worker/package.json','packages/db/package.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
 node scripts/verify-tariff-source.cjs
-scripts/verify-pilot-evidence.cjs >/dev/null
+node --check scripts/record-deployment-targets.cjs
+node scripts/record-deployment-targets.cjs --help >/dev/null
+node --check scripts/smoke-production.cjs
+node scripts/smoke-production.cjs --help >/dev/null
+node --check scripts/smoke-authenticated.cjs
+node scripts/smoke-authenticated.cjs --help >/dev/null
+node --check scripts/verify-pilot-evidence.cjs
+node scripts/verify-pilot-evidence.cjs --help >/dev/null
 
 echo "Preflight structure OK"

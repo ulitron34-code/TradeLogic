@@ -23,6 +23,7 @@ $required = @(
   'docs/PILOT_ACCEPTANCE_CHECKLIST.md',
   'scripts/smoke-production.cjs',
   'scripts/smoke-authenticated.cjs',
+  'scripts/record-deployment-targets.cjs',
   'scripts/verify-tariff-source.cjs',
   'scripts/verify-pilot-evidence.cjs',
   'supabase/verify_tariff_catalog.sql',
@@ -66,8 +67,16 @@ foreach ($pattern in $secretPatterns) {
 $nodeCommand = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCommand) {
   & $nodeCommand.Source scripts/verify-tariff-source.cjs | Out-Null
+  & $nodeCommand.Source --check scripts/record-deployment-targets.cjs | Out-Null
+  & $nodeCommand.Source scripts/record-deployment-targets.cjs --help | Out-Null
+  & $nodeCommand.Source --check scripts/smoke-production.cjs | Out-Null
+  & $nodeCommand.Source scripts/smoke-production.cjs --help | Out-Null
+  & $nodeCommand.Source --check scripts/smoke-authenticated.cjs | Out-Null
+  & $nodeCommand.Source scripts/smoke-authenticated.cjs --help | Out-Null
+  & $nodeCommand.Source --check scripts/verify-pilot-evidence.cjs | Out-Null
+  & $nodeCommand.Source scripts/verify-pilot-evidence.cjs --help | Out-Null
 } else {
-  Write-Warning 'Node.js not found on PATH; skipping tariff source integrity check in PowerShell preflight. Run npm run verify:tariff-source where Node.js is available.'
+  Write-Warning 'Node.js not found on PATH; skipping Node-based integrity checks in PowerShell preflight. Run npm run verify:tariff-source and operational script checks where Node.js is available.'
 }
 
 Write-Output 'Preflight structure OK'

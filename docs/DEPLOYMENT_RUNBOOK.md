@@ -34,7 +34,7 @@ npm run smoke:production -- --targets artifacts/deployment-targets.json --output
 7. Con una sesion piloto real, obtener un access token de Supabase Auth y ejecutar smoke autenticado read-only:
 
 ```bash
-TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --api-base-url https://TU_API_RENDER --output artifacts/smoke-authenticated.json
+TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json
 ```
 
 8. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.

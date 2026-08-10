@@ -67,7 +67,7 @@ Este smoke test no reemplaza la prueba autenticada de producto -> evidencia -> c
 Cuando exista una cuenta piloto y se tenga un access token de Supabase para esa sesion, ejecutar el smoke autenticado de solo lectura:
 
 ```bash
-TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --api-base-url https://TU_API_RENDER --output artifacts/smoke-authenticated.json
+TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json
 ```
 
 Criterio de exito:

@@ -21,6 +21,8 @@ jobs:
         run: pnpm verify:tariff-source
       - name: Validate operational scripts
         run: |
+          node --check scripts/record-deployment-targets.cjs
+          node scripts/record-deployment-targets.cjs --help
           node --check scripts/smoke-production.cjs
           node scripts/smoke-production.cjs --help
           node --check scripts/smoke-authenticated.cjs
