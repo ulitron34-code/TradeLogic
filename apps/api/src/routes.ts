@@ -410,11 +410,27 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const { organization } = await resolveContext(request, db);
     const scopedDb = scopeToOrganization(db, organization.id);
     const params = paramsWithCaseId.parse(request.params);
+    const now = new Date();
     const classificationCase = await scopedDb.classificationCase.findFirst({
       where: { id: params.caseId, organizationId: organization.id },
       include: {
         product: true,
-        candidates: { include: { tariffCode: true }, orderBy: { rank: 'asc' } },
+        candidates: {
+          include: {
+            tariffCode: {
+              include: {
+                regulatoryRequirements: {
+                  where: {
+                    validFrom: { lte: now },
+                    OR: [{ validTo: null }, { validTo: { gt: now } }],
+                  },
+                  orderBy: [{ mandatory: 'desc' }, { authority: 'asc' }, { title: 'asc' }],
+                },
+              },
+            },
+          },
+          orderBy: { rank: 'asc' },
+        },
         reviews: { orderBy: { createdAt: 'desc' } },
         evidence: { include: { document: true } },
       },

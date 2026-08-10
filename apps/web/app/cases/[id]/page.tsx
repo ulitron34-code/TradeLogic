@@ -31,7 +31,22 @@ type Candidate = {
     legalNotes: string | null;
     validFrom: string;
     validTo: string | null;
+    regulatoryRequirements: RegulatoryRequirement[];
   };
+};
+
+type RegulatoryRequirement = {
+  id: string;
+  authority: string;
+  requirementType: string;
+  title: string;
+  description: string | null;
+  sourceUrl: string;
+  sourceVersion: string;
+  validFrom: string;
+  validTo: string | null;
+  mandatory: boolean;
+  notes: string | null;
 };
 
 type Review = { id: string; decision: string; notes: string | null; createdAt: string };
@@ -159,6 +174,23 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
                         <li key={index}>{contradiction}</li>
                       ))}
                     </ul>
+                  ) : null}
+                  {candidate.tariffCode.regulatoryRequirements.length > 0 ? (
+                    <div className="mt-3 rounded bg-blue-50 p-3 text-sm text-blue-950 dark:bg-blue-950 dark:text-blue-50">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wide">Requisitos regulatorios vigentes</p>
+                      <ul className="flex flex-col gap-2">
+                        {candidate.tariffCode.regulatoryRequirements.map((requirement) => (
+                          <li key={requirement.id}>
+                            <span className="font-medium">{requirement.title}</span>
+                            <span className="ml-2 text-xs opacity-80">
+                              {requirement.authority} · {requirement.mandatory ? 'Obligatorio' : 'Condicionado'} · {requirement.sourceVersion}
+                            </span>
+                            {requirement.description ? <p className="text-xs opacity-90">{requirement.description}</p> : null}
+                            <a className="text-xs underline" href={requirement.sourceUrl} target="_blank" rel="noreferrer">Ver fuente</a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                 </li>
               );
