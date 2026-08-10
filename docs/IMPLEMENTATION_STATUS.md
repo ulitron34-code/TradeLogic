@@ -11,6 +11,8 @@ Actualizado: 2026-08-10
 
 ## Correccion de estado (2026-08-10)
 
+- Se reforzo el flujo guiado de productos en pps/web: listado con métricas operativas, estado vacio accionable, formulario sin tarjetas anidadas, detalle de producto con pasos de evidencia/clasificacion y navegacion superior responsive.
+
 El worker ya cuenta con pruebas inyectables en `apps/worker/src/classificationAnalysis.test.ts` y `apps/worker/src/regulatoryIngestion.test.ts`. La refactorizacion de `classification-analysis` permite probar ranking, persistencia de candidatos, estados finales y bloqueo por falta de version del producto. La suite del worker queda en 7 pruebas; la validacion completa de monorepo (test, typecheck y build) esta en verde.
 
 ## Plan original de 6 bloques: COMPLETO

@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from './supabase/client';
 
+const NAV_ITEMS = [
+  { href: '/dashboard', label: 'Inicio' },
+  { href: '/products', label: 'Productos' },
+  { href: '/cases', label: 'Casos' },
+  { href: '/alerts', label: 'Alertas' },
+  { href: '/audits', label: 'Auditoria' },
+];
+
 export function Nav({ email, organizationName }: { email: string; organizationName: string }) {
   const router = useRouter();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -19,30 +27,19 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
 
   return (
     <nav className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
+      <div className="mx-auto flex max-w-5xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link href="/dashboard" className="text-sm font-semibold">
             TradeLogic
           </Link>
-          <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-            Inicio
-          </Link>
-          <Link href="/products" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-            Productos
-          </Link>
-          <Link href="/cases" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-            Casos
-          </Link>
-          <Link href="/alerts" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-            Alertas
-          </Link>
-          <Link href="/audits" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
-            Auditoría
-          </Link>
-          <span className="hidden text-sm text-neutral-400 md:inline">Casos y documentos disponibles desde cada producto</span>
-          <span className="text-sm text-neutral-500">{organizationName}</span>
+          {NAV_ITEMS.map((item) => (
+            <Link key={item.href} href={item.href} className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+              {item.label}
+            </Link>
+          ))}
         </div>
-        <div className="flex items-center gap-3 text-sm text-neutral-500">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-neutral-500">
+          <span className="font-medium text-neutral-700 dark:text-neutral-300">{organizationName}</span>
           <span>{email}</span>
           <button
             type="button"
