@@ -183,7 +183,27 @@ model TariffCode {
   validTo DateTime?
   sourceVersion String
   candidates ClassificationCandidate[]
+  regulatoryRequirements RegulatoryRequirement[]
   @@unique([countryCode, code, nico, validFrom])
+}
+
+model RegulatoryRequirement {
+  id String @id @default(uuid()) @db.Uuid
+  tariffCodeId String @db.Uuid
+  authority SourceAuthority
+  requirementType String
+  title String
+  description String?
+  sourceUrl String
+  sourceVersion String
+  validFrom DateTime
+  validTo DateTime?
+  mandatory Boolean @default(true)
+  notes String?
+  createdAt DateTime @default(now())
+  tariffCode TariffCode @relation(fields:[tariffCodeId], references:[id])
+  @@unique([tariffCodeId, requirementType, title, validFrom])
+  @@index([authority, requirementType, validFrom])
 }
 model ClassificationCandidate {
   id String @id @default(uuid()) @db.Uuid
