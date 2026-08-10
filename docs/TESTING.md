@@ -40,7 +40,7 @@ Casos cubiertos:
 - Agregar pruebas de repositorios Prisma reales con dos organizaciones en un entorno controlado.
 ## Smoke test de produccion
 
-Despues de cada deploy, registrar las URLs publicas sin secretos y ejecutar el smoke test sin credenciales para validar que API y web respondan antes de iniciar pruebas autenticadas:
+Despues de cada deploy, registrar las URLs publicas sin secretos y ejecutar el smoke test sin credenciales para validar que API y web respondan antes de iniciar pruebas autenticadas. Los smoke tests usan 30 segundos de timeout y 2 reintentos por defecto para tolerar arranques frios de Render; ajusta `--timeout-ms` o `--retries` si el servicio esta despertando:
 
 ```bash
 npm run record:deployment-targets -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/deployment-targets.json
@@ -64,7 +64,7 @@ Si se usa `--output`, guardar el JSON junto con la evidencia del deploy o piloto
 Este smoke test no reemplaza la prueba autenticada de producto -> evidencia -> caso -> revision; solo confirma que el despliegue quedo vivo y conectado a base de datos.
 ## Smoke test autenticado
 
-Cuando exista una cuenta piloto y se tenga un access token de Supabase para esa sesion, ejecutar el smoke autenticado de solo lectura:
+Cuando exista una cuenta piloto y se tenga un access token de Supabase para esa sesion, ejecutar el smoke autenticado de solo lectura. Tambien usa los reintentos por defecto para evitar falsos negativos por arranque frio:
 
 ```bash
 TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json

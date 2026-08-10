@@ -25,7 +25,7 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 npm run record:deployment-targets -- --api-base-url https://tradelogic-api.onrender.com --web-base-url https://tradelogic-git-main-ulitron34-codes-projects.vercel.app --output artifacts/deployment-targets.json
 ```
 
-6. Ejecutar smoke publico leyendo esas URLs:
+6. Ejecutar smoke publico leyendo esas URLs. El script espera hasta 30 segundos por request y reintenta 2 veces para tolerar arranques frios:
 
 ```bash
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json

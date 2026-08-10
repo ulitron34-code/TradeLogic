@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 const { mkdir, readFile, writeFile } = require('node:fs/promises');
+const { setTimeout: delay } = require('node:timers/promises');
 const path = require('node:path');
 
-const DEFAULT_TIMEOUT_MS = 10_000;
+const DEFAULT_TIMEOUT_MS = 30_000;
+const DEFAULT_RETRIES = 2;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 10000] [--output smoke-authenticated.json]
+  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--output smoke-authenticated.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -15,7 +17,7 @@ Environment fallback:
 }
 
 function parseArgs(argv) {
-  const options = { timeoutMs: DEFAULT_TIMEOUT_MS };
+  const options = { timeoutMs: DEFAULT_TIMEOUT_MS, retries: DEFAULT_RETRIES };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') {
@@ -29,6 +31,7 @@ function parseArgs(argv) {
     else if (arg === '--targets') options.targets = value;
     else if (arg === '--token') options.token = value;
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
+    else if (arg === '--retries') options.retries = parseRetries(value);
     else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
@@ -42,6 +45,14 @@ function parseTimeout(value) {
     throw new Error('--timeout-ms must be an integer greater than or equal to 100');
   }
   return timeoutMs;
+}
+
+function parseRetries(value) {
+  const retries = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(retries) || retries < 0 || String(retries) !== value) {
+    throw new Error('--retries must be a non-negative integer');
+  }
+  return retries;
 }
 
 async function resolveDeploymentTargets(targetsPath) {
@@ -95,6 +106,20 @@ function assertMe(result) {
   }
 }
 
+async function withRetries(operation, retries) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === retries) break;
+      await delay(1000 * (attempt + 1));
+    }
+  }
+  throw lastError;
+}
+
 async function writeSummary(outputPath, summary) {
   if (!outputPath) return;
   const resolved = path.resolve(outputPath);
@@ -121,7 +146,7 @@ async function main() {
   const requestOptions = { token, timeoutMs: options.timeoutMs };
   const checks = [];
 
-  const me = await fetchJson(`${apiBaseUrl}/api/v1/me`, requestOptions);
+  const me = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/me`, requestOptions), options.retries);
   assertMe(me);
   checks.push({
     name: 'auth-context',
@@ -133,15 +158,15 @@ async function main() {
     roles: Array.isArray(me.body.roles) ? me.body.roles : [],
   });
 
-  const products = await fetchJson(`${apiBaseUrl}/api/v1/products`, requestOptions);
+  const products = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/products`, requestOptions), options.retries);
   assertArrayEnvelope(products);
   checks.push(summarizeArray(products, 'products-list'));
 
-  const cases = await fetchJson(`${apiBaseUrl}/api/v1/classification-cases`, requestOptions);
+  const cases = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/classification-cases`, requestOptions), options.retries);
   assertArrayEnvelope(cases);
   checks.push(summarizeArray(cases, 'cases-list'));
 
-  const alerts = await fetchJson(`${apiBaseUrl}/api/v1/alerts`, requestOptions);
+  const alerts = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/alerts`, requestOptions), options.retries);
   assertArrayEnvelope(alerts);
   checks.push(summarizeArray(alerts, 'alerts-list'));
 
