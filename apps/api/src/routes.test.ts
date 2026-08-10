@@ -28,6 +28,7 @@ type FakeState = {
   idempotency: RecordMap<any>;
   documents: RecordMap<any>;
   candidates: RecordMap<any>;
+  evidence: RecordMap<any>;
   reviews: RecordMap<any>;
   alerts: RecordMap<any>;
   costScenarios: RecordMap<any>;
@@ -55,6 +56,7 @@ function createHarness() {
     idempotency: new Map(),
     documents: new Map(),
     candidates: new Map(),
+    evidence: new Map(),
     reviews: new Map(),
     alerts: new Map(),
     costScenarios: new Map(),
@@ -179,7 +181,12 @@ function createHarness() {
           .filter((candidate) => candidate.caseId === classificationCase.id)
           .sort((a, b) => a.rank - b.rank);
         const limit = include.candidates.take;
-        return { ...classificationCase, candidates: typeof limit === 'number' ? candidates.slice(0, limit) : candidates };
+        const evidence = Array.from(state.evidence.values()).filter((item) => item.caseId === classificationCase.id);
+        return {
+          ...classificationCase,
+          candidates: typeof limit === 'number' ? candidates.slice(0, limit) : candidates,
+          ...(include.evidence ? { evidence } : {}),
+        };
       },
       update: async ({ where, data }: any) => {
         const existing = state.cases.get(where.id);
@@ -681,6 +688,7 @@ describe('classification case review (block 5: human review)', () => {
     state.cases.get(caseId).status = 'NEEDS_REVIEW';
     const topTariffCodeId = makeUuid('80000', 1);
     state.candidates.set('cand-1', { id: 'cand-1', caseId, tariffCodeId: topTariffCodeId, rank: 1 });
+    state.evidence.set('evidence-1', { id: 'evidence-1', caseId, documentId: makeUuid('50000', 1), claimType: 'PRODUCT_IDENTITY' });
 
     const response = await app.inject({
       method: 'POST',
