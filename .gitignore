@@ -1,4 +1,6 @@
 node_modules
+.data-cache/
+data/tariff-sources/**/*.xlsx
 .env
 .env.*
 !.env.example
