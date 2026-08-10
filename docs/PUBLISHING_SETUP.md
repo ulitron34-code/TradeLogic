@@ -31,6 +31,8 @@ git push -u origin master
 
 ## Superficies de despliegue
 
+El archivo `render.yaml` contiene el blueprint reproducible para el API y el worker. El API usa `/ready` como health check y todas las credenciales quedan como variables `sync: false`; deben configurarse en Render antes del primer deploy.
+
 ### Web
 
 - Fuente: `apps/web`
