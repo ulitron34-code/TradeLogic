@@ -39,6 +39,7 @@ const reviewCaseBody = z.object({
 
 // RBAC.md: "Aprobar caso critico" solo lo permiten Owner, Admin y Reviewer.
 const REVIEW_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
+const AUDIT_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
 
 const alertStatusBody = z.object({
   status: z.enum(['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'RESOLVED', 'DISMISSED']),
@@ -522,6 +523,20 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       disclaimer: riskAssessment.disclaimer,
     });
     return reply.type('application/pdf').header('Content-Disposition', `attachment; filename="tradelogic-${classificationCase.id}.pdf"`).send(Buffer.from(pdf));
+  });
+
+  app.get('/api/v1/classification-cases/:caseId/audit', async (request, reply) => {
+    const { organization, roles } = await resolveContext(request, db);
+    if (!roles.some((role) => AUDIT_ROLES.has(role))) return reply.code(403).send({ code: 'FORBIDDEN_ROLE', message: 'Audit access requires an authorized reviewer role' });
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const classificationCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id } });
+    if (!classificationCase) return reply.notFound('Classification case not found');
+    const events = await scopedDb.auditEvent.findMany({
+      where: { organizationId: organization.id, entityType: 'ClassificationCase', entityId: classificationCase.id },
+      orderBy: { occurredAt: 'desc' },
+    });
+    return { data: events };
   });
 
   app.post('/api/v1/classification-cases/:caseId/review', async (request, reply) => {

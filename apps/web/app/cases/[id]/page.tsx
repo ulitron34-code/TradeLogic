@@ -4,6 +4,7 @@ import { apiFetch, ApiError } from '../../lib/api';
 import { SubmitCaseButton } from './submit-case-button';
 import { ReviewActions } from './review-actions';
 import { CostCalculator, type CostScenario } from './cost-calculator';
+import { DossierDownloadButton } from './dossier-download-button';
 
 type Rationale = {
   summary?: string;
@@ -50,6 +51,7 @@ type RegulatoryRequirement = {
 };
 
 type Review = { id: string; decision: string; notes: string | null; createdAt: string };
+type AuditEvent = { id: string; action: string; entityType: string; entityId: string; traceId: string; occurredAt: string; after: unknown };
 
 type ClassificationCaseDetail = {
   id: string;
@@ -58,6 +60,7 @@ type ClassificationCaseDetail = {
   product: { id: string; name: string; sku: string | null };
   candidates: Candidate[];
   reviews: Review[];
+  auditEvents?: AuditEvent[];
   riskAssessment?: {
     score: number;
     band: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -113,6 +116,13 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const { data: costScenarios } = await apiFetch<{ data: CostScenario[] }>(
     `/api/v1/classification-cases/${classificationCase.id}/cost-scenarios`,
   );
+  let auditEvents: AuditEvent[] = [];
+  try {
+    const auditResponse = await apiFetch<{ data: AuditEvent[] }>(`/api/v1/classification-cases/${classificationCase.id}/audit`);
+    auditEvents = auditResponse.data;
+  } catch {
+    // A user without audit permission can still view the case and download the dossier.
+  }
 
   const canSubmit = classificationCase.status === 'DRAFT' || classificationCase.status === 'NEEDS_INFORMATION';
   const showReviewActions = canReview && classificationCase.status === 'NEEDS_REVIEW';
@@ -126,6 +136,9 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
       <p className="mb-6 text-sm text-neutral-500">
         Estado: <span className="font-medium">{STATUS_LABEL[classificationCase.status] ?? classificationCase.status}</span>
       </p>
+      <div className="mb-8">
+        <DossierDownloadButton caseId={classificationCase.id} />
+      </div>
 
       {canSubmit ? <div className="mb-8">
         <SubmitCaseButton caseId={classificationCase.id} />
@@ -244,6 +257,21 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               </li>
             ))}
           </ul>
+        </>
+      ) : null}
+
+      {auditEvents.length > 0 ? (
+        <>
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">Trazabilidad</h2>
+          <ol className="mb-8 flex flex-col gap-2">
+            {auditEvents.map((event) => (
+              <li key={event.id} className="rounded border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800">
+                <span className="font-medium">{event.action}</span>
+                <span className="ml-2 text-neutral-500">{new Date(event.occurredAt).toLocaleString('es-MX')}</span>
+                <p className="mt-1 text-xs text-neutral-500">Traza: {event.traceId}</p>
+              </li>
+            ))}
+          </ol>
         </>
       ) : null}
 

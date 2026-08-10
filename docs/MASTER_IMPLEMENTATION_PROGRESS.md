@@ -44,6 +44,7 @@
 - Added a deterministic PDF renderer that includes the case snapshot, product, ranked candidates, normative sources, regulatory requirements, evidence filenames and SHA-256 hashes, risk factors, reviews, ruleset version, and disclaimer.
 - Added a protected organization-scoped API download route at `/api/v1/classification-cases/:caseId/dossier.pdf`.
 - The renderer is dependency-free and covered by domain tests; production render/download still requires the API and migration deployment path to be verified remotely.
+- The case UI now exposes a protected download button that obtains the Supabase session token and downloads the generated PDF.
 
 ## Validation gate
 
