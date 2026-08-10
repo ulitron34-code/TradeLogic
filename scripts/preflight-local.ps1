@@ -23,6 +23,7 @@ $required = @(
   'scripts/smoke-production.cjs',
   'scripts/smoke-authenticated.cjs',
   'scripts/verify-tariff-source.cjs',
+  'supabase/verify_tariff_catalog.sql',
   'render.yaml'
 )
 
