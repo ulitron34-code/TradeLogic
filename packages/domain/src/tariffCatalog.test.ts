@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTariffCatalogCsv, tariffCatalogKey, validateTariffCatalog } from './tariffCatalog.js';
+import { isTariffCodeEffective, parseTariffCatalogCsv, tariffCatalogKey, validateTariffCatalog } from './tariffCatalog.js';
 
 const base = {
   countryCode: 'mx',
@@ -40,5 +40,12 @@ describe('validateTariffCatalog', () => {
       { ...base, validFrom: '2026-05-01T00:00:00.000Z', sourceVersion: 'LIGIE-MX-2026-REV1' },
     ]);
     expect(result.errors).toContain('Overlapping validity windows for MX|3926.90.99|99.');
+  });
+
+  it('treats future and expired tariff versions as inactive', () => {
+    const at = new Date('2026-06-01T00:00:00.000Z');
+    expect(isTariffCodeEffective({ validFrom: new Date('2026-01-01'), validTo: new Date('2026-05-31') }, at)).toBe(false);
+    expect(isTariffCodeEffective({ validFrom: new Date('2026-07-01'), validTo: null }, at)).toBe(false);
+    expect(isTariffCodeEffective({ validFrom: new Date('2026-01-01'), validTo: null }, at)).toBe(true);
   });
 });
