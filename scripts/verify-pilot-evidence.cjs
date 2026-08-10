@@ -9,6 +9,7 @@ function usage() {
   node scripts/verify-pilot-evidence.cjs [--artifacts-dir artifacts]
 
 Required files:
+  deployment-targets.json
   smoke-production.json
   smoke-authenticated.json
   tariff-catalog-verification.json
@@ -49,6 +50,18 @@ function requireSmoke(summary, filePath, expectedChecks) {
   }
 }
 
+function requireDeploymentTargets(summary, filePath) {
+  if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
+  if (!summary.commitSha) throw new Error(`${filePath} missing commitSha`);
+  if (!summary.runtime?.apiBaseUrl || !summary.runtime?.webBaseUrl) {
+    throw new Error(`${filePath} must include apiBaseUrl and webBaseUrl`);
+  }
+  for (const [name, value] of Object.entries(summary.runtime)) {
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`${filePath} runtime ${name} must be http or https`);
+  }
+}
+
 function requireTariffVerification(summary, filePath) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
   if (summary.expectedRows !== 20227 && summary.rows !== 20227) {
@@ -69,9 +82,13 @@ function main() {
   }
 
   const artifactsDir = path.resolve(options.artifactsDir);
+  const targetsPath = path.join(artifactsDir, 'deployment-targets.json');
   const productionPath = path.join(artifactsDir, 'smoke-production.json');
   const authenticatedPath = path.join(artifactsDir, 'smoke-authenticated.json');
   const tariffPath = path.join(artifactsDir, 'tariff-catalog-verification.json');
+
+  const targets = readJson(targetsPath);
+  requireDeploymentTargets(targets, targetsPath);
 
   const production = readJson(productionPath);
   requireSmoke(production, productionPath, ['api-health', 'api-ready', 'web-root']);
@@ -86,7 +103,7 @@ function main() {
     status: 'ok',
     artifactsDir,
     checkedAt: new Date().toISOString(),
-    files: [productionPath, authenticatedPath, tariffPath],
+    files: [targetsPath, productionPath, authenticatedPath, tariffPath],
   }, null, 2));
 }
 

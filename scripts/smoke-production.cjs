@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-const { mkdir, writeFile } = require('node:fs/promises');
+const { mkdir, readFile, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-production.cjs --api-base-url https://api.example.com [--web-base-url https://app.example.com] [--timeout-ms 10000] [--output smoke-result.json]
+  node scripts/smoke-production.cjs --api-base-url https://api.example.com [--web-base-url https://app.example.com] [--targets artifacts/deployment-targets.json] [--timeout-ms 10000] [--output smoke-result.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -27,18 +27,13 @@ function parseArgs(argv) {
     if (!value || value.startsWith('--')) throw new Error(`Missing value for ${arg}`);
     if (arg === '--api-base-url') options.apiBaseUrl = value;
     else if (arg === '--web-base-url') options.webBaseUrl = value;
+    else if (arg === '--targets') options.targets = value;
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
     else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
   }
-  if (options.help) return options;
-
-  return {
-    ...options,
-    apiBaseUrl: normalizeBaseUrl(options.apiBaseUrl ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL),
-    webBaseUrl: normalizeBaseUrl(options.webBaseUrl ?? process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL, { optional: true }),
-  };
+  return options;
 }
 
 function parseTimeout(value) {
@@ -47,6 +42,17 @@ function parseTimeout(value) {
     throw new Error('--timeout-ms must be an integer greater than or equal to 100');
   }
   return timeoutMs;
+}
+
+async function resolveDeploymentTargets(targetsPath) {
+  if (!targetsPath) return {};
+  const resolved = path.resolve(targetsPath);
+  const payload = JSON.parse(await readFile(resolved, 'utf8'));
+  if (payload.status && payload.status !== 'ok') throw new Error(`${resolved} status is not ok`);
+  return {
+    apiBaseUrl: payload.runtime?.apiBaseUrl,
+    webBaseUrl: payload.runtime?.webBaseUrl,
+  };
 }
 
 function normalizeBaseUrl(value, { optional = false } = {}) {
@@ -104,6 +110,10 @@ async function main() {
     process.stdout.write(usage());
     return;
   }
+
+  const targets = await resolveDeploymentTargets(options.targets);
+  options.apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? targets.apiBaseUrl ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL);
+  options.webBaseUrl = normalizeBaseUrl(options.webBaseUrl ?? targets.webBaseUrl ?? process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL, { optional: true });
 
   const checks = [];
   const health = await fetchJson(`${options.apiBaseUrl}/health`, options.timeoutMs);

@@ -19,21 +19,27 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 2. Abrir Supabase y verificar que la base este disponible, sin migraciones pendientes ni alertas criticas.
 3. Abrir el dashboard de Render y verificar que el deploy de API termine correctamente.
 4. Abrir el dashboard de Vercel y verificar que el deploy de web termine correctamente.
-5. Ejecutar smoke publico:
+5. Registrar las URLs publicas en evidencia local sin secretos:
 
 ```bash
-npm run smoke:production -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/smoke-production.json
+npm run record:deployment-targets -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/deployment-targets.json
 ```
 
-6. Con una sesion piloto real, obtener un access token de Supabase Auth y ejecutar smoke autenticado read-only:
+6. Ejecutar smoke publico leyendo esas URLs:
+
+```bash
+npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
+```
+
+7. Con una sesion piloto real, obtener un access token de Supabase Auth y ejecutar smoke autenticado read-only:
 
 ```bash
 TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --api-base-url https://TU_API_RENDER --output artifacts/smoke-authenticated.json
 ```
 
-7. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.
-8. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
-9. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
+8. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.
+9. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
+10. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
 
 ## Criterios de no-go
 

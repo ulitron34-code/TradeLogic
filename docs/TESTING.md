@@ -40,13 +40,14 @@ Casos cubiertos:
 - Agregar pruebas de repositorios Prisma reales con dos organizaciones en un entorno controlado.
 ## Smoke test de produccion
 
-Despues de cada deploy, ejecutar el smoke test sin credenciales para validar que API y web respondan antes de iniciar pruebas autenticadas:
+Despues de cada deploy, registrar las URLs publicas sin secretos y ejecutar el smoke test sin credenciales para validar que API y web respondan antes de iniciar pruebas autenticadas:
 
 ```bash
-npm run smoke:production -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/smoke-production.json
+npm run record:deployment-targets -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/deployment-targets.json
+npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
 ```
 
-Tambien puede usar variables de entorno:
+Tambien puede usar variables de entorno directamente:
 
 ```bash
 API_BASE_URL=https://TU_API_RENDER APP_BASE_URL=https://TU_WEB npm run smoke:production
