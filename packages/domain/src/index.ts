@@ -234,3 +234,9 @@ export {
   type OriginRule,
   type RiskBand,
 } from './tradeCompliance.js';
+export {
+  buildCaseDossierLines,
+  renderCaseDossierPdf,
+  DOSSIER_RULESET_VERSION,
+  type CaseDossierInput,
+} from './caseDossier.js';

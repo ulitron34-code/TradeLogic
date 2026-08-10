@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
-import { assessLegalRisk, calculateLandedCost } from '@platform/domain';
+import { assessLegalRisk, calculateLandedCost, renderCaseDossierPdf } from '@platform/domain';
 import { db as defaultDb, scopeToOrganization, type Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -437,24 +437,91 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     });
 
     if (!classificationCase) return reply.notFound('Classification case not found');
-    const topCandidate = classificationCase.candidates[0];
+    const candidates = classificationCase.candidates ?? [];
+    const evidence = classificationCase.evidence ?? [];
+    const reviews = classificationCase.reviews ?? [];
+    const topCandidate = candidates[0];
     const riskAssessment = assessLegalRisk({
       classificationScore: topCandidate ? Number(topCandidate.score) : Number(classificationCase.confidence ?? 0),
       contradictions: topCandidate && Array.isArray(topCandidate.contradictions) ? topCandidate.contradictions.length : 0,
-      documentaryEvidenceCount: classificationCase.evidence.length,
-      regulatoryChecks: classificationCase.candidates.flatMap((candidate) =>
-        (candidate.tariffCode.regulatoryRequirements ?? []).map((requirement) => ({
+      documentaryEvidenceCount: evidence.length,
+      regulatoryChecks: candidates.flatMap((candidate) =>
+        (candidate.tariffCode?.regulatoryRequirements ?? []).map((requirement) => ({
           title: requirement.title,
           mandatory: requirement.mandatory,
           satisfied: false,
           sourceUrl: requirement.sourceUrl,
         })),
       ),
-      hasHumanReview: classificationCase.reviews.length > 0,
-      hasOriginEvidence: classificationCase.evidence.some((evidence) => evidence.claimType.toLowerCase().includes('origin')),
-      hasValuationEvidence: classificationCase.evidence.some((evidence) => evidence.claimType.toLowerCase().includes('valuation')),
+      hasHumanReview: reviews.length > 0,
+      hasOriginEvidence: evidence.some((item) => item.claimType.toLowerCase().includes('origin')),
+      hasValuationEvidence: evidence.some((item) => item.claimType.toLowerCase().includes('valuation')),
     });
     return { ...classificationCase, riskAssessment };
+  });
+
+  app.get('/api/v1/classification-cases/:caseId/dossier.pdf', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const now = new Date();
+    const classificationCase = await scopedDb.classificationCase.findFirst({
+      where: { id: params.caseId, organizationId: organization.id },
+      include: {
+        product: true,
+        candidates: {
+          include: {
+            tariffCode: {
+              include: {
+                regulatoryRequirements: {
+                  where: { validFrom: { lte: now }, OR: [{ validTo: null }, { validTo: { gt: now } }] },
+                  orderBy: [{ mandatory: 'desc' }, { authority: 'asc' }, { title: 'asc' }],
+                },
+              },
+            },
+          },
+          orderBy: { rank: 'asc' },
+        },
+        reviews: { orderBy: { createdAt: 'desc' } },
+        evidence: { include: { document: true } },
+      },
+    });
+    if (!classificationCase) return reply.notFound('Classification case not found');
+
+    const candidates = classificationCase.candidates ?? [];
+    const evidence = classificationCase.evidence ?? [];
+    const reviews = classificationCase.reviews ?? [];
+    const topCandidate = candidates[0];
+    const riskAssessment = assessLegalRisk({
+      classificationScore: topCandidate ? Number(topCandidate.score) : Number(classificationCase.confidence ?? 0),
+      contradictions: topCandidate && Array.isArray(topCandidate.contradictions) ? topCandidate.contradictions.length : 0,
+      documentaryEvidenceCount: evidence.length,
+      regulatoryChecks: candidates.flatMap((candidate) => (candidate.tariffCode?.regulatoryRequirements ?? []).map((requirement) => ({ title: requirement.title, mandatory: requirement.mandatory, satisfied: false, sourceUrl: requirement.sourceUrl }))),
+      hasHumanReview: reviews.length > 0,
+      hasOriginEvidence: evidence.some((item) => item.claimType.toLowerCase().includes('origin')),
+      hasValuationEvidence: evidence.some((item) => item.claimType.toLowerCase().includes('valuation')),
+    });
+    const pdf = renderCaseDossierPdf({
+      id: classificationCase.id,
+      status: classificationCase.status,
+      generatedAt: new Date().toISOString(),
+      product: { name: classificationCase.product.name, sku: classificationCase.product.sku },
+      candidates: candidates.map((candidate) => ({
+        rank: candidate.rank,
+        code: candidate.tariffCode.code,
+        nico: candidate.tariffCode.nico,
+        description: candidate.tariffCode.description,
+        score: Number(candidate.score),
+        sourceVersion: candidate.tariffCode.sourceVersion,
+        sourceUrl: candidate.tariffCode.sourceUrl,
+        regulatoryRequirements: (candidate.tariffCode.regulatoryRequirements ?? []).map((requirement) => ({ title: requirement.title, authority: requirement.authority, sourceVersion: requirement.sourceVersion, sourceUrl: requirement.sourceUrl, mandatory: requirement.mandatory })),
+      })),
+      evidence: evidence.map((item) => ({ filename: item.document?.filename ?? 'documento', sha256: item.document?.sha256 ?? '', claimType: item.claimType })),
+      reviews: reviews.map((review) => ({ decision: review.decision, notes: review.notes, createdAt: review.createdAt.toISOString() })),
+      riskAssessment: { score: riskAssessment.score, band: riskAssessment.band, rulesetVersion: riskAssessment.rulesetVersion, factors: riskAssessment.factors },
+      disclaimer: riskAssessment.disclaimer,
+    });
+    return reply.type('application/pdf').header('Content-Disposition', `attachment; filename="tradelogic-${classificationCase.id}.pdf"`).send(Buffer.from(pdf));
   });
 
   app.post('/api/v1/classification-cases/:caseId/review', async (request, reply) => {

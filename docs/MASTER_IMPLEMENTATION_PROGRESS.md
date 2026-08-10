@@ -39,6 +39,12 @@
 - These are calculation foundations only; production use still requires loading official agreement rules and professional validation.
 - Case detail API now returns the explainable risk assessment and the web case screen displays score, band, factors, and the disclaimer.
 
+## Expediente PDF
+
+- Added a deterministic PDF renderer that includes the case snapshot, product, ranked candidates, normative sources, regulatory requirements, evidence filenames and SHA-256 hashes, risk factors, reviews, ruleset version, and disclaimer.
+- Added a protected organization-scoped API download route at `/api/v1/classification-cases/:caseId/dossier.pdf`.
+- The renderer is dependency-free and covered by domain tests; production render/download still requires the API and migration deployment path to be verified remotely.
+
 ## Validation gate
 
 - The full monorepo build passes for all 10 packages.
