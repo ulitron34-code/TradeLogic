@@ -33,7 +33,27 @@ export async function upsertTariffCatalog(
     let created = 0;
     let updated = 0;
 
+    // The official LIGIE/NICO snapshot contains more than 20,000 rows. A
+    // first import must use createMany per source version; the row-by-row
+    // fallback remains for partial re-imports and small test doubles.
+    const bySourceVersion = new Map<string, TariffCatalogPersistenceRecord[]>();
     for (const record of records) {
+      const group = bySourceVersion.get(record.sourceVersion) ?? [];
+      group.push(record);
+      bySourceVersion.set(record.sourceVersion, group);
+    }
+
+    for (const group of bySourceVersion.values()) {
+      const existingCount = typeof transaction.tariffCode.count === 'function'
+        ? await transaction.tariffCode.count({ where: { sourceVersion: group[0]!.sourceVersion } })
+        : null;
+      if (existingCount === 0 && typeof transaction.tariffCode.createMany === 'function') {
+        await transaction.tariffCode.createMany({ data: group.map(toPersistenceData) });
+        created += group.length;
+        continue;
+      }
+
+      for (const record of group) {
       const existing = await transaction.tariffCode.findFirst({
         where: {
           countryCode: record.countryCode,
@@ -44,24 +64,7 @@ export async function upsertTariffCatalog(
         select: { id: true },
       });
 
-      const data = {
-        countryCode: record.countryCode,
-        code: record.code,
-        nico: record.nico,
-        description: record.description,
-        chapter: record.chapter,
-        heading: record.heading,
-        legalNotes: record.legalNotes,
-        sourceUrl: record.sourceUrl,
-        unitOfMeasure: record.unitOfMeasure ?? null,
-        generalRate: record.generalRate,
-        rateUnit: record.rateUnit,
-        exportRate: record.exportRate ?? null,
-        exportRateUnit: record.exportRateUnit ?? null,
-        validFrom: record.validFrom,
-        validTo: record.validTo,
-        sourceVersion: record.sourceVersion,
-      };
+      const data = toPersistenceData(record);
 
       if (existing) {
         await transaction.tariffCode.update({ where: { id: existing.id }, data });
@@ -71,7 +74,29 @@ export async function upsertTariffCatalog(
         created += 1;
       }
     }
+    }
 
     return { created, updated };
   });
+}
+
+function toPersistenceData(record: TariffCatalogPersistenceRecord) {
+  return {
+    countryCode: record.countryCode,
+    code: record.code,
+    nico: record.nico,
+    description: record.description,
+    chapter: record.chapter,
+    heading: record.heading,
+    legalNotes: record.legalNotes,
+    sourceUrl: record.sourceUrl,
+    unitOfMeasure: record.unitOfMeasure ?? null,
+    generalRate: record.generalRate,
+    rateUnit: record.rateUnit,
+    exportRate: record.exportRate ?? null,
+    exportRateUnit: record.exportRateUnit ?? null,
+    validFrom: record.validFrom,
+    validTo: record.validTo,
+    sourceVersion: record.sourceVersion,
+  };
 }

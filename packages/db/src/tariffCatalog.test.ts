@@ -51,4 +51,17 @@ describe('upsertTariffCatalog', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0]!.description).toBe('Updated description.');
   });
+
+  it('uses a bulk insert for an entirely new source version', async () => {
+    const createMany = async ({ data }: any) => data.length;
+    const fakeClient = {
+      $transaction: async (callback: (transaction: any) => Promise<unknown>) =>
+        callback({ tariffCode: { count: async () => 0, createMany } }),
+    } as any;
+
+    await expect(upsertTariffCatalog(fakeClient, [record, { ...record, nico: '98' }])).resolves.toEqual({
+      created: 2,
+      updated: 0,
+    });
+  });
 });
