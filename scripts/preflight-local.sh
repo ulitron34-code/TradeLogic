@@ -20,6 +20,8 @@ docs/PUBLISHING_SETUP.md
 docs/SUPABASE_PRISMA_SETUP.md
 docs/VERCEL_ENV_SETUP.md
 docs/TESTING.md
+scripts/smoke-production.cjs
+render.yaml
 "
 
 for f in $required; do
