@@ -17,7 +17,8 @@ const RELEVANT_SECRETARIAS: Array<{ match: string; authority: 'SHCP' | 'SE' }> =
 ];
 
 function authorityFor(secretaria: string): 'SHCP' | 'SE' | null {
-  return RELEVANT_SECRETARIAS.find((entry) => secretaria.includes(entry.match))?.authority ?? null;
+  const normalizedSecretaria = secretaria.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  return RELEVANT_SECRETARIAS.find((entry) => normalizedSecretaria.includes(entry.match))?.authority ?? null;
 }
 
 function parseFecha(fecha: string): Date | undefined {
