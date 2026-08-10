@@ -216,3 +216,9 @@ export {
   type TariffCatalogRecord,
   type TariffCatalogValidation,
 } from './tariffCatalog.js';
+export {
+  isRegulatoryRequirementEffective,
+  validateRegulatoryRequirement,
+  type RegulatoryRequirementRecord,
+  type RegulatoryRequirementValidation,
+} from './regulatoryRequirement.js';

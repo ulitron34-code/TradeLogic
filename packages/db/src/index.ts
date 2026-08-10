@@ -1,6 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 export type { Prisma } from '@prisma/client';
 export { upsertTariffCatalog, type TariffCatalogPersistenceRecord } from './tariffCatalog.js';
+export {
+  upsertRegulatoryRequirements,
+  type RegulatoryRequirementPersistenceRecord,
+} from './regulatoryRequirement.js';
 
 // Document.sizeBytes es BigInt en Postgres; JSON.stringify no sabe serializar
 // BigInt de forma nativa y Fastify tira TypeError al responder cualquier ruta

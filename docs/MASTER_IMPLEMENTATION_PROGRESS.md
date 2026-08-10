@@ -14,3 +14,9 @@
 
 - Approval now requires both a ranked tariff candidate and documentary evidence linked to the classification case.
 - The API review fixture covers the evidence requirement. Full execution from this clone is currently limited by incomplete local pnpm dependency links (`fastify` is not resolvable here); this is an environment limitation, not a passed assertion result.
+
+## Regulatory requirements foundation
+
+- Added a versioned `RegulatoryRequirement` relation to tariff codes with authority, requirement type, source URL, source version, effective dates, mandatory flag, and notes.
+- Added validation, effective-window logic, idempotent persistence, migration, and tests.
+- No NOM, permit, or authority requirement is populated without an authoritative source; the catalog remains explicitly pending source-backed loading.
