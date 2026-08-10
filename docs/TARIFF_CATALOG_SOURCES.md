@@ -19,4 +19,27 @@
 
 ## Estado
 
-El archivo oficial FA/NICO publicado por SNICE ya esta integrado como `data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv`, junto con su manifiesto JSON. El derivado tiene 20,227 registros: 8,183 fracciones, 11,507 NICO y las 185 modificaciones de abril de 2026. Conserva IGI e IGE numericos cuando son porcentajes y el texto de `Ex.`, `Prohibida` o cuotas cuando no son porcentajes. Las filas afectadas cierran su vigencia base el 2026-04-24 antes de iniciar la version modificada. La ingesta a base de datos debe ejecutarse en un entorno controlado antes de produccion.
+El archivo oficial FA/NICO publicado por SNICE ya esta integrado como `data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv`, junto con su manifiesto JSON. El derivado tiene 20,227 registros: 8,183 fracciones, 11,507 NICO y las 185 modificaciones de abril de 2026. Conserva IGI e IGE numericos cuando son porcentajes y el texto de `Ex.`, `Prohibida` o cuotas cuando no son porcentajes. Las filas afectadas cierran su vigencia base el 2026-04-24 antes de iniciar la version modificada.
+
+## Ingesta controlada
+
+Antes de tocar una base de datos, ejecutar el dry-run. Este paso valida el CSV completo y confirma que el conteo coincide con el manifiesto oficial derivado:
+
+```bash
+pnpm db:tariff-import -- --input data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv --source-version LIGIE-NICO-2026-04-24 --source-url https://www.snice.gob.mx/~oracle/SNICE_DOCS/FRACCIONESARANCELARIAS-LIGIE_20260420-20260420.xlsx --expected-records 20227
+```
+
+La carga real debe ejecutarse solo desde el entorno controlado que apunta a Supabase/produccion. El importador abre Prisma unicamente cuando se usa `--apply` y aborta si el conteo validado no es exactamente 20,227:
+
+```bash
+pnpm db:tariff-import -- --input data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv --source-version LIGIE-NICO-2026-04-24 --source-url https://www.snice.gob.mx/~oracle/SNICE_DOCS/FRACCIONESARANCELARIAS-LIGIE_20260420-20260420.xlsx --expected-records 20227 --apply
+```
+
+Despues de aplicar, verificar en la base:
+
+```sql
+select "sourceVersion", count(*)
+from "TariffCode"
+where "sourceVersion" = 'LIGIE-NICO-2026-04-24'
+group by "sourceVersion";
+```

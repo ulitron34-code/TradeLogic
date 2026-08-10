@@ -1,14 +1,22 @@
 import { readFile } from 'node:fs/promises';
 import { parseTariffCatalogCsv, validateTariffCatalog } from '@platform/domain';
-import { db, upsertTariffCatalog } from '@platform/db';
 
 type Options = {
   input: string;
   sourceVersion: string;
   sourceUrl: string;
   validFrom?: string;
+  expectedRecords?: number;
   apply: boolean;
 };
+
+function parsePositiveInteger(name: string, value: string): number {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== value) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return parsed;
+}
 
 function optionsFromArgs(args: string[]): Options {
   const values = new Map<string, string>();
@@ -33,7 +41,24 @@ function optionsFromArgs(args: string[]): Options {
     throw new Error('--input, --source-version and --source-url are required');
   }
   const validFrom = values.get('valid-from');
-  return { input, sourceVersion, sourceUrl, ...(validFrom ? { validFrom } : {}), apply };
+  const expectedRecordsValue = values.get('expected-records');
+  const expectedRecords = expectedRecordsValue ? parsePositiveInteger('--expected-records', expectedRecordsValue) : undefined;
+
+  return {
+    input,
+    sourceVersion,
+    sourceUrl,
+    ...(validFrom ? { validFrom } : {}),
+    ...(expectedRecords ? { expectedRecords } : {}),
+    apply,
+  };
+}
+
+function assertExpectedRecordCount(records: number, expectedRecords?: number): void {
+  if (expectedRecords === undefined) return;
+  if (records !== expectedRecords) {
+    throw new Error(`Expected ${expectedRecords} validated records, got ${records}. Refusing to continue.`);
+  }
 }
 
 async function main() {
@@ -49,15 +74,31 @@ async function main() {
     throw new Error(`Catalog validation failed:\n${validation.errors.join('\n')}`);
   }
 
-  const records = validation.records.map(record => ({
-    ...record,
-    generalRate: record.generalRate,
-  }));
-  console.log(JSON.stringify({ mode: options.apply ? 'apply' : 'dry-run', records: records.length, sourceVersion: options.sourceVersion }));
+  const records = validation.records.map(record => ({ ...record }));
+  assertExpectedRecordCount(records.length, options.expectedRecords);
 
-  if (!options.apply) return;
-  const result = await upsertTariffCatalog(db, records);
-  console.log(JSON.stringify(result));
+  console.log(
+    JSON.stringify({
+      mode: options.apply ? 'apply' : 'dry-run',
+      records: records.length,
+      expectedRecords: options.expectedRecords ?? null,
+      sourceVersion: options.sourceVersion,
+      input: options.input,
+    }),
+  );
+
+  if (!options.apply) {
+    console.log(JSON.stringify({ status: 'dry-run-ok', next: 'Re-run with --apply only from the controlled target environment.' }));
+    return;
+  }
+
+  const { db, upsertTariffCatalog } = await import('@platform/db');
+  try {
+    const result = await upsertTariffCatalog(db, records);
+    console.log(JSON.stringify({ status: 'applied', ...result }));
+  } finally {
+    await db.$disconnect();
+  }
 }
 
 main().catch(error => {

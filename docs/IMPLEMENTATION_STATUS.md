@@ -7,7 +7,7 @@ Actualizado: 2026-08-10
 - Render ejecuta `DIRECT_URL="$DATABASE_URL" pnpm --filter @platform/db prisma:deploy` antes de iniciar API y worker; se usa el pooler de Supabase porque el host directo `db.*:5432` no es accesible desde Render.
 - Supabase confirma las migraciones `0_init` a `6_add_tariff_trade_rates` finalizadas. Las migraciones 1 y 2 tienen ademas una fila historica revertida por los intentos fallidos; las filas aplicadas actuales estan finalizadas y no bloquean `migrate deploy`.
 - Se verifico que existen las tablas `RegulatoryRequirement`, `JurisprudenceCase`, `HistoricalAuditRun` y `HistoricalDeclaration`, junto con sus columnas y politicas RLS. `/health` y `/ready` de Render responden 200; `/ready` confirma `database: ok`.
-- El catalogo CSV oficial ya esta versionado en el repositorio, pero su importacion masiva en la base de produccion sigue pendiente de ejecutar con un job controlado.
+- El catalogo CSV oficial ya esta versionado en el repositorio. El importador cuenta con dry-run sin conexion a Prisma y guardia de conteo esperado (`--expected-records 20227`); la importacion masiva en la base de produccion sigue pendiente de ejecutar desde el entorno controlado.
 
 ## Correccion de estado (2026-08-10)
 
@@ -109,7 +109,7 @@ Actualizacion 2026-08-10: la jurisprudencia ya no queda aislada en el catalogo. 
 4. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
 5. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
 6. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
-7. Conseguir una fuente real de tasas arancelarias (T-MEC/trato general) para que la calculadora de landed cost deje de requerir el arancel manual — hoy es la limitacion mas visible del motor de costos.
+7. Ejecutar la importacion controlada del catalogo SNICE FA/NICO 2026 en produccion y despues conectar la calculadora de landed cost a tasas reales disponibles en `TariffCode`, evitando captura manual cuando el dato exista.
 8. Expediente en PDF (queda fuera del alcance del plan original).
 9. Del plan maestro actualizado, siguen pendientes por bloqueos externos: digest semanal por correo/WhatsApp (necesita credenciales de mensajeria), portal white-label para despachos (decision de diseño/producto antes de programar), bot de WhatsApp Business (necesita cuenta de WhatsApp Business API), conciliacion IMMEX (modulo nuevo, requiere diseño de datos).
 
