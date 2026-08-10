@@ -26,7 +26,19 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function AlertsPage() {
-  const { data: alerts } = await apiFetch<{ data: Alert[] }>('/api/v1/alerts');
+  const alerts = await loadAlerts();
+
+  if (alerts === null) {
+    return (
+      <main className="mx-auto max-w-2xl px-4 py-10">
+        <h1 className="mb-3 text-xl font-semibold">Alertas</h1>
+        <div className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">La API todavía no está disponible.</p>
+          <p className="mt-1">Recarga en unos segundos para volver a consultar tus alertas.</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -58,4 +70,13 @@ export default async function AlertsPage() {
       )}
     </main>
   );
+}
+
+async function loadAlerts(): Promise<Alert[] | null> {
+  try {
+    const { data } = await apiFetch<{ data: Alert[] }>('/api/v1/alerts');
+    return data;
+  } catch {
+    return null;
+  }
 }

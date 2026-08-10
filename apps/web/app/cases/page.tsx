@@ -23,7 +23,19 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function CasesPage() {
-  const { data: cases } = await apiFetch<{ data: CaseItem[] }>('/api/v1/classification-cases');
+  const cases = await loadCases();
+
+  if (cases === null) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <h1 className="text-3xl font-semibold tracking-tight">Casos de clasificación</h1>
+        <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">La API todavía no está disponible.</p>
+          <p className="mt-1">Recarga en unos segundos para volver a consultar tus casos.</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -70,4 +82,13 @@ export default async function CasesPage() {
       )}
     </main>
   );
+}
+
+async function loadCases(): Promise<CaseItem[] | null> {
+  try {
+    const { data } = await apiFetch<{ data: CaseItem[] }>('/api/v1/classification-cases');
+    return data;
+  } catch {
+    return null;
+  }
 }
