@@ -19,17 +19,24 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
 
   return (
     <nav className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-      <div className="mx-auto flex max-w-2xl items-center justify-between">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <Link href="/products" className="text-sm font-semibold">
+          <Link href="/dashboard" className="text-sm font-semibold">
             TradeLogic
+          </Link>
+          <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+            Inicio
           </Link>
           <Link href="/products" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
             Productos
           </Link>
+          <Link href="/cases" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+            Casos
+          </Link>
           <Link href="/alerts" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
             Alertas
           </Link>
+          <span className="hidden text-sm text-neutral-400 md:inline">Casos y documentos disponibles desde cada producto</span>
           <span className="text-sm text-neutral-500">{organizationName}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-neutral-500">

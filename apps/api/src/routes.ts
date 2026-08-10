@@ -165,6 +165,24 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     return product;
   });
 
+  app.get('/api/v1/classification-cases', async (request) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const cases = await scopedDb.classificationCase.findMany({
+      where: { organizationId: organization.id },
+      include: {
+        product: { select: { id: true, name: true, sku: true } },
+        candidates: {
+          include: { tariffCode: { select: { code: true, nico: true, description: true } } },
+          orderBy: { rank: 'asc' },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    return { data: cases };
+  });
+
   app.post('/api/v1/documents/presign', async (request) => {
     const { organization } = await resolveContext(request, db);
     const body = presignDocumentBody.parse(request.body);

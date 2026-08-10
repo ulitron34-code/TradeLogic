@@ -196,3 +196,11 @@ function inferContradictions(candidate: TariffCandidateInput, productTermSet: Se
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
+
+export {
+  tariffCatalogKey,
+  validateTariffCatalog,
+  type NormalizedTariffCatalogRecord,
+  type TariffCatalogRecord,
+  type TariffCatalogValidation,
+} from './tariffCatalog.js';
