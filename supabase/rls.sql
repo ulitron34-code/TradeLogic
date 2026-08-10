@@ -80,6 +80,22 @@ create policy "HumanReview_org_isolation" on "HumanReview"
   using (exists (select 1 from "ClassificationCase" where "ClassificationCase".id = "HumanReview"."caseId" and "ClassificationCase"."organizationId" = app_current_org_id()))
   with check (exists (select 1 from "ClassificationCase" where "ClassificationCase".id = "HumanReview"."caseId" and "ClassificationCase"."organizationId" = app_current_org_id()));
 
+-- Auditorias historicas: la corrida pertenece a una organizacion y las
+-- declaraciones heredan ese aislamiento por runId.
+alter table "HistoricalAuditRun" enable row level security;
+alter table "HistoricalAuditRun" force row level security;
+drop policy if exists "HistoricalAuditRun_org_isolation" on "HistoricalAuditRun";
+create policy "HistoricalAuditRun_org_isolation" on "HistoricalAuditRun"
+  using ("organizationId" = app_current_org_id())
+  with check ("organizationId" = app_current_org_id());
+
+alter table "HistoricalDeclaration" enable row level security;
+alter table "HistoricalDeclaration" force row level security;
+drop policy if exists "HistoricalDeclaration_org_isolation" on "HistoricalDeclaration";
+create policy "HistoricalDeclaration_org_isolation" on "HistoricalDeclaration"
+  using (exists (select 1 from "HistoricalAuditRun" where "HistoricalAuditRun".id = "HistoricalDeclaration"."runId" and "HistoricalAuditRun"."organizationId" = app_current_org_id()))
+  with check (exists (select 1 from "HistoricalAuditRun" where "HistoricalAuditRun".id = "HistoricalDeclaration"."runId" and "HistoricalAuditRun"."organizationId" = app_current_org_id()));
+
 -- organizationId es opcional aqui (un impacto regulatorio puede aplicar a
 -- todas las organizaciones): null es visible para todos, no null se filtra.
 alter table "RegulatoryImpact" enable row level security;
@@ -99,6 +115,8 @@ alter table "User" disable row level security;
 alter table "Organization" disable row level security;
 alter table "Membership" disable row level security;
 alter table "TariffCode" disable row level security;
+alter table "RegulatoryRequirement" disable row level security;
+alter table "JurisprudenceCase" disable row level security;
 alter table "RegulatorySource" disable row level security;
 alter table "RegulatoryProvision" disable row level security;
 alter table "FxRate" disable row level security;

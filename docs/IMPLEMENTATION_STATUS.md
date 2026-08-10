@@ -1,6 +1,13 @@
 # Estado de Implementacion
 
-Actualizado: 2026-08-08
+Actualizado: 2026-08-10
+
+## Verificacion de produccion (2026-08-10)
+
+- Render ejecuta `DIRECT_URL="$DATABASE_URL" pnpm --filter @platform/db prisma:deploy` antes de iniciar API y worker; se usa el pooler de Supabase porque el host directo `db.*:5432` no es accesible desde Render.
+- Supabase confirma las migraciones `0_init` a `6_add_tariff_trade_rates` finalizadas. Las migraciones 1 y 2 tienen ademas una fila historica revertida por los intentos fallidos; las filas aplicadas actuales estan finalizadas y no bloquean `migrate deploy`.
+- Se verifico que existen las tablas `RegulatoryRequirement`, `JurisprudenceCase`, `HistoricalAuditRun` y `HistoricalDeclaration`, junto con sus columnas y politicas RLS. `/health` y `/ready` de Render responden 200; `/ready` confirma `database: ok`.
+- El catalogo CSV oficial ya esta versionado en el repositorio, pero su importacion masiva en la base de produccion sigue pendiente de ejecutar con un job controlado.
 
 ## Correccion de estado (2026-08-10)
 

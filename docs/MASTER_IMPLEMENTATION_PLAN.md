@@ -30,7 +30,7 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 | Expediente PDF | Snapshot, fundamento, evidencia y auditoria implementados localmente | Verificar endpoint y migraciones en produccion | PDF renderizado y revisado |
 | Auditoria historica | Importacion, comparacion y hallazgos implementados localmente | Piloto con declaraciones y tasas oficiales | Dataset de prueba y reporte |
 | UX/onboarding | Dashboard, navegacion, productos, casos, alertas y auditorias implementados | Flujo guiado, estados vacios, roles y ayuda contextual | Prueba manual por rol |
-| Produccion | API/web preparados localmente; push, migraciones y worker remotos pendientes | Publicar, migrar, ejecutar worker y observar | Smoke test de produccion |
+| Produccion | API desplegada en Render; migraciones 0-6 aplicadas y verificadas en Supabase; API y worker arrancan desde Render | Importar el catalogo oficial completo, validar UI autenticada y observar worker contra Redis/DOF | Smoke test de produccion, catalogo poblado y piloto |
 
 ## Reglas de implementacion
 
@@ -44,7 +44,7 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 
 ## Primer entregable tecnico
 
-El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial FA/NICO con IGI/IGE, las modificaciones con vigencia y las pruebas de cobertura ya estan implementados localmente. El siguiente cierre es ejecutar la migracion/importacion en un entorno controlado y conectar el calculo al regimen/preferencia aplicable.
+El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial FA/NICO con IGI/IGE, las modificaciones con vigencia y las pruebas de cobertura ya estan implementados. Las migraciones 0-6 y RLS de las tablas nuevas ya fueron aplicadas y verificadas en Supabase; el siguiente cierre es ejecutar la importacion idempotente del CSV oficial en produccion y conectar el calculo al regimen/preferencia aplicable.
 
 ## Criterio de finalizacion del proyecto
 
