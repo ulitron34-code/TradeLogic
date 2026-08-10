@@ -122,6 +122,11 @@ export function tariffCatalogKey(record: Pick<NormalizedTariffCatalogRecord, 'co
   return [record.countryCode, record.code, record.nico ?? '', record.validFrom.toISOString()].join('|');
 }
 
+export function isTariffCodeEffective(record: Pick<NormalizedTariffCatalogRecord, 'validFrom' | 'validTo'>, at: Date = new Date()): boolean {
+  const timestamp = at.getTime();
+  return record.validFrom.getTime() <= timestamp && (record.validTo === null || record.validTo.getTime() > timestamp);
+}
+
 function normalizeRecord(raw: unknown):
   | { record: NormalizedTariffCatalogRecord }
   | { error: string } {
