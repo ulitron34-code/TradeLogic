@@ -459,6 +459,14 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const candidates = classificationCase.candidates ?? [];
     const evidence = classificationCase.evidence ?? [];
     const reviews = classificationCase.reviews ?? [];
+    const candidateCodes = [...new Set(candidates.map((candidate) => candidate.tariffCode.code))];
+    const jurisprudenceCases = 'jurisprudenceCase' in scopedDb
+      ? await scopedDb.jurisprudenceCase.findMany({
+          where: { tariffFractionRefs: { hasSome: candidateCodes } },
+          orderBy: [{ fechaPublicacion: 'desc' }, { ius: 'asc' }],
+          take: 20,
+        })
+      : [];
     const topCandidate = candidates[0];
     const riskAssessment = assessLegalRisk({
       classificationScore: topCandidate ? Number(topCandidate.score) : Number(classificationCase.confidence ?? 0),
@@ -476,7 +484,18 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       hasOriginEvidence: evidence.some((item) => item.claimType.toLowerCase().includes('origin')),
       hasValuationEvidence: evidence.some((item) => item.claimType.toLowerCase().includes('valuation')),
     });
-    return { ...classificationCase, riskAssessment };
+    return {
+      ...classificationCase,
+      jurisprudence: jurisprudenceCases.map((precedent) => ({
+        ius: precedent.ius,
+        claveTesis: precedent.claveTesis,
+        rubro: precedent.rubro,
+        fuente: precedent.fuente,
+        sourceUrl: precedent.sourceUrl,
+        relevance: `Coincide con fraccion(es): ${precedent.tariffFractionRefs.filter((ref) => candidateCodes.includes(ref)).join(', ')}`,
+      })),
+      riskAssessment,
+    };
   });
 
   app.get('/api/v1/classification-cases/:caseId/dossier.pdf', async (request, reply) => {
@@ -510,6 +529,14 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const candidates = classificationCase.candidates ?? [];
     const evidence = classificationCase.evidence ?? [];
     const reviews = classificationCase.reviews ?? [];
+    const candidateCodes = [...new Set(candidates.map((candidate) => candidate.tariffCode.code))];
+    const jurisprudenceCases = 'jurisprudenceCase' in scopedDb
+      ? await scopedDb.jurisprudenceCase.findMany({
+          where: { tariffFractionRefs: { hasSome: candidateCodes } },
+          orderBy: [{ fechaPublicacion: 'desc' }, { ius: 'asc' }],
+          take: 20,
+        })
+      : [];
     const topCandidate = candidates[0];
     const riskAssessment = assessLegalRisk({
       classificationScore: topCandidate ? Number(topCandidate.score) : Number(classificationCase.confidence ?? 0),
@@ -537,6 +564,14 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       })),
       evidence: evidence.map((item) => ({ filename: item.document?.filename ?? 'documento', sha256: item.document?.sha256 ?? '', claimType: item.claimType })),
       reviews: reviews.map((review) => ({ decision: review.decision, notes: review.notes, createdAt: review.createdAt.toISOString() })),
+      jurisprudence: jurisprudenceCases.map((precedent) => ({
+        ius: precedent.ius,
+        claveTesis: precedent.claveTesis,
+        rubro: precedent.rubro,
+        fuente: precedent.fuente,
+        sourceUrl: precedent.sourceUrl,
+        relevance: `Coincide con fraccion(es): ${precedent.tariffFractionRefs.filter((ref) => candidateCodes.includes(ref)).join(', ')}`,
+      })),
       riskAssessment: { score: riskAssessment.score, band: riskAssessment.band, rulesetVersion: riskAssessment.rulesetVersion, factors: riskAssessment.factors },
       disclaimer: riskAssessment.disclaimer,
     });

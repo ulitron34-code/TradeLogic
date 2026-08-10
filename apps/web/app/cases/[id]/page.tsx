@@ -51,6 +51,7 @@ type RegulatoryRequirement = {
 };
 
 type Review = { id: string; decision: string; notes: string | null; createdAt: string };
+type Jurisprudence = { ius: number; claveTesis: string; rubro: string; fuente: string | null; sourceUrl: string; relevance: string };
 type AuditEvent = { id: string; action: string; entityType: string; entityId: string; traceId: string; occurredAt: string; after: unknown };
 
 type ClassificationCaseDetail = {
@@ -60,6 +61,7 @@ type ClassificationCaseDetail = {
   product: { id: string; name: string; sku: string | null };
   candidates: Candidate[];
   reviews: Review[];
+  jurisprudence: Jurisprudence[];
   auditEvents?: AuditEvent[];
   riskAssessment?: {
     score: number;
@@ -254,6 +256,22 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               <li key={review.id} className="rounded border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800">
                 <span className="font-medium">{review.decision}</span>
                 {review.notes ? <span className="ml-2 text-neutral-500">{review.notes}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
+      {classificationCase.jurisprudence.length > 0 ? (
+        <>
+          <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">Jurisprudencia relacionada</h2>
+          <ul className="mb-8 flex flex-col gap-2">
+            {classificationCase.jurisprudence.map((precedent) => (
+              <li key={precedent.ius} className="rounded border border-neutral-200 px-3 py-2 text-sm dark:border-neutral-800">
+                <div className="font-medium">IUS {precedent.ius} · {precedent.claveTesis}</div>
+                <p className="mt-1">{precedent.rubro}</p>
+                <p className="mt-1 text-xs text-neutral-500">{precedent.relevance} · {precedent.fuente ?? 'SJF'}</p>
+                <a className="text-xs underline" href={precedent.sourceUrl} target="_blank" rel="noreferrer">Ver tesis</a>
               </li>
             ))}
           </ul>

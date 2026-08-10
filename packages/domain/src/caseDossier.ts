@@ -17,6 +17,7 @@ export type CaseDossierInput = {
   candidates: DossierCandidate[];
   evidence: Array<{ filename: string; sha256: string; claimType: string }>;
   reviews: Array<{ decision: string; notes?: string | null; createdAt: string }>;
+  jurisprudence?: Array<{ ius: number; claveTesis: string; rubro: string; fuente?: string | null; sourceUrl: string; relevance: string }>;
   riskAssessment?: { score: number; band: string; rulesetVersion: string; factors: Array<{ label: string; points: number; explanation: string }> };
   disclaimer: string;
 };
@@ -46,6 +47,14 @@ export function buildCaseDossierLines(input: CaseDossierInput): string[] {
   }
   lines.push('', 'EVIDENCIA DOCUMENTAL');
   for (const evidence of input.evidence) lines.push(`${evidence.filename} | ${evidence.claimType} | SHA-256: ${evidence.sha256}`);
+  lines.push('', 'JURISPRUDENCIA RELACIONADA');
+  if (input.jurisprudence?.length) {
+    for (const precedent of input.jurisprudence) {
+      lines.push(`IUS ${precedent.ius} | ${precedent.claveTesis} | ${precedent.relevance}`);
+      lines.push(`Rubro: ${precedent.rubro}`);
+      lines.push(`Fuente: ${precedent.fuente ?? 'SJF'} | ${precedent.sourceUrl}`);
+    }
+  } else lines.push('No se encontraron precedentes relacionados por fraccion arancelaria.');
   lines.push('', 'RIESGO OPERATIVO');
   if (input.riskAssessment) {
     lines.push(`Banda: ${input.riskAssessment.band} | Puntaje: ${input.riskAssessment.score}/100 | Reglas: ${input.riskAssessment.rulesetVersion}`);

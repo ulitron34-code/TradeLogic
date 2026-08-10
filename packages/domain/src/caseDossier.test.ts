@@ -7,6 +7,7 @@ const dossier = {
   candidates: [{ rank: 1, code: '9031.80.99', nico: null, description: 'Instrumentos de medicion', score: 86, sourceVersion: 'LIGIE-2026.1', sourceUrl: 'https://example.test/ligie', regulatoryRequirements: [{ title: 'Permiso', authority: 'SAT', sourceVersion: '2026.1', sourceUrl: 'https://example.test/permiso', mandatory: true }] }],
   evidence: [{ filename: 'ficha.pdf', sha256: 'a'.repeat(64), claimType: 'technical' }],
   reviews: [{ decision: 'CHANGES_REQUESTED', notes: 'Falta evidencia', createdAt: '2026-08-10' }],
+  jurisprudence: [{ ius: 2031741, claveTesis: 'X.1o.A.1 A', rubro: 'CLASIFICACION ARANCELARIA', fuente: 'Gaceta SJF', sourceUrl: 'https://example.test/tesis/2031741', relevance: 'Coincide con la fraccion 9031.80.99' }],
   riskAssessment: { score: 55, band: 'HIGH', rulesetVersion: 'risk-1', factors: [{ label: 'Evidencia limitada', points: 10, explanation: 'Falta factura' }] },
   disclaimer: 'No constituye asesoria juridica.',
 };
@@ -17,6 +18,7 @@ describe('case dossier', () => {
     expect(lines.join('\n')).toContain('SHA-256:');
     expect(lines.join('\n')).toContain('https://example.test/permiso');
     expect(lines.join('\n')).toContain('CHANGES_REQUESTED');
+    expect(lines.join('\n')).toContain('2031741');
   });
 
   it('renders a valid minimal PDF envelope', () => {
