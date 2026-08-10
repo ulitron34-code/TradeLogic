@@ -53,6 +53,7 @@
 - Added idempotent run/declaration persistence and migration with source fingerprint, summary, row number, and result provenance.
 - The database schema validates successfully; a production import still requires an official rate catalog and a controlled pilot dataset.
 - Added `POST /api/v1/historical-audits`, which verifies the CSV fingerprint, reads only current `PERCENT` rates from the organization-scoped catalog, persists the run, and returns row-level findings.
+- Added `/audits` to the web navigation with a guided CSV upload, client-side SHA-256 calculation, summary counters, and row-level results.
 
 ## Validation gate
 

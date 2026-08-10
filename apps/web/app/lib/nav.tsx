@@ -36,6 +36,9 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
           <Link href="/alerts" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
             Alertas
           </Link>
+          <Link href="/audits" className="text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100">
+            Auditoría
+          </Link>
           <span className="hidden text-sm text-neutral-400 md:inline">Casos y documentos disponibles desde cada producto</span>
           <span className="text-sm text-neutral-500">{organizationName}</span>
         </div>
