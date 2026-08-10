@@ -22,7 +22,16 @@ type Candidate = {
   rank: number;
   rationale: Rationale;
   contradictions: string[] | null;
-  tariffCode: { code: string; nico: string | null; description: string };
+  tariffCode: {
+    code: string;
+    nico: string | null;
+    description: string;
+    sourceVersion: string;
+    sourceUrl: string | null;
+    legalNotes: string | null;
+    validFrom: string;
+    validTo: string | null;
+  };
 };
 
 type Review = { id: string; decision: string; notes: string | null; createdAt: string };
@@ -120,6 +129,17 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
                     </span>
                   </div>
                   <p className="mb-2 text-sm text-neutral-700 dark:text-neutral-300">{candidate.tariffCode.description}</p>
+                  <p className="mb-2 text-xs text-neutral-500">
+                    Fuente: {candidate.tariffCode.sourceVersion} · Vigencia desde {new Date(candidate.tariffCode.validFrom).toLocaleDateString('es-MX')}
+                    {candidate.tariffCode.sourceUrl ? (
+                      <> · <a className="underline" href={candidate.tariffCode.sourceUrl} target="_blank" rel="noreferrer">ver fuente</a></>
+                    ) : null}
+                  </p>
+                  {candidate.tariffCode.legalNotes ? (
+                    <p className="mb-2 rounded bg-amber-50 p-2 text-xs text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+                      Nota legal: {candidate.tariffCode.legalNotes}
+                    </p>
+                  ) : null}
                   {candidate.rationale?.summary ? (
                     <p className="mb-2 text-sm text-neutral-500">{candidate.rationale.summary}</p>
                   ) : null}

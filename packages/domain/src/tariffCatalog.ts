@@ -3,6 +3,12 @@ export type TariffCatalogRecord = {
   code: string;
   nico?: string | null;
   description: string;
+  chapter?: string | null;
+  heading?: string | null;
+  legalNotes?: string | null;
+  sourceUrl?: string | null;
+  generalRate?: number | string | null;
+  rateUnit?: string | null;
   validFrom: string | Date;
   validTo?: string | Date | null;
   sourceVersion: string;
@@ -88,6 +94,12 @@ function normalizeRecord(raw: unknown):
   const code = String(value.code ?? '').trim();
   const nicoValue = value.nico === undefined || value.nico === null || value.nico === '' ? null : String(value.nico).trim();
   const description = String(value.description ?? '').trim();
+  const chapter = nullableString(value.chapter);
+  const heading = nullableString(value.heading);
+  const legalNotes = nullableString(value.legalNotes);
+  const sourceUrl = nullableString(value.sourceUrl);
+  const rateUnit = nullableString(value.rateUnit);
+  const generalRate = parseRate(value.generalRate);
   const sourceVersion = String(value.sourceVersion ?? '').trim();
   const validFrom = parseDate(value.validFrom);
   const validTo = value.validTo === undefined || value.validTo === null || value.validTo === '' ? null : parseDate(value.validTo);
@@ -96,6 +108,9 @@ function normalizeRecord(raw: unknown):
   if (!CODE_PATTERN.test(code)) return { error: 'code must use the 0000.00.00 format.' };
   if (nicoValue !== null && !NICO_PATTERN.test(nicoValue)) return { error: 'nico must use two digits.' };
   if (!description) return { error: 'description is required.' };
+  if (value.generalRate !== undefined && value.generalRate !== null && value.generalRate !== '' && generalRate === null) {
+    return { error: 'generalRate must be a non-negative number.' };
+  }
   if (!sourceVersion) return { error: 'sourceVersion is required.' };
   if (!validFrom) return { error: 'validFrom must be a valid date.' };
   if (value.validTo !== undefined && value.validTo !== null && value.validTo !== '' && !validTo) {
@@ -109,6 +124,12 @@ function normalizeRecord(raw: unknown):
       code,
       nico: nicoValue,
       description,
+      chapter,
+      heading,
+      legalNotes,
+      sourceUrl,
+      generalRate,
+      rateUnit,
       validFrom,
       validTo,
       sourceVersion,
@@ -119,4 +140,16 @@ function normalizeRecord(raw: unknown):
 function parseDate(value: unknown): Date | null {
   const date = value instanceof Date ? new Date(value.getTime()) : new Date(String(value ?? ''));
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function nullableString(value: unknown): string | null {
+  if (value === undefined || value === null || value === '') return null;
+  const text = String(value).trim();
+  return text.length > 0 ? text : null;
+}
+
+function parseRate(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const rate = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
+  return Number.isFinite(rate) && rate >= 0 ? rate : null;
 }
