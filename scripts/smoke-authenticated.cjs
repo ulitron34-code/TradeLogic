@@ -5,10 +5,11 @@ const path = require('node:path');
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RETRIES = 2;
+const MIN_DOSSIER_BYTES = 500;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--require-tariff-catalog] [--output smoke-authenticated.json]
+  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--require-tariff-catalog] [--dossier-case-id uuid] [--output smoke-authenticated.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -36,6 +37,7 @@ function parseArgs(argv) {
     else if (arg === '--token') options.token = value;
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
     else if (arg === '--retries') options.retries = parseRetries(value);
+    else if (arg === '--dossier-case-id') options.dossierCaseId = value;
     else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
@@ -94,6 +96,20 @@ async function fetchJson(url, { token, timeoutMs }) {
   return { url, status: response.status, ok: response.ok, body };
 }
 
+async function fetchBinary(url, { token, timeoutMs }) {
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(timeoutMs),
+    headers: {
+      Accept: 'application/pdf',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const contentType = response.headers.get('content-type') ?? '';
+  const contentDisposition = response.headers.get('content-disposition') ?? '';
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  return { url, status: response.status, ok: response.ok, contentType, contentDisposition, bytes };
+}
+
 function assertOk(result) {
   if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}: ${JSON.stringify(result.body)}`);
 }
@@ -109,6 +125,7 @@ function assertMe(result) {
     throw new Error(`${result.url} returned incomplete user context: ${JSON.stringify(result.body)}`);
   }
 }
+
 function assertTariffCatalogStatus(result) {
   assertOk(result);
   if (result.body?.status !== 'ok' || result.body?.expectedRows !== 20227 || result.body?.rows !== 20227) {
@@ -117,6 +134,16 @@ function assertTariffCatalogStatus(result) {
   if (!Array.isArray(result.body?.checks) || result.body.checks.some((check) => check.status && check.status !== 'ok')) {
     throw new Error(`${result.url} returned failing tariff catalog checks: ${JSON.stringify(result.body)}`);
   }
+}
+
+function assertDossierPdf(result) {
+  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status} while downloading dossier PDF`);
+  if (!result.contentType.toLowerCase().includes('application/pdf')) {
+    throw new Error(`${result.url} did not return application/pdf: ${result.contentType}`);
+  }
+  const header = String.fromCharCode(...result.bytes.slice(0, 4));
+  if (header !== '%PDF') throw new Error(`${result.url} did not return a PDF header`);
+  if (result.bytes.length < MIN_DOSSIER_BYTES) throw new Error(`${result.url} returned a suspiciously small PDF (${result.bytes.length} bytes)`);
 }
 
 async function withRetries(operation, retries) {
@@ -194,6 +221,21 @@ async function main() {
       rows: tariffCatalog.body.rows,
       expectedRows: tariffCatalog.body.expectedRows,
       sourceVersions: tariffCatalog.body.sourceVersions,
+    });
+  }
+
+  if (options.dossierCaseId) {
+    const dossier = await withRetries(() => fetchBinary(`${apiBaseUrl}/api/v1/classification-cases/${encodeURIComponent(options.dossierCaseId)}/dossier.pdf`, requestOptions), options.retries);
+    assertDossierPdf(dossier);
+    checks.push({
+      name: 'dossier-pdf',
+      url: dossier.url,
+      status: dossier.status,
+      ok: true,
+      caseId: options.dossierCaseId,
+      bytes: dossier.bytes.length,
+      contentType: dossier.contentType,
+      contentDisposition: dossier.contentDisposition,
     });
   }
 

@@ -35,6 +35,7 @@ npm run smoke:production -- --targets artifacts/deployment-targets.json --output
 
 ```bash
 TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json
+# Cuando ya exista un caso piloto revisado, agregar: --dossier-case-id CASE_ID
 ```
 
 8. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.

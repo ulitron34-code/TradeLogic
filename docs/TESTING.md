@@ -86,6 +86,15 @@ Despues de importar FA/NICO en Supabase, repetir el smoke autenticado con valida
 TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --output artifacts/smoke-authenticated.json
 ```
 
+
+Si ya existe un caso piloto revisado y debe comprobarse el expediente PDF desde API, agregar `--dossier-case-id`:
+
+```bash
+TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --dossier-case-id CASE_ID --output artifacts/smoke-authenticated.json
+```
+
+El check valida que `/api/v1/classification-cases/:caseId/dossier.pdf` responda `application/pdf`, empiece con `%PDF` y tenga tamano suficiente para descartar respuestas vacias.
+
 ## Evidencia manual del piloto
 
 Despues de completar la importacion FA/NICO y el smoke autenticado con `--require-tariff-catalog`, generar una plantilla con:
