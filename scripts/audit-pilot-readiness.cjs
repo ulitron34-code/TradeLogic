@@ -133,6 +133,16 @@ function requireTariffVerification(summary) {
   return { rows: summary.rows, expectedRows: summary.expectedRows };
 }
 
+function isPendingText(value) {
+  return typeof value !== 'string' || value.trim().length < 4 || value.includes('PENDIENTE');
+}
+
+function requireManualStepEvidence(step, stepName, filePath = 'manual-pilot-run.json') {
+  if (step.status !== 'ok') throw new Error(`${filePath} manual step ${stepName} is not ok`);
+  if (isPendingText(step.evidence)) throw new Error(`${filePath} manual step ${stepName} missing concrete evidence`);
+  if (isPendingText(step.expectedResult)) throw new Error(`${filePath} manual step ${stepName} missing expectedResult`);
+  if (!step.checkedAt || Number.isNaN(Date.parse(step.checkedAt))) throw new Error(`${filePath} manual step ${stepName} missing valid checkedAt`);
+}
 function requireManualPilotRun(summary) {
   if (summary.status !== 'ok') throw new Error('status is not ok');
   if (!checkedAt(summary)) throw new Error('missing valid checkedAt');

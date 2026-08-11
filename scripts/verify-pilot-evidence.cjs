@@ -113,6 +113,16 @@ function requireTariffVerification(summary, filePath) {
   }
 }
 
+function isPendingText(value) {
+  return typeof value !== 'string' || value.trim().length < 4 || value.includes('PENDIENTE');
+}
+
+function requireManualStepEvidence(step, stepName, filePath = 'manual-pilot-run.json') {
+  if (step.status !== 'ok') throw new Error(`${filePath} manual step ${stepName} is not ok`);
+  if (isPendingText(step.evidence)) throw new Error(`${filePath} manual step ${stepName} missing concrete evidence`);
+  if (isPendingText(step.expectedResult)) throw new Error(`${filePath} manual step ${stepName} missing expectedResult`);
+  if (!step.checkedAt || Number.isNaN(Date.parse(step.checkedAt))) throw new Error(`${filePath} manual step ${stepName} missing valid checkedAt`);
+}
 function requireManualPilotRun(summary, filePath) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
   requireIsoDate(summary.checkedAt, 'checkedAt', filePath);

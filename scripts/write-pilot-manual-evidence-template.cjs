@@ -4,13 +4,13 @@ const path = require('node:path');
 
 const DEFAULT_OUTPUT = 'artifacts/manual-pilot-run.json';
 const STEPS = [
-  ['login', 'Entrar a Vercel con una cuenta piloto real.'],
-  ['create-product', 'Crear o abrir un producto piloto.'],
-  ['upload-evidence', 'Subir evidencia documental del producto y verla listada.'],
-  ['start-classification-case', 'Crear caso de clasificacion desde el producto.'],
-  ['submit-analysis', 'Enviar caso a analisis y confirmar que avanza de estado.'],
-  ['review-decision', 'Registrar decision humana de revision.'],
-  ['download-dossier-pdf', 'Descargar el expediente PDF del caso revisado.'],
+  { name: 'login', instruction: 'Entrar a Vercel con una cuenta piloto real.', expectedResult: 'La sesion abre dashboard/productos sin redirigir a login.' },
+  { name: 'create-product', instruction: 'Crear o abrir un producto piloto.', expectedResult: 'El producto queda visible con ID real y version actual.' },
+  { name: 'upload-evidence', instruction: 'Subir evidencia documental del producto y verla listada.', expectedResult: 'El documento aparece listado en el producto y queda asociado al caso.' },
+  { name: 'start-classification-case', instruction: 'Crear caso de clasificacion desde el producto.', expectedResult: 'El detalle del caso abre con estado inicial y avance del expediente visible.' },
+  { name: 'submit-analysis', instruction: 'Enviar caso a analisis y confirmar que avanza de estado.', expectedResult: 'El caso cambia de estado y muestra candidatos o necesidad de revision.' },
+  { name: 'review-decision', instruction: 'Registrar decision humana de revision.', expectedResult: 'La decision queda registrada y el caso queda aprobado/rechazado.' },
+  { name: 'download-dossier-pdf', instruction: 'Descargar el expediente PDF del caso revisado.', expectedResult: 'El PDF descarga correctamente y coincide con el caseId del smoke autenticado.' },
 ];
 
 function usage() {
@@ -66,7 +66,14 @@ function main() {
       dossierDownloaded: false,
       dossierFilename: 'tradelogic-PENDIENTE.pdf',
     },
-    steps: STEPS.map(([name, evidence]) => ({ name, status: 'pending', evidence })),
+    steps: STEPS.map((step) => ({
+      name: step.name,
+      status: 'pending',
+      checkedAt: 'PENDIENTE',
+      instruction: step.instruction,
+      expectedResult: step.expectedResult,
+      evidence: 'PENDIENTE',
+    })),
     blockers: ['Completar recorrido manual en navegador y reemplazar valores PENDIENTE.'],
     notes: 'No cambiar status a ok hasta confirmar cada paso con una cuenta piloto real.',
   };
