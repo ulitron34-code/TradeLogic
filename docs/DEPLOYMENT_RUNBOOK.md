@@ -59,3 +59,33 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 - Registrar aqui la web publica exacta de Vercel cuando se confirme desde el dashboard.
 - Ejecutar la importacion controlada del catalogo FA/NICO en Supabase/produccion y guardar el resultado del conteo.
 - Despues de importar, pegar `supabase/verify_tariff_catalog.sql` en el SQL editor de Supabase. Copiar el valor final `tariff_catalog_verification_json` a `artifacts/tariff-catalog-verification.json`; todos los checks deben devolver `ok`.
+
+## Recuperacion de deploy atorado en Render
+
+Si `GET /health` y `GET /ready` responden 200 pero `GET /version` devuelve 404, Render esta sirviendo una version anterior de la API. En ese caso el problema no es Supabase ni Vercel: el ultimo deploy no llego a publicarse.
+
+1. Abrir Render API dashboard: https://dashboard.render.com/web/srv-d9rvfk8n74is73fl9bt0
+2. Entrar al ultimo deploy y revisar logs de runtime, no solo build logs.
+3. Confirmar que el commit del deploy sea el mismo que `git rev-parse HEAD`.
+4. Revisar Settings -> Build & Deploy. El servicio web debe usar exactamente:
+
+```text
+Build Command:
+corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/api... build
+
+Pre-Deploy Command:
+pnpm --filter @platform/db prisma:deploy
+
+Start Command:
+pnpm --filter @platform/api start
+```
+
+5. Si el dashboard conserva un comando largo que ejecuta `tariff:import` o arranca worker y API juntos, reemplazarlo. La importacion FA/NICO es una operacion controlada posterior al deploy; no debe ejecutarse en cada arranque del servicio web.
+6. Ejecutar Manual Deploy -> Deploy latest commit.
+7. Confirmar el commit publicado:
+
+```bash
+curl https://tradelogic-api.onrender.com/version
+```
+
+La respuesta debe incluir `commitSha` con el commit esperado. Despues correr el smoke publico con `--expected-commit`.
