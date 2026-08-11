@@ -8,7 +8,7 @@ const DEFAULT_RETRIES = 2;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-production.cjs --api-base-url https://api.example.com [--web-base-url https://app.example.com] [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--output smoke-result.json]
+  node scripts/smoke-production.cjs --api-base-url https://api.example.com [--web-base-url https://app.example.com] [--targets artifacts/deployment-targets.json] [--expected-commit git-sha] [--timeout-ms 30000] [--retries 2] [--output smoke-result.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -30,6 +30,7 @@ function parseArgs(argv) {
     if (arg === '--api-base-url') options.apiBaseUrl = value;
     else if (arg === '--web-base-url') options.webBaseUrl = value;
     else if (arg === '--targets') options.targets = value;
+    else if (arg === '--expected-commit') options.expectedCommit = value;
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
     else if (arg === '--retries') options.retries = parseRetries(value);
     else if (arg === '--output') options.output = value;
@@ -63,6 +64,7 @@ async function resolveDeploymentTargets(targetsPath) {
   return {
     apiBaseUrl: payload.runtime?.apiBaseUrl,
     webBaseUrl: payload.runtime?.webBaseUrl,
+    expectedCommit: payload.commitSha,
   };
 }
 
@@ -99,6 +101,18 @@ async function fetchPage(url, timeoutMs) {
 function assertHealth(result) {
   if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
   if (result.body?.status !== 'ok') throw new Error(`${result.url} returned unexpected status: ${JSON.stringify(result.body)}`);
+}
+
+function assertVersion(result, expectedCommit) {
+  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
+  if (result.body?.status !== 'ok' || result.body?.service !== 'api') {
+    throw new Error(`${result.url} returned unexpected version payload: ${JSON.stringify(result.body)}`);
+  }
+  const runningCommit = result.body?.commitSha;
+  if (!runningCommit) throw new Error(`${result.url} did not report commitSha`);
+  if (!runningCommit.startsWith(expectedCommit) && !expectedCommit.startsWith(runningCommit)) {
+    throw new Error(`${result.url} is running commit ${runningCommit}, expected ${expectedCommit}`);
+  }
 }
 
 function assertReady(result) {
@@ -139,6 +153,7 @@ async function main() {
   const targets = await resolveDeploymentTargets(options.targets);
   options.apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? targets.apiBaseUrl ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL);
   options.webBaseUrl = normalizeBaseUrl(options.webBaseUrl ?? targets.webBaseUrl ?? process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL, { optional: true });
+  options.expectedCommit = options.expectedCommit ?? targets.expectedCommit;
 
   const checks = [];
   const health = await withRetries(() => fetchJson(`${options.apiBaseUrl}/health`, options.timeoutMs), options.retries);
@@ -148,6 +163,12 @@ async function main() {
   const ready = await withRetries(() => fetchJson(`${options.apiBaseUrl}/ready`, options.timeoutMs), options.retries);
   assertReady(ready);
   checks.push({ name: 'api-ready', url: ready.url, status: ready.status, ok: true, database: ready.body.database });
+
+  if (options.expectedCommit) {
+    const version = await withRetries(() => fetchJson(`${options.apiBaseUrl}/version`, options.timeoutMs), options.retries);
+    assertVersion(version, options.expectedCommit);
+    checks.push({ name: 'api-version', url: version.url, status: version.status, ok: true, commitSha: version.body.commitSha });
+  }
 
   if (options.webBaseUrl) {
     const web = await withRetries(() => fetchPage(options.webBaseUrl, options.timeoutMs), options.retries);

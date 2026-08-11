@@ -91,6 +91,16 @@ const createDocumentBody = z.object({
   product_version_id: z.string().uuid().optional(),
 });
 
+function deploymentMetadata() {
+  return {
+    status: 'ok',
+    service: 'api',
+    nodeEnv: process.env.NODE_ENV ?? null,
+    commitSha: process.env.RENDER_GIT_COMMIT ?? process.env.GIT_COMMIT ?? process.env.COMMIT_SHA ?? null,
+    deployId: process.env.RENDER_SERVICE_ID ?? process.env.RENDER_INSTANCE_ID ?? null,
+  };
+}
+
 export type RouteDependencies = {
   db?: typeof defaultDb;
   readinessCheck?: () => Promise<void>;
@@ -119,6 +129,8 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   const headObject = dependencies.headObject ?? defaultHeadObject;
 
   app.get('/health', async () => ({ status: 'ok', service: 'api' }));
+
+  app.get('/version', async () => deploymentMetadata());
 
   app.get('/ready', async (_request, reply) => {
     try {

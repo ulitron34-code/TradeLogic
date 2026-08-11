@@ -334,6 +334,7 @@ describe('classification case flow', () => {
     const { makeApp } = createHarness();
     const readyApp = await makeApp();
     expect((await readyApp.inject({ method: 'GET', url: '/health' })).statusCode).toBe(200);
+    expect((await readyApp.inject({ method: 'GET', url: '/version' })).json()).toMatchObject({ status: 'ok', service: 'api' });
     expect((await readyApp.inject({ method: 'GET', url: '/ready' })).json()).toMatchObject({ status: 'ready', database: 'ok' });
 
     const unavailableApp = await makeApp(undefined, { databaseReady: false });

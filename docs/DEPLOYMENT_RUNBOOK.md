@@ -25,7 +25,7 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 npm run prepare:pilot-evidence -- --api-base-url https://tradelogic-api.onrender.com --web-base-url https://tradelogic-git-main-ulitron34-codes-projects.vercel.app --artifacts-dir artifacts
 ```
 
-6. Si solo se necesita repetir el smoke publico, ejecutar el smoke leyendo esas URLs. El script espera hasta 30 segundos por request y reintenta 2 veces para tolerar arranques frios:
+6. Si solo se necesita repetir el smoke publico, ejecutar el smoke leyendo esas URLs. Cuando `deployment-targets.json` incluye `commitSha`, tambien valida `/version` para confirmar que Render corre ese commit. El script espera hasta 30 segundos por request y reintenta 2 veces para tolerar arranques frios:
 
 ```bash
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
@@ -47,7 +47,7 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 
 ## Criterios de no-go
 
-- Render API no llega a estado live.
+- Render API no llega a estado live o `/version` no reporta el commit esperado.
 - Vercel web no llega a estado ready/production.
 - `/ready` no devuelve `database: ok`.
 - El smoke autenticado no puede resolver `/api/v1/me` con organizacion y roles.
