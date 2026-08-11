@@ -112,3 +112,13 @@ npm run audit:pilot-readiness -- --artifacts-dir artifacts --output artifacts/pi
 ```
 
 Cuando el reporte quede en `status: "ok"`, ejecutar `npm run verify:pilot-evidence -- --artifacts-dir artifacts` como compuerta estricta.
+
+## Auditoria de variables de entorno
+
+Para evitar despliegues con una variable omitida en Vercel, Render o `.env.example`, correr:
+
+```bash
+npm run audit:env-readiness -- --strict
+```
+
+El auditor solo revisa nombres de variables y documentacion; no lee ni imprime valores secretos reales.

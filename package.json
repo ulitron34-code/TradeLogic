@@ -26,6 +26,7 @@
     "write:supabase-tariff-import-guide": "node scripts/write-supabase-tariff-import-guide.cjs",
     "write:pilot-manual-evidence-template": "node scripts/write-pilot-manual-evidence-template.cjs",
     "audit:pilot-readiness": "node scripts/audit-pilot-readiness.cjs",
+    "audit:env-readiness": "node scripts/audit-env-readiness.cjs",
     "verify:pilot-evidence": "node scripts/verify-pilot-evidence.cjs"
   },
   "devDependencies": {

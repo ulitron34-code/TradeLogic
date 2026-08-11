@@ -31,6 +31,7 @@ scripts/generate-supabase-tariff-import-sql.cjs
 scripts/write-supabase-tariff-import-guide.cjs
 scripts/write-pilot-manual-evidence-template.cjs
 scripts/audit-pilot-readiness.cjs
+scripts/audit-env-readiness.cjs
 scripts/verify-pilot-evidence.cjs
 supabase/verify_tariff_catalog.sql
 render.yaml
@@ -51,6 +52,8 @@ node --check scripts/write-pilot-manual-evidence-template.cjs
 node scripts/write-pilot-manual-evidence-template.cjs --help >/dev/null
 node --check scripts/audit-pilot-readiness.cjs
 node scripts/audit-pilot-readiness.cjs --help >/dev/null
+node --check scripts/audit-env-readiness.cjs
+node scripts/audit-env-readiness.cjs --strict >/dev/null
 node --check scripts/record-deployment-targets.cjs
 node scripts/record-deployment-targets.cjs --help >/dev/null
 node --check scripts/smoke-production.cjs
