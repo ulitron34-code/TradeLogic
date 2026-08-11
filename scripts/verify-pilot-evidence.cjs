@@ -19,6 +19,7 @@ function usage() {
 
 Required files:
   deployment-targets.json
+  env-readiness.json
   smoke-production.json
   smoke-authenticated.json
   tariff-import-input.json
@@ -88,6 +89,16 @@ function requireDeploymentTargets(summary, filePath) {
   }
 }
 
+function requireEnvReadiness(summary, filePath) {
+  if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
+  requireIsoDate(summary.checkedAt, 'checkedAt', filePath);
+  if (!Array.isArray(summary.checks) || summary.checks.length === 0) throw new Error(`${filePath} missing checks array`);
+  for (const check of summary.checks) {
+    if (check.status !== 'ok') throw new Error(`${filePath} check ${check.name ?? 'unknown'} is not ok`);
+    if (Array.isArray(check.missing) && check.missing.length > 0) throw new Error(`${filePath} check ${check.name ?? 'unknown'} has missing keys`);
+  }
+}
+
 function requireTariffImportInput(summary, filePath) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
   if (summary.expectedRecords !== 20227 || summary.records !== 20227) {
@@ -118,7 +129,7 @@ function isPendingText(value) {
 }
 
 function requireManualStepEvidence(step, stepName, filePath = 'manual-pilot-run.json') {
-  if (step.status !== 'ok') throw new Error(`${filePath} manual step ${stepName} is not ok`);
+    requireManualStepEvidence(step, stepName, filePath);
   if (isPendingText(step.evidence)) throw new Error(`${filePath} manual step ${stepName} missing concrete evidence`);
   if (isPendingText(step.expectedResult)) throw new Error(`${filePath} manual step ${stepName} missing expectedResult`);
   if (!step.checkedAt || Number.isNaN(Date.parse(step.checkedAt))) throw new Error(`${filePath} manual step ${stepName} missing valid checkedAt`);
@@ -142,7 +153,7 @@ function requireManualPilotRun(summary, filePath) {
   for (const stepName of REQUIRED_MANUAL_STEPS) {
     const step = summary.steps.find((item) => item.name === stepName);
     if (!step) throw new Error(`${filePath} missing manual step ${stepName}`);
-    if (step.status !== 'ok') throw new Error(`${filePath} manual step ${stepName} is not ok`);
+    requireManualStepEvidence(step, stepName, filePath);
   }
 }
 
@@ -155,6 +166,7 @@ function main() {
 
   const artifactsDir = path.resolve(options.artifactsDir);
   const targetsPath = path.join(artifactsDir, 'deployment-targets.json');
+  const envPath = path.join(artifactsDir, 'env-readiness.json');
   const productionPath = path.join(artifactsDir, 'smoke-production.json');
   const authenticatedPath = path.join(artifactsDir, 'smoke-authenticated.json');
   const tariffInputPath = path.join(artifactsDir, 'tariff-import-input.json');
@@ -163,6 +175,9 @@ function main() {
 
   const targets = readJson(targetsPath);
   requireDeploymentTargets(targets, targetsPath);
+
+  const env = readJson(envPath);
+  requireEnvReadiness(env, envPath);
 
   const production = readJson(productionPath);
   requireSmoke(production, productionPath, ['api-health', 'api-ready', 'web-root']);
@@ -184,7 +199,7 @@ function main() {
     status: 'ok',
     artifactsDir,
     checkedAt: new Date().toISOString(),
-    files: [targetsPath, productionPath, authenticatedPath, tariffInputPath, tariffPath, manualPath],
+    files: [targetsPath, envPath, productionPath, authenticatedPath, tariffInputPath, tariffPath, manualPath],
   }, null, 2));
 }
 

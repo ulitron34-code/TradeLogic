@@ -11,6 +11,12 @@ const REQUIRED_EVIDENCE = [
     validate: requireDeploymentTargets,
   },
   {
+    file: 'env-readiness.json',
+    label: 'Auditoria local de variables sin secretos',
+    command: 'npm run audit:env-readiness -- --strict --output artifacts/env-readiness.json',
+    validate: requireEnvReadiness,
+  },
+  {
     file: 'smoke-production.json',
     label: 'Smoke publico API/web',
     command: 'npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json',
@@ -116,6 +122,15 @@ function requireDeploymentTargets(summary) {
   return { commitSha: summary.commitSha, apiBaseUrl: summary.runtime.apiBaseUrl, webBaseUrl: summary.runtime.webBaseUrl };
 }
 
+function requireEnvReadiness(summary) {
+  if (summary.status !== 'ok') throw new Error('status is not ok');
+  if (!checkedAt(summary)) throw new Error('missing valid checkedAt');
+  if (!Array.isArray(summary.checks) || summary.checks.length === 0) throw new Error('missing checks array');
+  const failing = summary.checks.filter((check) => check.status !== 'ok' || (Array.isArray(check.missing) && check.missing.length > 0));
+  if (failing.length > 0) throw new Error(`failing env checks: ${failing.map((check) => check.name ?? 'unknown').join(', ')}`);
+  return { checkedAt: summary.checkedAt, checks: summary.checks.length };
+}
+
 function requireTariffImportInput(summary) {
   if (summary.status !== 'ok') throw new Error('status is not ok');
   if (summary.expectedRecords !== 20227 || summary.records !== 20227) throw new Error('must prove 20227 tariff input records');
@@ -138,7 +153,7 @@ function isPendingText(value) {
 }
 
 function requireManualStepEvidence(step, stepName, filePath = 'manual-pilot-run.json') {
-  if (step.status !== 'ok') throw new Error(`${filePath} manual step ${stepName} is not ok`);
+    requireManualStepEvidence(step, stepName);
   if (isPendingText(step.evidence)) throw new Error(`${filePath} manual step ${stepName} missing concrete evidence`);
   if (isPendingText(step.expectedResult)) throw new Error(`${filePath} manual step ${stepName} missing expectedResult`);
   if (!step.checkedAt || Number.isNaN(Date.parse(step.checkedAt))) throw new Error(`${filePath} manual step ${stepName} missing valid checkedAt`);
@@ -156,7 +171,7 @@ function requireManualPilotRun(summary) {
   for (const stepName of REQUIRED_MANUAL_STEPS) {
     const step = summary.steps.find((item) => item.name === stepName);
     if (!step) throw new Error(`missing manual step ${stepName}`);
-    if (step.status !== 'ok') throw new Error(`manual step ${stepName} is not ok`);
+    requireManualStepEvidence(step, stepName);
   }
   return { tester: summary.tester, caseId: summary.scenario.caseId, steps: REQUIRED_MANUAL_STEPS.length };
 }
