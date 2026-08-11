@@ -21,7 +21,7 @@ Guardar estos archivos en `artifacts/` durante el piloto. No se versionan en Git
 - API publica responde `/health` y `/ready`, con `database: ok`.
 - Web publica responde sin error 5xx.
 - Smoke autenticado resuelve `/api/v1/me`, productos, casos y alertas; despues de importar FA/NICO, tambien valida `/api/v1/tariff-catalog/status` con `--require-tariff-catalog`.
-- Supabase confirma 20,227 filas de catalogo importadas y sin checks fallidos.
+- Supabase confirma 20,227 filas de catalogo importadas y sin checks fallidos; el dashboard muestra `Catálogo FA/NICO completo`.
 - La UI permite completar al menos un recorrido manual: login -> producto -> evidencia -> caso -> submit -> revision -> expediente PDF.
 - Cualquier bloqueo se registra con fecha, entorno, usuario piloto y decision de go/no-go.
 

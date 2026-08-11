@@ -4,25 +4,42 @@ import { apiFetch } from '../lib/api';
 type Product = { id: string; name: string; sku: string | null; status: string };
 type Alert = { id: string; severity: string; status: string; title: string; summary: string };
 type CaseItem = { id: string; status: string };
+type TariffCatalogStatus = {
+  status: 'ok' | 'incomplete';
+  expectedRows: number;
+  rows: number;
+  currentRows: number;
+  sourceVersions: Record<string, number>;
+  checks: Array<{ name: string; status: 'ok' | 'fail' }>;
+};
 
 async function loadDashboard() {
-  const [productsResult, alertsResult, casesResult] = await Promise.allSettled([
+  const [productsResult, alertsResult, casesResult, tariffCatalogResult] = await Promise.allSettled([
     apiFetch<{ data: Product[] }>('/api/v1/products'),
     apiFetch<{ data: Alert[] }>('/api/v1/alerts'),
     apiFetch<{ data: CaseItem[] }>('/api/v1/classification-cases'),
+    apiFetch<TariffCatalogStatus>('/api/v1/tariff-catalog/status'),
   ]);
 
   return {
     products: productsResult.status === 'fulfilled' ? productsResult.value.data : [],
     alerts: alertsResult.status === 'fulfilled' ? alertsResult.value.data : [],
     cases: casesResult.status === 'fulfilled' ? casesResult.value.data : [],
+    tariffCatalog: tariffCatalogResult.status === 'fulfilled' ? tariffCatalogResult.value : null,
     apiUnavailable: productsResult.status === 'rejected' && alertsResult.status === 'rejected' && casesResult.status === 'rejected',
   };
 }
 
+function tariffCatalogLabel(status: TariffCatalogStatus | null) {
+  if (!status) return { value: 'Sin lectura', detail: 'Revisar catálogo FA/NICO' };
+  if (status.status === 'ok') return { value: status.rows.toLocaleString('es-MX'), detail: 'Catálogo FA/NICO completo' };
+  return { value: `${status.rows.toLocaleString('es-MX')}/${status.expectedRows.toLocaleString('es-MX')}`, detail: 'Importación FA/NICO pendiente' };
+}
+
 export default async function DashboardPage() {
-  const { products, alerts, cases, apiUnavailable } = await loadDashboard();
+  const { products, alerts, cases, tariffCatalog, apiUnavailable } = await loadDashboard();
   const openAlerts = alerts.filter((alert) => !['RESOLVED', 'DISMISSED'].includes(alert.status));
+  const catalogSummary = tariffCatalogLabel(tariffCatalog);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -40,7 +57,7 @@ export default async function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Link href="/products" className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900">
           <p className="text-sm text-neutral-500">Productos</p>
           <p className="mt-2 text-3xl font-semibold">{products.length}</p>
@@ -56,6 +73,13 @@ export default async function DashboardPage() {
           <p className="mt-2 text-3xl font-semibold">{cases.length}</p>
           <p className="mt-2 text-sm text-blue-700 dark:text-blue-300">Ver expedientes →</p>
         </Link>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+          <p className="text-sm text-neutral-500">Catálogo FA/NICO</p>
+          <p className="mt-2 text-3xl font-semibold">{catalogSummary.value}</p>
+          <p className={tariffCatalog?.status === 'ok' ? 'mt-2 text-sm text-emerald-700 dark:text-emerald-300' : 'mt-2 text-sm text-amber-700 dark:text-amber-300'}>
+            {catalogSummary.detail}
+          </p>
+        </div>
       </section>
 
       <section className="mt-10">
