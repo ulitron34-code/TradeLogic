@@ -19,13 +19,13 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 2. Abrir Supabase y verificar que la base este disponible, sin migraciones pendientes ni alertas criticas.
 3. Abrir el dashboard de Render y verificar que el deploy de API termine correctamente.
 4. Abrir el dashboard de Vercel y verificar que el deploy de web termine correctamente.
-5. Registrar las URLs publicas en evidencia local sin secretos:
+5. Preparar evidencia publica/local sin secretos en un solo paso, incluyendo URLs, auditoria de entorno, entrada FA/NICO y smoke publico:
 
 ```bash
-npm run record:deployment-targets -- --api-base-url https://tradelogic-api.onrender.com --web-base-url https://tradelogic-git-main-ulitron34-codes-projects.vercel.app --output artifacts/deployment-targets.json
+npm run prepare:pilot-evidence -- --api-base-url https://tradelogic-api.onrender.com --web-base-url https://tradelogic-git-main-ulitron34-codes-projects.vercel.app --artifacts-dir artifacts
 ```
 
-6. Ejecutar smoke publico leyendo esas URLs. El script espera hasta 30 segundos por request y reintenta 2 veces para tolerar arranques frios:
+6. Si solo se necesita repetir el smoke publico, ejecutar el smoke leyendo esas URLs. El script espera hasta 30 segundos por request y reintenta 2 veces para tolerar arranques frios:
 
 ```bash
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json

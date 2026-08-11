@@ -27,7 +27,8 @@
     "write:pilot-manual-evidence-template": "node scripts/write-pilot-manual-evidence-template.cjs",
     "audit:pilot-readiness": "node scripts/audit-pilot-readiness.cjs",
     "audit:env-readiness": "node scripts/audit-env-readiness.cjs",
-    "verify:pilot-evidence": "node scripts/verify-pilot-evidence.cjs"
+    "verify:pilot-evidence": "node scripts/verify-pilot-evidence.cjs",
+    "prepare:pilot-evidence": "node scripts/prepare-pilot-evidence.cjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

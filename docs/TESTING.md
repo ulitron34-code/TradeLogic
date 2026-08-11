@@ -43,7 +43,7 @@ Casos cubiertos:
 Despues de cada deploy, registrar las URLs publicas sin secretos y ejecutar el smoke test sin credenciales para validar que API y web respondan antes de iniciar pruebas autenticadas. Los smoke tests usan 30 segundos de timeout y 2 reintentos por defecto para tolerar arranques frios de Render; ajusta `--timeout-ms` o `--retries` si el servicio esta despertando:
 
 ```bash
-npm run record:deployment-targets -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --output artifacts/deployment-targets.json
+npm run prepare:pilot-evidence -- --api-base-url https://TU_API_RENDER --web-base-url https://TU_WEB --artifacts-dir artifacts
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
 ```
 
@@ -118,7 +118,7 @@ Cuando el reporte quede en `status: "ok"`, ejecutar `npm run verify:pilot-eviden
 Para evitar despliegues con una variable omitida en Vercel, Render o `.env.example`, correr:
 
 ```bash
-npm run audit:env-readiness -- --strict
+npm run audit:env-readiness -- --strict --output artifacts/env-readiness.json
 ```
 
 El auditor solo revisa nombres de variables y documentacion; no lee ni imprime valores secretos reales.
