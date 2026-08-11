@@ -31,6 +31,8 @@ jobs:
           node scripts/smoke-authenticated.cjs --help
           node --check scripts/verify-pilot-evidence.cjs
           node scripts/verify-pilot-evidence.cjs --help
+      - name: Test operational scripts
+        run: pnpm test:operational-scripts
       - name: Typecheck
         run: pnpm typecheck
       - name: Test

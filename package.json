@@ -29,7 +29,8 @@
     "audit:env-readiness": "node scripts/audit-env-readiness.cjs",
     "verify:pilot-evidence": "node scripts/verify-pilot-evidence.cjs",
     "prepare:pilot-evidence": "node scripts/prepare-pilot-evidence.cjs",
-    "diagnose:deployment": "node scripts/diagnose-deployment.cjs"
+    "diagnose:deployment": "node scripts/diagnose-deployment.cjs",
+    "test:operational-scripts": "node --test scripts/operational-scripts.test.cjs"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

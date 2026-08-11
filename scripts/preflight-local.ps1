@@ -25,6 +25,7 @@ $required = @(
   'scripts/smoke-authenticated.cjs',
   'scripts/record-deployment-targets.cjs',
   'scripts/diagnose-deployment.cjs',
+  'scripts/operational-scripts.test.cjs',
   'scripts/verify-tariff-source.cjs',
   'scripts/verify-tariff-import-input.cjs',
   'scripts/generate-supabase-tariff-import-sql.cjs',
@@ -98,6 +99,7 @@ if ($nodeCommand) {
   & $nodeCommand.Source scripts/smoke-authenticated.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/verify-pilot-evidence.cjs | Out-Null
   & $nodeCommand.Source scripts/verify-pilot-evidence.cjs --help | Out-Null
+  & $nodeCommand.Source --test scripts/operational-scripts.test.cjs | Out-Null
 } else {
   Write-Warning 'Node.js not found on PATH; skipping Node-based integrity checks in PowerShell preflight. Run npm run verify:tariff-source and operational script checks where Node.js is available.'
 }

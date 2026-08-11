@@ -26,6 +26,7 @@ scripts/smoke-production.cjs
 scripts/smoke-authenticated.cjs
 scripts/record-deployment-targets.cjs
 scripts/diagnose-deployment.cjs
+scripts/operational-scripts.test.cjs
 scripts/verify-tariff-source.cjs
 scripts/verify-tariff-import-input.cjs
 scripts/generate-supabase-tariff-import-sql.cjs
@@ -68,5 +69,6 @@ node --check scripts/smoke-authenticated.cjs
 node scripts/smoke-authenticated.cjs --help >/dev/null
 node --check scripts/verify-pilot-evidence.cjs
 node scripts/verify-pilot-evidence.cjs --help >/dev/null
+node --test scripts/operational-scripts.test.cjs >/dev/null
 
 echo "Preflight structure OK"
