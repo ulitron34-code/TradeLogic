@@ -31,7 +31,7 @@ npm run prepare:pilot-evidence -- --api-base-url https://tradelogic-api.onrender
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
 ```
 
-Si el smoke falla o se quiere explicar rapidamente el estado publicado sin secretos, correr tambien:
+Si el smoke falla, `artifacts/smoke-production.json` queda escrito con `status: failed` y checks parciales. Para explicar rapidamente el estado publicado sin secretos, correr tambien:
 
 ```bash
 npm run diagnose:deployment -- --targets artifacts/deployment-targets.json --output artifacts/deployment-diagnosis.json

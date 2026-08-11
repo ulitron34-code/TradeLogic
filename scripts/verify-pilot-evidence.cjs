@@ -129,7 +129,6 @@ function isPendingText(value) {
 }
 
 function requireManualStepEvidence(step, stepName, filePath = 'manual-pilot-run.json') {
-    requireManualStepEvidence(step, stepName, filePath);
   if (isPendingText(step.evidence)) throw new Error(`${filePath} manual step ${stepName} missing concrete evidence`);
   if (isPendingText(step.expectedResult)) throw new Error(`${filePath} manual step ${stepName} missing expectedResult`);
   if (!step.checkedAt || Number.isNaN(Date.parse(step.checkedAt))) throw new Error(`${filePath} manual step ${stepName} missing valid checkedAt`);

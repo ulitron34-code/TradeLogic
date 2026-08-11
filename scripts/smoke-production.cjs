@@ -86,7 +86,7 @@ async function fetchJson(url, timeoutMs) {
     try {
       body = JSON.parse(text);
     } catch {
-      throw new Error(`${url} did not return JSON`);
+      return { url, status: response.status, ok: false, body: null, error: 'response did not return JSON' };
     }
   }
   return { url, status: response.status, ok: response.ok, body };
@@ -96,30 +96,6 @@ async function fetchPage(url, timeoutMs) {
   const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { Accept: 'text/html,*/*' } });
   const text = await response.text();
   return { url, status: response.status, ok: response.status < 500, bytes: Buffer.byteLength(text) };
-}
-
-function assertHealth(result) {
-  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
-  if (result.body?.status !== 'ok') throw new Error(`${result.url} returned unexpected status: ${JSON.stringify(result.body)}`);
-}
-
-function assertVersion(result, expectedCommit) {
-  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
-  if (result.body?.status !== 'ok' || result.body?.service !== 'api') {
-    throw new Error(`${result.url} returned unexpected version payload: ${JSON.stringify(result.body)}`);
-  }
-  const runningCommit = result.body?.commitSha;
-  if (!runningCommit) throw new Error(`${result.url} did not report commitSha`);
-  if (!runningCommit.startsWith(expectedCommit) && !expectedCommit.startsWith(runningCommit)) {
-    throw new Error(`${result.url} is running commit ${runningCommit}, expected ${expectedCommit}`);
-  }
-}
-
-function assertReady(result) {
-  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
-  if (result.body?.status !== 'ready' || result.body?.database !== 'ok') {
-    throw new Error(`${result.url} returned unexpected readiness: ${JSON.stringify(result.body)}`);
-  }
 }
 
 async function withRetries(operation, retries) {
@@ -134,6 +110,48 @@ async function withRetries(operation, retries) {
     }
   }
   throw lastError;
+}
+
+async function runCheck(name, url, operation, validate) {
+  try {
+    const result = await operation();
+    const validation = validate(result);
+    return { name, url: result.url ?? url, status: result.status, ok: true, ...validation };
+  } catch (error) {
+    return { name, url, ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+function validateHealth(result) {
+  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
+  if (result.body?.status !== 'ok') throw new Error(`${result.url} returned unexpected status: ${JSON.stringify(result.body)}`);
+  return {};
+}
+
+function validateReady(result) {
+  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
+  if (result.body?.status !== 'ready' || result.body?.database !== 'ok') {
+    throw new Error(`${result.url} returned unexpected readiness: ${JSON.stringify(result.body)}`);
+  }
+  return { database: result.body.database };
+}
+
+function validateVersion(result, expectedCommit) {
+  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
+  if (result.body?.status !== 'ok' || result.body?.service !== 'api') {
+    throw new Error(`${result.url} returned unexpected version payload: ${JSON.stringify(result.body)}`);
+  }
+  const runningCommit = result.body?.commitSha;
+  if (!runningCommit) throw new Error(`${result.url} did not report commitSha`);
+  if (!runningCommit.startsWith(expectedCommit) && !expectedCommit.startsWith(runningCommit)) {
+    throw new Error(`${result.url} is running commit ${runningCommit}, expected ${expectedCommit}`);
+  }
+  return { commitSha: runningCommit };
+}
+
+function validateWeb(result) {
+  if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
+  return { bytes: result.bytes };
 }
 
 async function writeSummary(outputPath, summary) {
@@ -156,32 +174,44 @@ async function main() {
   options.expectedCommit = options.expectedCommit ?? targets.expectedCommit;
 
   const checks = [];
-  const health = await withRetries(() => fetchJson(`${options.apiBaseUrl}/health`, options.timeoutMs), options.retries);
-  assertHealth(health);
-  checks.push({ name: 'api-health', url: health.url, status: health.status, ok: true });
+  const healthUrl = `${options.apiBaseUrl}/health`;
+  checks.push(await runCheck('api-health', healthUrl, () => withRetries(() => fetchJson(healthUrl, options.timeoutMs), options.retries), validateHealth));
 
-  const ready = await withRetries(() => fetchJson(`${options.apiBaseUrl}/ready`, options.timeoutMs), options.retries);
-  assertReady(ready);
-  checks.push({ name: 'api-ready', url: ready.url, status: ready.status, ok: true, database: ready.body.database });
+  const readyUrl = `${options.apiBaseUrl}/ready`;
+  checks.push(await runCheck('api-ready', readyUrl, () => withRetries(() => fetchJson(readyUrl, options.timeoutMs), options.retries), validateReady));
 
   if (options.expectedCommit) {
-    const version = await withRetries(() => fetchJson(`${options.apiBaseUrl}/version`, options.timeoutMs), options.retries);
-    assertVersion(version, options.expectedCommit);
-    checks.push({ name: 'api-version', url: version.url, status: version.status, ok: true, commitSha: version.body.commitSha });
+    const versionUrl = `${options.apiBaseUrl}/version`;
+    checks.push(await runCheck('api-version', versionUrl, () => withRetries(() => fetchJson(versionUrl, options.timeoutMs), options.retries), (result) => validateVersion(result, options.expectedCommit)));
   }
 
   if (options.webBaseUrl) {
-    const web = await withRetries(() => fetchPage(options.webBaseUrl, options.timeoutMs), options.retries);
-    if (!web.ok) throw new Error(`${web.url} returned HTTP ${web.status}`);
-    checks.push({ name: 'web-root', url: web.url, status: web.status, ok: true, bytes: web.bytes });
+    checks.push(await runCheck('web-root', options.webBaseUrl, () => withRetries(() => fetchPage(options.webBaseUrl, options.timeoutMs), options.retries), validateWeb));
   }
 
-  const summary = { status: 'ok', checkedAt: new Date().toISOString(), checks };
+  const failed = checks.filter((check) => check.ok !== true);
+  const summary = {
+    status: failed.length === 0 ? 'ok' : 'failed',
+    checkedAt: new Date().toISOString(),
+    checks,
+    ...(failed.length > 0 ? { error: failed[0].error, failedChecks: failed.map((check) => check.name) } : {}),
+  };
   await writeSummary(options.output, summary);
   console.log(JSON.stringify(summary, null, 2));
+  if (failed.length > 0) process.exitCode = 1;
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+main().catch(async (error) => {
+  const summary = {
+    status: 'failed',
+    checkedAt: new Date().toISOString(),
+    checks: [],
+    error: error instanceof Error ? error.message : String(error),
+  };
+  try {
+    const output = process.argv.includes('--output') ? process.argv[process.argv.indexOf('--output') + 1] : null;
+    await writeSummary(output, summary);
+  } catch {}
+  console.error(summary.error);
   process.exitCode = 1;
 });
