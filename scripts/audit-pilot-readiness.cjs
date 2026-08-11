@@ -31,7 +31,7 @@ const REQUIRED_EVIDENCE = [
   {
     file: 'smoke-authenticated.json',
     label: 'Smoke autenticado con catalogo completo',
-    command: 'TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --output artifacts/smoke-authenticated.json',
+    command: 'TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --dossier-case-id CASE_ID --output artifacts/smoke-authenticated.json',
     validate: (summary, filePath) => requireSmoke(summary, filePath, ['auth-context', 'products-list', 'cases-list', 'alerts-list', 'tariff-catalog-status']),
   },
   {
@@ -99,6 +99,16 @@ function requireSmoke(summary, filePath, expectedChecks) {
   return { checkedAt: summary.checkedAt, checks: expectedChecks.length };
 }
 
+function requireDossierSmoke(summary, caseId) {
+  const check = summary.checks.find((item) => item.name === 'dossier-pdf');
+  if (!check) throw new Error(`missing check dossier-pdf for manual case ${caseId}`);
+  if (check.ok !== true) throw new Error('check dossier-pdf is not ok');
+  if (check.caseId !== caseId) throw new Error(`dossier-pdf caseId ${check.caseId ?? 'missing'} does not match manual case ${caseId}`);
+  if (!Number.isSafeInteger(check.bytes) || check.bytes < 500) throw new Error('dossier-pdf bytes must be at least 500');
+  if (!String(check.contentType ?? '').toLowerCase().includes('application/pdf')) throw new Error('dossier-pdf contentType must be application/pdf');
+  return { caseId, bytes: check.bytes };
+}
+
 function requireDeploymentTargets(summary) {
   if (summary.status !== 'ok') throw new Error('status is not ok');
   if (!summary.commitSha) throw new Error('missing commitSha');
@@ -146,7 +156,7 @@ function readEvidence(filePath) {
 }
 
 function auditEvidence(artifactsDir) {
-  return REQUIRED_EVIDENCE.map((item) => {
+  const evidence = REQUIRED_EVIDENCE.map((item) => {
     const filePath = path.join(artifactsDir, item.file);
     if (!existsSync(filePath)) {
       return { file: item.file, label: item.label, status: 'missing', next: item.command };
@@ -159,6 +169,21 @@ function auditEvidence(artifactsDir) {
       return { file: item.file, label: item.label, status: 'invalid', error: error instanceof Error ? error.message : String(error), next: item.command };
     }
   });
+
+  const manual = evidence.find((item) => item.file === 'manual-pilot-run.json');
+  const smoke = evidence.find((item) => item.file === 'smoke-authenticated.json');
+  if (manual?.status === 'ok' && smoke?.status === 'ok') {
+    try {
+      const smokeSummary = readEvidence(path.join(artifactsDir, 'smoke-authenticated.json'));
+      smoke.details = { ...smoke.details, dossierPdf: requireDossierSmoke(smokeSummary, manual.details.caseId) };
+    } catch (error) {
+      smoke.status = 'invalid';
+      smoke.error = error instanceof Error ? error.message : String(error);
+      smoke.next = smoke.next ?? 'TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --dossier-case-id CASE_ID --output artifacts/smoke-authenticated.json';
+    }
+  }
+
+  return evidence;
 }
 
 function writeSummary(outputPath, summary) {

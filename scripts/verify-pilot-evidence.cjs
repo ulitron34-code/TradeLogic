@@ -65,6 +65,17 @@ function requireSmoke(summary, filePath, expectedChecks) {
   }
 }
 
+function requireDossierSmoke(summary, filePath, caseId) {
+  const check = summary.checks.find((item) => item.name === 'dossier-pdf');
+  if (!check) throw new Error(`${filePath} missing check dossier-pdf for manual case ${caseId}`);
+  if (check.ok !== true) throw new Error(`${filePath} check dossier-pdf is not ok`);
+  if (check.caseId !== caseId) throw new Error(`${filePath} dossier-pdf caseId ${check.caseId ?? 'missing'} does not match manual case ${caseId}`);
+  if (!Number.isSafeInteger(check.bytes) || check.bytes < 500) throw new Error(`${filePath} dossier-pdf bytes must be at least 500`);
+  if (!String(check.contentType ?? '').toLowerCase().includes('application/pdf')) {
+    throw new Error(`${filePath} dossier-pdf contentType must be application/pdf`);
+  }
+}
+
 function requireDeploymentTargets(summary, filePath) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
   if (!summary.commitSha) throw new Error(`${filePath} missing commitSha`);
@@ -157,6 +168,7 @@ function main() {
 
   const manual = readJson(manualPath);
   requireManualPilotRun(manual, manualPath);
+  requireDossierSmoke(authenticated, authenticatedPath, manual.scenario.caseId);
 
   console.log(JSON.stringify({
     status: 'ok',
