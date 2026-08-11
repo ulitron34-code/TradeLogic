@@ -259,6 +259,14 @@ function createHarness() {
       findFirst: async ({ where }: any) => Array.from(state.tariffCodes.values()).find((record: any) =>
         record.id === where.id && record.countryCode === where.countryCode && record.validFrom <= where.validFrom.lte &&
         (record.validTo === null || record.validTo > where.OR[1].validTo.gt)) ?? null,
+      findMany: async ({ where }: any = {}) => Array.from(state.tariffCodes.values()).filter((record: any) => {
+        if (where?.countryCode && record.countryCode !== where.countryCode) return false;
+        if (where?.sourceVersion?.in && !where.sourceVersion.in.includes(record.sourceVersion)) return false;
+        if (where?.validFrom?.lte && record.validFrom > where.validFrom.lte) return false;
+        if (where?.OR?.[1]?.validTo?.gt && record.validTo !== null && record.validTo <= where.OR[1].validTo.gt) return false;
+        if (where?.rateUnit && record.rateUnit !== where.rateUnit) return false;
+        return true;
+      }),
     },
     idempotencyRecord: {
       findUnique: async ({ where }: any) => {
@@ -334,6 +342,74 @@ describe('classification case flow', () => {
     expect(response.json()).toMatchObject({ status: 'not_ready', database: 'unavailable', retryable: true });
   });
 
+  it('reports tariff catalog import status from API', async () => {
+    const { state, makeApp } = createHarness();
+    const app = await makeApp();
+    const validFrom = new Date('2021-11-19T00:00:00.000Z');
+
+    state.tariffCodes.set('tariff-1', {
+      id: 'tariff-1',
+      countryCode: 'MX',
+      code: '8501.10.01',
+      nico: '01',
+      validFrom,
+      validTo: null,
+      sourceVersion: 'SNICE-LIGIE-BASE-2021-11-19',
+      rateUnit: 'PERCENT',
+      exportRateUnit: null,
+      generalRate: 10,
+      exportRate: null,
+    });
+    state.tariffCodes.set('tariff-2', {
+      id: 'tariff-2',
+      countryCode: 'MX',
+      code: '8501.10.01',
+      nico: '01',
+      validFrom,
+      validTo: null,
+      sourceVersion: 'SNICE-LIGIE-BASE-2021-11-19',
+      rateUnit: 'PERCENT',
+      exportRateUnit: null,
+      generalRate: 10,
+      exportRate: null,
+    });
+    state.tariffCodes.set('tariff-3', {
+      id: 'tariff-3',
+      countryCode: 'MX',
+      code: '8501.10.02',
+      nico: 'BAD',
+      validFrom,
+      validTo: new Date('2026-04-24T00:00:00.000Z'),
+      sourceVersion: 'SNICE-TIGIE-MOD-ABRIL-2026',
+      rateUnit: 'PERCENT',
+      exportRateUnit: 'PERCENT',
+      generalRate: 125,
+      exportRate: 0,
+    });
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/tariff-catalog/status' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      status: 'incomplete',
+      expectedRows: 20227,
+      rows: 3,
+      nicoRows: 3,
+      closedRows: 1,
+      percentImportRates: 3,
+      percentExportRates: 1,
+      sourceVersions: {
+        'SNICE-LIGIE-BASE-2021-11-19': 2,
+        'SNICE-TIGIE-MOD-ABRIL-2026': 1,
+      },
+    });
+    expect(response.json().checks).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'expected_rows', status: 'fail', actualRows: 3 }),
+      expect.objectContaining({ name: 'duplicate_natural_keys', status: 'fail', duplicateGroups: 1 }),
+      expect.objectContaining({ name: 'invalid_nico', status: 'fail', invalidRows: 1 }),
+      expect.objectContaining({ name: 'invalid_percentage_rates', status: 'fail', invalidRows: 1 }),
+    ]));
+  });
   it('creates products and cases with idempotent replay', async () => {
     const { makeApp } = createHarness();
     const app = await makeApp();

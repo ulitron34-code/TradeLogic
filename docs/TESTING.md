@@ -62,6 +62,7 @@ Criterio de exito:
 Si se usa `--output`, guardar el JSON junto con la evidencia del deploy o piloto. Ese archivo incluye fecha de ejecucion, URLs consultadas, codigos HTTP y resultado de cada check.
 
 Este smoke test no reemplaza la prueba autenticada de producto -> evidencia -> caso -> revision; solo confirma que el despliegue quedo vivo y conectado a base de datos.
+
 ## Smoke test autenticado
 
 Cuando exista una cuenta piloto y se tenga un access token de Supabase para esa sesion, ejecutar el smoke autenticado de solo lectura. Tambien usa los reintentos por defecto para evitar falsos negativos por arranque frio:
@@ -78,3 +79,9 @@ Criterio de exito:
 - `GET /api/v1/alerts` devuelve un envelope `data` de arreglo.
 
 El script es read-only: no crea productos, casos ni alertas. Guardar el JSON de `--output` como evidencia del piloto autenticado.
+
+Despues de importar FA/NICO en Supabase, repetir el smoke autenticado con validacion estricta del catalogo:
+
+```bash
+TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --output artifacts/smoke-authenticated.json
+```

@@ -72,6 +72,9 @@ const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 const paramsWithAlertId = z.object({ alertId: z.string().uuid() });
 
 const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
+const TARIFF_CATALOG_EXPECTED_ROWS = 20227;
+const TARIFF_CATALOG_SOURCE_VERSIONS = ['SNICE-LIGIE-BASE-2021-11-19', 'SNICE-TIGIE-MOD-ABRIL-2026'];
+
 
 const presignDocumentBody = z.object({
   filename: z.string().min(1).max(255),
@@ -134,6 +137,83 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       organizationId: context.organization.id,
       organizationName: context.organization.name,
       roles: context.roles,
+    };
+  });
+
+  app.get('/api/v1/tariff-catalog/status', async (request) => {
+    await resolveContext(request, db);
+    const now = new Date();
+    const tariffCodes = await db.tariffCode.findMany({
+      where: {
+        countryCode: 'MX',
+        sourceVersion: { in: TARIFF_CATALOG_SOURCE_VERSIONS },
+      },
+      select: {
+        countryCode: true,
+        code: true,
+        nico: true,
+        validFrom: true,
+        validTo: true,
+        sourceVersion: true,
+        rateUnit: true,
+        exportRateUnit: true,
+        generalRate: true,
+        exportRate: true,
+      },
+    });
+
+    const sourceVersions: Record<string, number> = {};
+    const naturalKeys = new Set<string>();
+    const duplicateKeys = new Set<string>();
+    let nicoRows = 0;
+    let closedRows = 0;
+    let currentRows = 0;
+    let percentImportRates = 0;
+    let percentExportRates = 0;
+    let invalidNicoRows = 0;
+    let invalidPercentageRateRows = 0;
+
+    for (const code of tariffCodes) {
+      sourceVersions[code.sourceVersion] = (sourceVersions[code.sourceVersion] ?? 0) + 1;
+      const nico = code.nico ?? '';
+      const validFrom = code.validFrom instanceof Date ? code.validFrom.toISOString() : String(code.validFrom);
+      const key = `${code.countryCode}|${code.code}|${nico}|${validFrom}`;
+      if (naturalKeys.has(key)) duplicateKeys.add(key);
+      naturalKeys.add(key);
+      if (code.nico) nicoRows += 1;
+      if (code.validTo) closedRows += 1;
+      const validTo = code.validTo instanceof Date ? code.validTo : code.validTo ? new Date(code.validTo) : null;
+      const validFromDate = code.validFrom instanceof Date ? code.validFrom : new Date(code.validFrom);
+      if (validFromDate <= now && (!validTo || validTo > now)) currentRows += 1;
+      if (code.rateUnit === 'PERCENT') percentImportRates += 1;
+      if (code.exportRateUnit === 'PERCENT') percentExportRates += 1;
+      if (code.nico && !/^\d{2}$/.test(code.nico)) invalidNicoRows += 1;
+      const generalRate = code.generalRate === null || code.generalRate === undefined ? null : Number(code.generalRate);
+      const exportRate = code.exportRate === null || code.exportRate === undefined ? null : Number(code.exportRate);
+      if ((generalRate !== null && (generalRate < 0 || generalRate > 100)) || (exportRate !== null && (exportRate < 0 || exportRate > 100))) {
+        invalidPercentageRateRows += 1;
+      }
+    }
+
+    const checks = [
+      { name: 'expected_rows', expectedRows: TARIFF_CATALOG_EXPECTED_ROWS, actualRows: tariffCodes.length, status: tariffCodes.length === TARIFF_CATALOG_EXPECTED_ROWS ? 'ok' : 'fail' },
+      { name: 'duplicate_natural_keys', duplicateGroups: duplicateKeys.size, status: duplicateKeys.size === 0 ? 'ok' : 'fail' },
+      { name: 'invalid_nico', invalidRows: invalidNicoRows, status: invalidNicoRows === 0 ? 'ok' : 'fail' },
+      { name: 'invalid_percentage_rates', invalidRows: invalidPercentageRateRows, status: invalidPercentageRateRows === 0 ? 'ok' : 'fail' },
+    ];
+
+    return {
+      status: checks.every((check) => check.status === 'ok') ? 'ok' : 'incomplete',
+      checkedAt: new Date().toISOString(),
+      expectedRows: TARIFF_CATALOG_EXPECTED_ROWS,
+      rows: tariffCodes.length,
+      currentRows,
+      sourceVersions,
+      nicoRows,
+      closedRows,
+      percentImportRates,
+      percentExportRates,
+      checks,
     };
   });
 

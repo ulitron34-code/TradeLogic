@@ -31,7 +31,7 @@ npm run record:deployment-targets -- --api-base-url https://tradelogic-api.onren
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
 ```
 
-7. Con una sesion piloto real, obtener un access token de Supabase Auth y ejecutar smoke autenticado read-only:
+7. Con una sesion piloto real, obtener un access token de Supabase Auth y ejecutar smoke autenticado read-only. Despues de importar FA/NICO, agregar `--require-tariff-catalog` para exigir 20,227 filas visibles por API:
 
 ```bash
 TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json

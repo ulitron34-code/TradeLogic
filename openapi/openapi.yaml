@@ -109,6 +109,15 @@ paths:
           description: Caso no encontrado
         '409':
           description: Estado invalido o llave idempotente conflictiva
+  /tariff-catalog/status:
+    get:
+      summary: Verificar estado del catalogo arancelario FA/NICO
+      responses:
+        '200':
+          description: Conteos y checks del catalogo oficial importado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TariffCatalogStatus' }
   /alerts:
     get:
       summary: Listar alertas de la organizacion
@@ -147,6 +156,28 @@ components:
         product_id: { type: string, format: uuid }
         product_version_id: { type: string, format: uuid }
         confidence: { type: number, minimum: 0, maximum: 100 }
+    TariffCatalogStatus:
+      type: object
+      required: [status, expectedRows, rows, sourceVersions, checks]
+      properties:
+        status: { enum: [ok, incomplete] }
+        checkedAt: { type: string, format: date-time }
+        expectedRows: { type: integer, const: 20227 }
+        rows: { type: integer, minimum: 0 }
+        currentRows: { type: integer, minimum: 0 }
+        sourceVersions: { type: object, additionalProperties: { type: integer } }
+        nicoRows: { type: integer, minimum: 0 }
+        closedRows: { type: integer, minimum: 0 }
+        percentImportRates: { type: integer, minimum: 0 }
+        percentExportRates: { type: integer, minimum: 0 }
+        checks:
+          type: array
+          items:
+            type: object
+            required: [name, status]
+            properties:
+              name: { type: string }
+              status: { enum: [ok, fail] }
     Error:
       type: object
       required: [code, message, trace_id, retryable]

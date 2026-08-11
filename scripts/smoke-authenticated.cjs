@@ -8,7 +8,7 @@ const DEFAULT_RETRIES = 2;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--output smoke-authenticated.json]
+  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--require-tariff-catalog] [--output smoke-authenticated.json]
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -22,6 +22,10 @@ function parseArgs(argv) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') {
       options.help = true;
+      continue;
+    }
+    if (arg === '--require-tariff-catalog') {
+      options.requireTariffCatalog = true;
       continue;
     }
     const value = argv[index + 1];
@@ -105,6 +109,15 @@ function assertMe(result) {
     throw new Error(`${result.url} returned incomplete user context: ${JSON.stringify(result.body)}`);
   }
 }
+function assertTariffCatalogStatus(result) {
+  assertOk(result);
+  if (result.body?.status !== 'ok' || result.body?.expectedRows !== 20227 || result.body?.rows !== 20227) {
+    throw new Error(`${result.url} did not prove a complete tariff catalog: ${JSON.stringify(result.body)}`);
+  }
+  if (!Array.isArray(result.body?.checks) || result.body.checks.some((check) => check.status && check.status !== 'ok')) {
+    throw new Error(`${result.url} returned failing tariff catalog checks: ${JSON.stringify(result.body)}`);
+  }
+}
 
 async function withRetries(operation, retries) {
   let lastError;
@@ -169,6 +182,20 @@ async function main() {
   const alerts = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/alerts`, requestOptions), options.retries);
   assertArrayEnvelope(alerts);
   checks.push(summarizeArray(alerts, 'alerts-list'));
+
+  if (options.requireTariffCatalog) {
+    const tariffCatalog = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/tariff-catalog/status`, requestOptions), options.retries);
+    assertTariffCatalogStatus(tariffCatalog);
+    checks.push({
+      name: 'tariff-catalog-status',
+      url: tariffCatalog.url,
+      status: tariffCatalog.status,
+      ok: true,
+      rows: tariffCatalog.body.rows,
+      expectedRows: tariffCatalog.body.expectedRows,
+      sourceVersions: tariffCatalog.body.sourceVersions,
+    });
+  }
 
   const summary = { status: 'ok', checkedAt: new Date().toISOString(), checks };
   await writeSummary(options.output, summary);
