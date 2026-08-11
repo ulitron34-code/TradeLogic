@@ -12,6 +12,7 @@ Required files:
   deployment-targets.json
   smoke-production.json
   smoke-authenticated.json
+  tariff-import-input.json
   tariff-catalog-verification.json
 `;
 }
@@ -77,7 +78,7 @@ function requireTariffImportInput(summary, filePath) {
 
 function requireTariffVerification(summary, filePath) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
-  if (summary.expectedRows !== 20227 && summary.rows !== 20227) {
+  if (summary.expectedRows !== 20227 || summary.rows !== 20227) {
     throw new Error(`${filePath} must prove 20227 imported tariff rows`);
   }
   if (Array.isArray(summary.checks)) {

@@ -49,4 +49,4 @@ La carga real debe ejecutarse solo desde el entorno controlado que apunta a Supa
 pnpm db:tariff-import -- --input data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv --source-version LIGIE-NICO-2026-04-24 --source-url https://www.snice.gob.mx/~oracle/SNICE_DOCS/FRACCIONESARANCELARIAS-LIGIE_20260420-20260420.xlsx --expected-records 20227 --apply
 ```
 
-Despues de aplicar, pegar `supabase/verify_tariff_catalog.sql` en el SQL editor de Supabase. El SQL es read-only, corre dentro de `begin`/`rollback`, y valida conteo total, distribucion por `sourceVersion`, duplicados, NICO invalido y tasas porcentuales fuera de rango.
+Despues de aplicar, pegar `supabase/verify_tariff_catalog.sql` en el SQL editor de Supabase. El SQL es read-only, corre dentro de `begin`/`rollback`, valida conteo total, distribucion por `sourceVersion`, duplicados, NICO invalido y tasas porcentuales fuera de rango, y al final devuelve `tariff_catalog_verification_json`; copiar ese JSON en `artifacts/tariff-catalog-verification.json`.

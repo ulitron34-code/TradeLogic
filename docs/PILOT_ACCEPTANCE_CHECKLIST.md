@@ -14,7 +14,7 @@ Guardar estos archivos en `artifacts/` durante el piloto. No se versionan en Git
 - `smoke-production.json`: generado por `npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json`.
 - `smoke-authenticated.json`: generado por `npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json` con un JWT real de cuenta piloto.
 - `tariff-import-input.json`: generado por `npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json`; prueba 20,227 registros listos para importacion y claves unicas.
-- `tariff-catalog-verification.json`: resumen manual en JSON de los resultados de `supabase/verify_tariff_catalog.sql` despues de importar el catalogo FA/NICO.
+- `tariff-catalog-verification.json`: copiar el valor final `tariff_catalog_verification_json` que devuelve `supabase/verify_tariff_catalog.sql` despues de importar el catalogo FA/NICO.
 
 ## Criterios de cierre
 

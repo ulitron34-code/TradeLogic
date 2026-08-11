@@ -55,4 +55,4 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 - Registrar aqui la API publica exacta de Render cuando se confirme desde el dashboard.
 - Registrar aqui la web publica exacta de Vercel cuando se confirme desde el dashboard.
 - Ejecutar la importacion controlada del catalogo FA/NICO en Supabase/produccion y guardar el resultado del conteo.
-- Despues de importar, pegar `supabase/verify_tariff_catalog.sql` en el SQL editor de Supabase y guardar resultados; todos los checks deben devolver `ok`.
+- Despues de importar, pegar `supabase/verify_tariff_catalog.sql` en el SQL editor de Supabase. Copiar el valor final `tariff_catalog_verification_json` a `artifacts/tariff-catalog-verification.json`; todos los checks deben devolver `ok`.
