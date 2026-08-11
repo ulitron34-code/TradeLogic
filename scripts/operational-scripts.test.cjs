@@ -128,6 +128,8 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
   assert.match(summary.message, /older API build|latest deploy failed/);
   assert.equal(summary.checks.find((check) => check.name === 'api-ready').body.database, 'ok');
   assert.equal(summary.checks.find((check) => check.name === 'api-version').status, 404);
+  assert.equal(summary.expectedRenderWebSettings.startCommand, 'pnpm --filter @platform/api start');
+  assert.equal(summary.expectedRenderWebSettings.preDeployCommand, 'pnpm --filter @platform/db prisma:deploy');
   assert.ok(summary.nextActions.some((action) => action.includes('Start Command')));
 });
 test('includes optional deployment diagnosis in pilot readiness output', () => {

@@ -7,6 +7,12 @@ const DEFAULT_API_BASE_URL = 'https://tradelogic-api.onrender.com';
 const DEFAULT_WEB_BASE_URL = 'https://tradelogic-git-main-ulitron34-codes-projects.vercel.app';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RENDER_DASHBOARD = 'https://dashboard.render.com/web/srv-d9rvfk8n74is73fl9bt0';
+const EXPECTED_RENDER_WEB_SETTINGS = {
+  buildCommand: 'corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/api... build',
+  preDeployCommand: 'pnpm --filter @platform/db prisma:deploy',
+  startCommand: 'pnpm --filter @platform/api start',
+  healthCheckPath: '/ready',
+};
 
 function usage() {
   return `Usage:
@@ -126,6 +132,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
       status: 'degraded',
       code: 'render_serving_previous_api_build',
       message: 'API process and database are healthy, but /version is missing. Render is serving an older API build or the latest deploy failed before promotion.',
+      expectedRenderWebSettings: EXPECTED_RENDER_WEB_SETTINGS,
       nextActions: [
         `Open Render deploy logs: ${renderDashboardUrl}`,
         'Check runtime logs for the latest deploy, not only build logs.',
