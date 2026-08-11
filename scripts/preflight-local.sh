@@ -25,6 +25,7 @@ docs/PILOT_ACCEPTANCE_CHECKLIST.md
 scripts/smoke-production.cjs
 scripts/smoke-authenticated.cjs
 scripts/record-deployment-targets.cjs
+scripts/diagnose-deployment.cjs
 scripts/verify-tariff-source.cjs
 scripts/verify-tariff-import-input.cjs
 scripts/generate-supabase-tariff-import-sql.cjs
@@ -59,6 +60,8 @@ node --check scripts/prepare-pilot-evidence.cjs
 node scripts/prepare-pilot-evidence.cjs --help >/dev/null
 node --check scripts/record-deployment-targets.cjs
 node scripts/record-deployment-targets.cjs --help >/dev/null
+node --check scripts/diagnose-deployment.cjs
+node scripts/diagnose-deployment.cjs --help >/dev/null
 node --check scripts/smoke-production.cjs
 node scripts/smoke-production.cjs --help >/dev/null
 node --check scripts/smoke-authenticated.cjs

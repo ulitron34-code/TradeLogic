@@ -31,6 +31,12 @@ npm run prepare:pilot-evidence -- --api-base-url https://tradelogic-api.onrender
 npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json
 ```
 
+Si el smoke falla o se quiere explicar rapidamente el estado publicado sin secretos, correr tambien:
+
+```bash
+npm run diagnose:deployment -- --targets artifacts/deployment-targets.json --output artifacts/deployment-diagnosis.json
+```
+
 7. Con una sesion piloto real, obtener un access token de Supabase Auth y ejecutar smoke autenticado read-only. Despues de importar FA/NICO, agregar `--require-tariff-catalog` para exigir 20,227 filas visibles por API:
 
 ```bash
@@ -88,4 +94,4 @@ pnpm --filter @platform/api start
 curl https://tradelogic-api.onrender.com/version
 ```
 
-La respuesta debe incluir `commitSha` con el commit esperado. Despues correr el smoke publico con `--expected-commit`.
+La respuesta debe incluir `commitSha` con el commit esperado. Despues correr `npm run diagnose:deployment -- --targets artifacts/deployment-targets.json` y el smoke publico con `--expected-commit`.

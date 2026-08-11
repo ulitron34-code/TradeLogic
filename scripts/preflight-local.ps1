@@ -24,6 +24,7 @@ $required = @(
   'scripts/smoke-production.cjs',
   'scripts/smoke-authenticated.cjs',
   'scripts/record-deployment-targets.cjs',
+  'scripts/diagnose-deployment.cjs',
   'scripts/verify-tariff-source.cjs',
   'scripts/verify-tariff-import-input.cjs',
   'scripts/generate-supabase-tariff-import-sql.cjs',
@@ -89,6 +90,8 @@ if ($nodeCommand) {
   & $nodeCommand.Source scripts/prepare-pilot-evidence.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/record-deployment-targets.cjs | Out-Null
   & $nodeCommand.Source scripts/record-deployment-targets.cjs --help | Out-Null
+  & $nodeCommand.Source --check scripts/diagnose-deployment.cjs | Out-Null
+  & $nodeCommand.Source scripts/diagnose-deployment.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/smoke-production.cjs | Out-Null
   & $nodeCommand.Source scripts/smoke-production.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/smoke-authenticated.cjs | Out-Null
