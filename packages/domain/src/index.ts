@@ -211,6 +211,7 @@ function clamp(value: number, min: number, max: number) {
 
 export {
   tariffCatalogKey,
+  parseTariffCatalogCsv,
   validateTariffCatalog,
   type NormalizedTariffCatalogRecord,
   type TariffCatalogRecord,
