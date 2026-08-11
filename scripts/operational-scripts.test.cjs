@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { spawn, spawnSync } = require('node:child_process');
-const { mkdtempSync, readFileSync } = require('node:fs');
+const { mkdtempSync, readFileSync, writeFileSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const path = require('node:path');
 const http = require('node:http');
@@ -129,6 +129,31 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
   assert.equal(summary.checks.find((check) => check.name === 'api-ready').body.database, 'ok');
   assert.equal(summary.checks.find((check) => check.name === 'api-version').status, 404);
   assert.ok(summary.nextActions.some((action) => action.includes('Start Command')));
+});
+test('includes optional deployment diagnosis in pilot readiness output', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'tradelogic-diagnosis-evidence-'));
+  const diagnosisPath = path.join(dir, 'deployment-diagnosis.json');
+  writeFileSync(diagnosisPath, `${JSON.stringify({
+    status: 'degraded',
+    code: 'render_serving_previous_api_build',
+    message: 'API process and database are healthy, but /version is missing.',
+    checkedAt: new Date().toISOString(),
+    nextActions: ['Fix Start Command'],
+    checks: [
+      { name: 'api-health', ok: true },
+      { name: 'api-ready', ok: true },
+      { name: 'api-version', ok: false },
+    ],
+  }, null, 2)}\n`, 'utf8');
+
+  const auditOutput = path.join(dir, 'pilot-readiness.json');
+  const audit = runNode(['scripts/audit-pilot-readiness.cjs', '--artifacts-dir', dir, '--output', auditOutput]);
+  assert.equal(audit.status, 0, audit.stderr);
+  const readiness = readJson(auditOutput);
+  assert.equal(readiness.status, 'needs-evidence');
+  assert.equal(readiness.diagnostics[0].status, 'reported');
+  assert.equal(readiness.diagnostics[0].details.code, 'render_serving_previous_api_build');
+  assert.deepEqual(readiness.diagnostics[0].details.failedChecks, ['api-version']);
 });
 
 test('manual evidence validators fail pending templates without recursion', () => {

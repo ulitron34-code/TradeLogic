@@ -179,6 +179,36 @@ function readEvidence(filePath) {
   return JSON.parse(readFileSync(filePath, 'utf8'));
 }
 
+function auditDiagnostics(artifactsDir) {
+  const file = 'deployment-diagnosis.json';
+  const filePath = path.join(artifactsDir, file);
+  if (!existsSync(filePath)) return [];
+  try {
+    const summary = readEvidence(filePath);
+    if (!checkedAt(summary)) throw new Error('missing valid checkedAt');
+    return [{
+      file,
+      label: 'Diagnostico publico de deploy',
+      status: summary.status === 'ok' ? 'ok' : 'reported',
+      details: {
+        status: summary.status,
+        code: summary.code ?? null,
+        message: summary.message ?? null,
+        checkedAt: summary.checkedAt,
+        failedChecks: Array.isArray(summary.checks) ? summary.checks.filter((check) => check.ok !== true).map((check) => check.name) : [],
+        nextActions: Array.isArray(summary.nextActions) ? summary.nextActions : [],
+      },
+    }];
+  } catch (error) {
+    return [{
+      file,
+      label: 'Diagnostico publico de deploy',
+      status: 'invalid',
+      error: error instanceof Error ? error.message : String(error),
+      next: 'npm run diagnose:deployment -- --targets artifacts/deployment-targets.json --output artifacts/deployment-diagnosis.json',
+    }];
+  }
+}
 function auditEvidence(artifactsDir) {
   const evidence = REQUIRED_EVIDENCE.map((item) => {
     const filePath = path.join(artifactsDir, item.file);
@@ -225,6 +255,7 @@ function main() {
   }
   const artifactsDir = path.resolve(options.artifactsDir);
   const evidence = auditEvidence(artifactsDir);
+  const diagnostics = auditDiagnostics(artifactsDir);
   const ready = evidence.every((item) => item.status === 'ok');
   const summary = {
     status: ready ? 'ok' : 'needs-evidence',
@@ -232,6 +263,7 @@ function main() {
     artifactsDir,
     ready,
     evidence,
+    ...(diagnostics.length > 0 ? { diagnostics } : {}),
     next: evidence.find((item) => item.status !== 'ok')?.next ?? 'npm run verify:pilot-evidence -- --artifacts-dir artifacts',
   };
   writeSummary(options.output, summary);
