@@ -1,6 +1,13 @@
 # Estado de Implementacion
 
-Actualizado: 2026-08-10
+Actualizado: 2026-08-11
+
+## Verificacion de produccion (2026-08-11)
+
+- Estado publico actual: `https://tradelogic-api.onrender.com/health` responde 200 y `https://tradelogic-api.onrender.com/ready` responde 200 con `database: ok`; la web de Vercel responde 200.
+- Bloqueo vigente: `https://tradelogic-api.onrender.com/version` devuelve 404, por lo que Render esta sirviendo una version anterior de la API o el ultimo deploy no se promovio. El commit esperado al verificar fue `2054df5`.
+- Se agregaron controles operativos para no perder evidencia de este estado: `npm run diagnose:deployment` clasifica el caso como `render_serving_previous_api_build`, `npm run smoke:production` escribe `smoke-production.json` aun cuando falla, y `npm run prepare:pilot-evidence` genera `deployment-diagnosis.json` cuando el smoke publico falla.
+- Accion requerida en Render: revisar Settings -> Build & Deploy del servicio `tradelogic-api`; el `Start Command` debe ser `pnpm --filter @platform/api start` y la importacion `tariff:import` debe quedar fuera del arranque web. Despues ejecutar Manual Deploy -> Deploy latest commit y repetir `npm run diagnose:deployment`.
 
 ## Verificacion de produccion (2026-08-10)
 
@@ -16,8 +23,8 @@ Actualizado: 2026-08-10
 - Se documento `docs/DEPLOYMENT_RUNBOOK.md` con tableros Supabase/Render/Vercel, secuencia post-push, smoke publico/autenticado y criterios no-go.
 - Se agrego `scripts/verify-tariff-source.cjs` y `npm run verify:tariff-source` para proteger el CSV oficial FA/NICO con hash SHA-256, conteo de 20,227 filas y columnas obligatorias en CI y en el script dedicado; PowerShell preflight lo ejecuta cuando Node.js esta en PATH. Tambien se agrego `scripts/verify-tariff-import-input.cjs` para validar la entrada lista para importacion sin pnpm/tsx: 20,227 registros, claves unicas, formatos de fraccion/NICO/vigencia y resumen de versiones fuente. Se agrego `scripts/generate-supabase-tariff-import-sql.cjs` para generar un SQL idempotente pegable en Supabase cuando la ruta directa con Prisma/pnpm no sea confiable desde la PC/USB.
 - Se agrego `scripts/smoke-authenticated.cjs` y `npm run smoke:authenticated` para validar con JWT real, en modo read-only, `/me`, productos, casos y alertas. El smoke autenticado ahora puede usar `--require-tariff-catalog` despues de importar FA/NICO para exigir 20,227 filas visibles por `/api/v1/tariff-catalog/status`.
-- CI valida preflight shell y sintaxis/ayuda de los smoke tests y del verificador de evidencia del piloto para evitar que el control operativo se rompa sin notarlo.
-- Se agrego `scripts/smoke-production.cjs` y `npm run smoke:production` para validar `/health`, `/ready` y web despues de cada deploy, sin credenciales ni dependencias extra; tambien puede guardar evidencia JSON con `--output`. Los smoke scripts ahora toleran arranque frio con timeout por defecto de 30s y 2 reintentos configurables.
+- CI valida preflight shell, sintaxis/ayuda y pruebas `node:test` de los scripts operativos (`npm run test:operational-scripts`) para evitar que el control operativo se rompa sin notarlo.
+- Se agrego `scripts/smoke-production.cjs` y `npm run smoke:production` para validar `/health`, `/ready`, `/version` cuando hay commit esperado y web despues de cada deploy, sin credenciales ni dependencias extra. Siempre puede guardar evidencia JSON con `--output`; si un check falla, conserva checks parciales con `status: failed`. Los smoke scripts ahora toleran arranque frio con timeout por defecto de 30s y 2 reintentos configurables.
 - Se reforzo el flujo guiado de productos en `apps/web`: listado con metricas operativas, estado vacio accionable, formulario sin tarjetas anidadas, detalle de producto con pasos de evidencia/clasificacion y navegacion superior responsive.
 - El detalle de producto ahora devuelve y muestra la evidencia ya registrada por version, evitando que al recargar parezca que no hay documentos subidos.
 
@@ -113,15 +120,16 @@ El plan original de 6 bloques esta completo. Lo que queda es trabajo de endureci
 
 Actualizacion 2026-08-10: la jurisprudencia ya no queda aislada en el catalogo. El endpoint de detalle de caso y el expediente PDF buscan tesis del SJF cuyas referencias de fraccion coinciden con los candidatos deterministas, y muestran IUS, clave, rubro, fuente, URL y motivo de coincidencia. La coincidencia es informativa y no altera el ranking.
 
-1. **Aplicar la migracion de `SHCP` a produccion** (`prisma migrate deploy` con permisos de superusuario) — generada pero no aplicada, ver bloque 6 arriba.
-2. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
-3. Completar pruebas de integracion del worker desplegado con Redis/DB reales; ya existen pruebas inyectables para `classification-analysis` y `regulatoryIngestion.ts`, incluido el manejo de `enrichClassification` en su punto de enganche.
-4. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
-5. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
-6. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
-7. Ejecutar la importacion controlada del catalogo SNICE FA/NICO 2026 en produccion y despues conectar la calculadora de landed cost a tasas reales disponibles en `TariffCode`, evitando captura manual cuando el dato exista.
-8. Expediente en PDF (queda fuera del alcance del plan original).
-9. Del plan maestro actualizado, siguen pendientes por bloqueos externos: digest semanal por correo/WhatsApp (necesita credenciales de mensajeria), portal white-label para despachos (decision de diseño/producto antes de programar), bot de WhatsApp Business (necesita cuenta de WhatsApp Business API), conciliacion IMMEX (modulo nuevo, requiere diseño de datos).
+1. **Corregir deploy de Render**: el servicio publico responde `/health` y `/ready`, pero `/version` devuelve 404 contra el commit esperado. Revisar `Start Command`, quitar `tariff:import` del arranque web, ejecutar Manual Deploy -> Deploy latest commit y confirmar con `npm run diagnose:deployment`.
+2. **Aplicar la migracion de `SHCP` a produccion** (`prisma migrate deploy` con permisos de superusuario) — generada pero no aplicada, ver bloque 6 arriba.
+3. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
+4. Completar pruebas de integracion del worker desplegado con Redis/DB reales; ya existen pruebas inyectables para `classification-analysis` y `regulatoryIngestion.ts`, incluido el manejo de `enrichClassification` en su punto de enganche.
+5. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
+6. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
+7. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
+8. Ejecutar la importacion controlada del catalogo SNICE FA/NICO 2026 en produccion y despues conectar la calculadora de landed cost a tasas reales disponibles en `TariffCode`, evitando captura manual cuando el dato exista.
+9. Expediente en PDF (queda fuera del alcance del plan original).
+10. Del plan maestro actualizado, siguen pendientes por bloqueos externos: digest semanal por correo/WhatsApp (necesita credenciales de mensajeria), portal white-label para despachos (decision de diseño/producto antes de programar), bot de WhatsApp Business (necesita cuenta de WhatsApp Business API), conciliacion IMMEX (modulo nuevo, requiere diseño de datos).
 
 ## Notas operativas
 
