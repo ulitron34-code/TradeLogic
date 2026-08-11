@@ -27,6 +27,7 @@ $required = @(
   'scripts/verify-tariff-source.cjs',
   'scripts/verify-tariff-import-input.cjs',
   'scripts/generate-supabase-tariff-import-sql.cjs',
+  'scripts/write-supabase-tariff-import-guide.cjs',
   'scripts/verify-pilot-evidence.cjs',
   'supabase/verify_tariff_catalog.sql',
   'render.yaml'
@@ -72,6 +73,8 @@ if ($nodeCommand) {
   & $nodeCommand.Source scripts/verify-tariff-import-input.cjs | Out-Null
   & $nodeCommand.Source --check scripts/generate-supabase-tariff-import-sql.cjs | Out-Null
   & $nodeCommand.Source scripts/generate-supabase-tariff-import-sql.cjs --help | Out-Null
+  & $nodeCommand.Source --check scripts/write-supabase-tariff-import-guide.cjs | Out-Null
+  & $nodeCommand.Source scripts/write-supabase-tariff-import-guide.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/record-deployment-targets.cjs | Out-Null
   & $nodeCommand.Source scripts/record-deployment-targets.cjs --help | Out-Null
   & $nodeCommand.Source --check scripts/smoke-production.cjs | Out-Null

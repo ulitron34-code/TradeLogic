@@ -41,6 +41,7 @@ Si `pnpm`, `tsx`, Prisma o la conexion directa al puerto 5432 fallan desde la PC
 
 ```bash
 npm run generate:supabase-tariff-import-sql -- --output artifacts/import_tariff_catalog.sql
+npm run write:supabase-tariff-import-guide -- --sql artifacts/import_tariff_catalog.sql --input-summary artifacts/tariff-import-input.json --output artifacts/import_tariff_catalog_guide.md
 ```
 
 La carga real debe ejecutarse solo desde el entorno controlado que apunta a Supabase/produccion. El importador abre Prisma unicamente cuando se usa `--apply` y aborta si el conteo validado no es exactamente 20,227:
