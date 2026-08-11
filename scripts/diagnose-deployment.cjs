@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const { execFileSync } = require('node:child_process');
+const { existsSync, readFileSync } = require('node:fs');
 const { mkdir, readFile, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
@@ -118,11 +119,29 @@ function commitMatches(runningCommit, expectedCommit) {
   return runningCommit.startsWith(expectedCommit) || expectedCommit.startsWith(runningCommit);
 }
 
-function renderRecovery(renderDashboardUrl) {
+function renderBlueprintStatus() {
+  const blueprintPath = path.resolve('render.yaml');
+  if (!existsSync(blueprintPath)) return { status: 'missing', path: blueprintPath, checks: [] };
+  const text = readFileSync(blueprintPath, 'utf8');
+  const expected = [
+    ['api-build-command', `buildCommand: ${EXPECTED_RENDER_WEB_SETTINGS.buildCommand}`],
+    ['api-pre-deploy-command', `preDeployCommand: ${EXPECTED_RENDER_WEB_SETTINGS.preDeployCommand}`],
+    ['api-start-command', `startCommand: ${EXPECTED_RENDER_WEB_SETTINGS.startCommand}`],
+    ['api-health-check-path', `healthCheckPath: ${EXPECTED_RENDER_WEB_SETTINGS.healthCheckPath}`],
+  ];
+  const checks = expected.map(([name, marker]) => ({ name, ok: text.includes(marker), marker }));
+  return {
+    status: checks.every((check) => check.ok) ? 'ok' : 'drift',
+    path: blueprintPath,
+    checks,
+  };
+}
+function renderRecovery(renderDashboardUrl, blueprint = renderBlueprintStatus()) {
   return {
     dashboardUrl: renderDashboardUrl,
     settingsPath: 'Settings -> Build & Deploy',
     expectedSettings: EXPECTED_RENDER_WEB_SETTINGS,
+    localBlueprint: blueprint,
     manualDeployAction: 'Manual Deploy -> Deploy latest commit',
     verifyAfterDeploy: [
       'GET https://tradelogic-api.onrender.com/version must return 200.',
@@ -131,7 +150,7 @@ function renderRecovery(renderDashboardUrl) {
     ],
   };
 }
-function summarize({ checks, expectedCommit, renderDashboardUrl }) {
+function summarize({ checks, expectedCommit, renderDashboardUrl, renderBlueprint }) {
   const health = checks.find((check) => check.name === 'api-health');
   const ready = checks.find((check) => check.name === 'api-ready');
   const version = checks.find((check) => check.name === 'api-version');
@@ -147,7 +166,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
       code: 'render_serving_previous_api_build',
       message: 'API process and database are healthy, but /version is missing. Render is serving an older API build or the latest deploy failed before promotion.',
       expectedRenderWebSettings: EXPECTED_RENDER_WEB_SETTINGS,
-      renderRecovery: renderRecovery(renderDashboardUrl),
+      renderRecovery: renderRecovery(renderDashboardUrl, renderBlueprint),
       nextActions: [
         `Open Render deploy logs: ${renderDashboardUrl}`,
         'Check runtime logs for the latest deploy, not only build logs.',
@@ -163,7 +182,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
       status: 'degraded',
       code: 'render_commit_mismatch',
       message: `Render reports commit ${runningCommit}, but expected ${expectedCommit}.`,
-      renderRecovery: renderRecovery(renderDashboardUrl),
+      renderRecovery: renderRecovery(renderDashboardUrl, renderBlueprint),
       nextActions: [
         `Open Render deploy logs: ${renderDashboardUrl}`,
         'Confirm Auto-Deploy is enabled for main or trigger Manual Deploy -> Deploy latest commit.',
@@ -184,7 +203,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
     status: 'failed',
     code: 'deployment_public_checks_failed',
     message: 'One or more public deployment checks failed. Inspect the checks array for the failing endpoint.',
-    renderRecovery: renderRecovery(renderDashboardUrl),
+    renderRecovery: renderRecovery(renderDashboardUrl, renderBlueprint),
     nextActions: [`Open Render deploy logs: ${renderDashboardUrl}`],
   };
 }
@@ -215,7 +234,8 @@ async function main() {
   checks.push(await safeCheck('api-version', () => fetchJson(`${apiBaseUrl}/version`, options.timeoutMs)));
   if (webBaseUrl) checks.push(await safeCheck('web-root', () => fetchPage(webBaseUrl, options.timeoutMs)));
 
-  const diagnosis = summarize({ checks, expectedCommit, renderDashboardUrl });
+  const renderBlueprint = renderBlueprintStatus();
+  const diagnosis = summarize({ checks, expectedCommit, renderDashboardUrl, renderBlueprint });
   const summary = {
     ...diagnosis,
     checkedAt: new Date().toISOString(),

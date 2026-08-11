@@ -6,7 +6,7 @@ Actualizado: 2026-08-11
 
 - Estado publico actual: `https://tradelogic-api.onrender.com/health` responde 200 y `https://tradelogic-api.onrender.com/ready` responde 200 con `database: ok`; la web de Vercel responde 200.
 - Bloqueo vigente: `https://tradelogic-api.onrender.com/version` devuelve 404, por lo que Render esta sirviendo una version anterior de la API o el ultimo deploy no se promovio. El commit esperado al verificar fue `aa31c2a`.
-- Se agregaron controles operativos para no perder evidencia de este estado: `npm run diagnose:deployment` clasifica el caso como `render_serving_previous_api_build` e incluye `renderRecovery` con los valores exactos a revisar en Render; `npm run smoke:production` escribe `smoke-production.json` aun cuando falla, y `npm run prepare:pilot-evidence` genera `deployment-diagnosis.json` cuando el smoke publico falla.
+- Se agregaron controles operativos para no perder evidencia de este estado: `npm run diagnose:deployment` clasifica el caso como `render_serving_previous_api_build` e incluye `renderRecovery` con los valores exactos a revisar en Render y el estado del `render.yaml` local; `npm run smoke:production` escribe `smoke-production.json` aun cuando falla, y `npm run prepare:pilot-evidence` genera `deployment-diagnosis.json` cuando el smoke publico falla.
 - Accion requerida en Render: revisar Settings -> Build & Deploy del servicio `tradelogic-api`; el `Start Command` debe ser `pnpm --filter @platform/api start` y la importacion `tariff:import` debe quedar fuera del arranque web. Despues ejecutar Manual Deploy -> Deploy latest commit y repetir `npm run diagnose:deployment`.
 
 ## Verificacion de produccion (2026-08-10)

@@ -133,6 +133,8 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
   assert.equal(summary.expectedRenderWebSettings.preDeployCommand, 'pnpm --filter @platform/db prisma:deploy');
   assert.equal(summary.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
   assert.equal(summary.renderRecovery.expectedSettings.healthCheckPath, '/ready');
+  assert.equal(summary.renderRecovery.localBlueprint.status, 'ok');
+  assert.equal(summary.renderRecovery.localBlueprint.checks.find((check) => check.name === 'api-start-command').ok, true);
   assert.ok(summary.renderRecovery.verifyAfterDeploy.some((step) => step.includes('/version')));
   assert.ok(summary.nextActions.some((action) => action.includes('Start Command')));
 });
