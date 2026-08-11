@@ -16,7 +16,7 @@ const EXPECTED_RENDER_WEB_SETTINGS = {
 
 function usage() {
   return `Usage:
-  node scripts/diagnose-deployment.cjs [--api-base-url https://api.example.com] [--web-base-url https://app.example.com] [--targets artifacts/deployment-targets.json] [--expected-commit git-sha] [--timeout-ms 30000] [--output artifacts/deployment-diagnosis.json]
+  node scripts/diagnose-deployment.cjs [--api-base-url https://api.example.com] [--web-base-url https://app.example.com] [--targets artifacts/deployment-targets.json] [--expected-commit git-sha] [--render-dashboard-url https://dashboard.render.com/web/...] [--timeout-ms 30000] [--output artifacts/deployment-diagnosis.json]
 
 Diagnoses the public deployment without secrets. It checks API health, database readiness, deployed commit metadata, and the public web app.
 `;
@@ -37,6 +37,7 @@ function parseArgs(argv) {
     else if (arg === '--web-base-url') options.webBaseUrl = value;
     else if (arg === '--targets') options.targets = value;
     else if (arg === '--expected-commit') options.expectedCommit = value;
+    else if (arg === '--render-dashboard-url') options.renderDashboardUrl = normalizeBaseUrl(value, '--render-dashboard-url');
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
     else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
@@ -117,6 +118,19 @@ function commitMatches(runningCommit, expectedCommit) {
   return runningCommit.startsWith(expectedCommit) || expectedCommit.startsWith(runningCommit);
 }
 
+function renderRecovery(renderDashboardUrl) {
+  return {
+    dashboardUrl: renderDashboardUrl,
+    settingsPath: 'Settings -> Build & Deploy',
+    expectedSettings: EXPECTED_RENDER_WEB_SETTINGS,
+    manualDeployAction: 'Manual Deploy -> Deploy latest commit',
+    verifyAfterDeploy: [
+      'GET https://tradelogic-api.onrender.com/version must return 200.',
+      'commitSha must match the expected commit from this diagnosis.',
+      'Then rerun smoke-production with --expected-commit.',
+    ],
+  };
+}
 function summarize({ checks, expectedCommit, renderDashboardUrl }) {
   const health = checks.find((check) => check.name === 'api-health');
   const ready = checks.find((check) => check.name === 'api-ready');
@@ -133,6 +147,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
       code: 'render_serving_previous_api_build',
       message: 'API process and database are healthy, but /version is missing. Render is serving an older API build or the latest deploy failed before promotion.',
       expectedRenderWebSettings: EXPECTED_RENDER_WEB_SETTINGS,
+      renderRecovery: renderRecovery(renderDashboardUrl),
       nextActions: [
         `Open Render deploy logs: ${renderDashboardUrl}`,
         'Check runtime logs for the latest deploy, not only build logs.',
@@ -148,6 +163,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
       status: 'degraded',
       code: 'render_commit_mismatch',
       message: `Render reports commit ${runningCommit}, but expected ${expectedCommit}.`,
+      renderRecovery: renderRecovery(renderDashboardUrl),
       nextActions: [
         `Open Render deploy logs: ${renderDashboardUrl}`,
         'Confirm Auto-Deploy is enabled for main or trigger Manual Deploy -> Deploy latest commit.',
@@ -168,6 +184,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl }) {
     status: 'failed',
     code: 'deployment_public_checks_failed',
     message: 'One or more public deployment checks failed. Inspect the checks array for the failing endpoint.',
+    renderRecovery: renderRecovery(renderDashboardUrl),
     nextActions: [`Open Render deploy logs: ${renderDashboardUrl}`],
   };
 }
@@ -190,7 +207,7 @@ async function main() {
   const apiBaseUrl = normalizeBaseUrl(options.apiBaseUrl ?? targets.apiBaseUrl ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL, '--api-base-url');
   const webBaseUrl = normalizeBaseUrl(options.webBaseUrl ?? targets.webBaseUrl ?? process.env.APP_BASE_URL ?? process.env.NEXT_PUBLIC_APP_BASE_URL ?? DEFAULT_WEB_BASE_URL, '--web-base-url', { optional: true });
   const expectedCommit = options.expectedCommit ?? targets.expectedCommit ?? currentCommitSha();
-  const renderDashboardUrl = targets.renderDashboardUrl ?? DEFAULT_RENDER_DASHBOARD;
+  const renderDashboardUrl = normalizeBaseUrl(options.renderDashboardUrl ?? targets.renderDashboardUrl ?? DEFAULT_RENDER_DASHBOARD, '--render-dashboard-url');
 
   const checks = [];
   checks.push(await safeCheck('api-health', () => fetchJson(`${apiBaseUrl}/health`, options.timeoutMs)));

@@ -117,6 +117,7 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
     '--api-base-url', baseUrl,
     '--web-base-url', baseUrl,
     '--expected-commit', 'abc123',
+    '--render-dashboard-url', 'https://dashboard.render.com/web/custom-service',
     '--timeout-ms', '1000',
     '--output', output,
   ]);
@@ -130,6 +131,9 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
   assert.equal(summary.checks.find((check) => check.name === 'api-version').status, 404);
   assert.equal(summary.expectedRenderWebSettings.startCommand, 'pnpm --filter @platform/api start');
   assert.equal(summary.expectedRenderWebSettings.preDeployCommand, 'pnpm --filter @platform/db prisma:deploy');
+  assert.equal(summary.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
+  assert.equal(summary.renderRecovery.expectedSettings.healthCheckPath, '/ready');
+  assert.ok(summary.renderRecovery.verifyAfterDeploy.some((step) => step.includes('/version')));
   assert.ok(summary.nextActions.some((action) => action.includes('Start Command')));
 });
 test('includes optional deployment diagnosis in pilot readiness output', () => {
