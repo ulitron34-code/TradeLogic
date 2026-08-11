@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const { spawnSync } = require('node:child_process');
-const { mkdirSync, writeFileSync } = require('node:fs');
+const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
 
 const DEFAULT_ARTIFACTS_DIR = 'artifacts';
@@ -85,6 +85,13 @@ function runStep(name, command, args, { allowFailure = false, failureStatus = 'f
   return { name, status: 'ok' };
 }
 
+function readJsonIfExists(filePath) {
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
+}
 function writeJson(outputPath, payload) {
   mkdirSync(path.dirname(outputPath), { recursive: true });
   writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
@@ -145,14 +152,15 @@ function main() {
   ]));
 
   const failed = generated.filter((step) => step.status !== 'ok');
+  const readiness = readJsonIfExists(artifactPath(artifactsDir, 'pilot-readiness.json'));
   const summary = {
     status: failed.length === 0 ? 'ok' : 'needs-attention',
     checkedAt: new Date().toISOString(),
     artifactsDir,
     generated,
     next: failed.length > 0
-      ? 'Review failed generated steps and artifacts/deployment-diagnosis.json before rerunning smoke or closing pilot evidence.'
-      : 'Complete Supabase tariff verification, authenticated smoke with a pilot JWT, and manual-pilot-run.json before verify:pilot-evidence.',
+      ? readiness?.next ?? 'Review failed generated steps and artifacts/deployment-diagnosis.json before rerunning smoke or closing pilot evidence.'
+      : readiness?.next ?? 'Complete Supabase tariff verification, authenticated smoke with a pilot JWT, and manual-pilot-run.json before verify:pilot-evidence.',
   };
   const summaryPath = artifactPath(artifactsDir, 'pilot-evidence-prep.json');
   writeJson(summaryPath, summary);

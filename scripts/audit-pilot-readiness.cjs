@@ -241,6 +241,20 @@ function auditEvidence(artifactsDir) {
   return evidence;
 }
 
+function nextStep(evidence, diagnostics) {
+  const deploymentDiagnosis = diagnostics.find((item) => item.status === 'reported' && item.details?.code);
+  const recovery = deploymentDiagnosis?.details?.renderRecovery;
+  if (recovery) {
+    const startCommand = recovery.expectedSettings?.startCommand;
+    const settingStep = startCommand
+      ? `${recovery.settingsPath}: confirmar Start Command = ${startCommand}`
+      : recovery.settingsPath;
+    return `${settingStep}; despues ejecutar ${recovery.manualDeployAction}.`;
+  }
+  const diagnosticAction = deploymentDiagnosis?.details?.nextActions?.[0];
+  if (diagnosticAction) return diagnosticAction;
+  return evidence.find((item) => item.status !== 'ok')?.next ?? 'npm run verify:pilot-evidence -- --artifacts-dir artifacts';
+}
 function writeSummary(outputPath, summary) {
   if (!outputPath) return;
   const resolved = path.resolve(outputPath);
@@ -265,7 +279,7 @@ function main() {
     ready,
     evidence,
     ...(diagnostics.length > 0 ? { diagnostics } : {}),
-    next: evidence.find((item) => item.status !== 'ok')?.next ?? 'npm run verify:pilot-evidence -- --artifacts-dir artifacts',
+    next: nextStep(evidence, diagnostics),
   };
   writeSummary(options.output, summary);
   console.log(JSON.stringify(summary, null, 2));

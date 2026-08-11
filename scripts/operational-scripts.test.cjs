@@ -171,6 +171,8 @@ test('includes optional deployment diagnosis in pilot readiness output', () => {
   assert.deepEqual(readiness.diagnostics[0].details.failedChecks, ['api-version']);
   assert.equal(readiness.diagnostics[0].details.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
   assert.equal(readiness.diagnostics[0].details.renderRecovery.expectedSettings.startCommand, 'pnpm --filter @platform/api start');
+  assert.match(readiness.next, /Settings -> Build & Deploy/);
+  assert.match(readiness.next, /Manual Deploy -> Deploy latest commit/);
 });
 
 test('manual evidence validators fail pending templates without recursion', () => {
