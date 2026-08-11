@@ -40,8 +40,9 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 8. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.
 9. Antes de importar FA/NICO, guardar evidencia de entrada con `npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json`. Si la ruta Prisma/pnpm no responde, generar `artifacts/import_tariff_catalog.sql` con `npm run generate:supabase-tariff-import-sql -- --output artifacts/import_tariff_catalog.sql`, crear `artifacts/import_tariff_catalog_guide.md` con `npm run write:supabase-tariff-import-guide -- --sql artifacts/import_tariff_catalog.sql --input-summary artifacts/tariff-import-input.json --output artifacts/import_tariff_catalog_guide.md`, y pegar el SQL completo en el SQL editor de Supabase.
 10. Generar `artifacts/manual-pilot-run.json` con `npm run write:pilot-manual-evidence-template -- --output artifacts/manual-pilot-run.json`, completar el recorrido UI real y confirmar descarga del PDF.
-11. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
-12. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
+11. Auditar faltantes con `npm run audit:pilot-readiness -- --artifacts-dir artifacts --output artifacts/pilot-readiness.json`.
+12. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
+13. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
 
 ## Criterios de no-go
 

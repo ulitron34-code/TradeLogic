@@ -95,3 +95,11 @@ npm run write:pilot-manual-evidence-template -- --output artifacts/manual-pilot-
 ```
 
 Completar `tester`, `commitSha`, IDs del producto/caso y cada paso del recorrido real: login, producto, evidencia, caso, submit, revision y descarga del expediente PDF. El archivo solo debe quedar con `status: "ok"` cuando no haya bloqueos y todos los pasos esten en `ok`.
+
+Antes de cerrar el piloto, revisar faltantes sin fallar la preparacion:
+
+```bash
+npm run audit:pilot-readiness -- --artifacts-dir artifacts --output artifacts/pilot-readiness.json
+```
+
+Cuando el reporte quede en `status: "ok"`, ejecutar `npm run verify:pilot-evidence -- --artifacts-dir artifacts` como compuerta estricta.
