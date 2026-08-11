@@ -193,3 +193,38 @@ test('manual evidence validators fail pending templates without recursion', () =
   assert.equal(verify.status, 1);
   assert.doesNotMatch(verify.stderr, /Maximum call stack size exceeded/);
 });
+
+test('prepare-pilot-evidence summary inherits pilot readiness next action', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'tradelogic-prepare-next-'));
+  writeFileSync(path.join(dir, 'deployment-diagnosis.json'), `${JSON.stringify({
+    status: 'degraded',
+    code: 'render_serving_previous_api_build',
+    message: 'API process and database are healthy, but /version is missing.',
+    checkedAt: new Date().toISOString(),
+    nextActions: ['Fix Start Command'],
+    renderRecovery: {
+      dashboardUrl: 'https://dashboard.render.com/web/custom-service',
+      settingsPath: 'Settings -> Build & Deploy',
+      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/ready' },
+      manualDeployAction: 'Manual Deploy -> Deploy latest commit',
+      verifyAfterDeploy: ['GET /version must return 200'],
+    },
+    checks: [
+      { name: 'api-health', ok: true },
+      { name: 'api-ready', ok: true },
+      { name: 'api-version', ok: false },
+    ],
+  }, null, 2)}\n`, 'utf8');
+
+  const result = runNode([
+    'scripts/prepare-pilot-evidence.cjs',
+    '--skip-smoke',
+    '--artifacts-dir', dir,
+    '--api-base-url', 'https://tradelogic-api.onrender.com',
+    '--web-base-url', 'https://tradelogic-git-main-ulitron34-codes-projects.vercel.app',
+  ]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const summary = readJson(path.join(dir, 'pilot-evidence-prep.json'));
+  assert.equal(summary.next, 'Settings -> Build & Deploy: confirmar Start Command = pnpm --filter @platform/api start; despues ejecutar Manual Deploy -> Deploy latest commit.');
+});
