@@ -93,6 +93,76 @@ const BAND_LABEL: Record<string, string> = {
 
 const REVIEW_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
 
+type WorkflowStep = {
+  title: string;
+  detail: string;
+  state: 'done' | 'current' | 'pending';
+};
+
+function buildWorkflowSteps({
+  status,
+  canSubmit,
+  canReview,
+  candidates,
+  reviews,
+  costScenarios,
+}: {
+  status: string;
+  canSubmit: boolean;
+  canReview: boolean;
+  candidates: Candidate[];
+  reviews: Review[];
+  costScenarios: CostScenario[];
+}): WorkflowStep[] {
+  const hasCandidates = candidates.length > 0;
+  const hasReview = reviews.length > 0 || ['APPROVED', 'REJECTED'].includes(status);
+  const terminal = ['APPROVED', 'REJECTED', 'ARCHIVED', 'SUPERSEDED'].includes(status);
+  return [
+    { title: 'Caso creado', detail: 'El expediente ya esta ligado al producto.', state: 'done' },
+    {
+      title: 'Enviar a analisis',
+      detail: canSubmit ? 'Listo para entrar a cola de clasificacion.' : 'El caso ya fue enviado o procesado.',
+      state: canSubmit ? 'current' : 'done',
+    },
+    {
+      title: 'Candidatos',
+      detail: hasCandidates ? `${candidates.length} candidato(s) disponibles para revision.` : 'Esperando resultado del analisis deterministico.',
+      state: hasCandidates ? 'done' : canSubmit ? 'pending' : 'current',
+    },
+    {
+      title: 'Revision humana',
+      detail: hasReview
+        ? 'Decision registrada en el expediente.'
+        : status === 'NEEDS_REVIEW'
+          ? canReview ? 'Pendiente de decision del revisor.' : 'Pendiente de un usuario con rol revisor.'
+          : 'Se habilita cuando el caso necesita decision humana.',
+      state: hasReview ? 'done' : status === 'NEEDS_REVIEW' ? 'current' : 'pending',
+    },
+    {
+      title: 'Costo',
+      detail: costScenarios.length > 0 ? `${costScenarios.length} escenario(s) calculados.` : 'Calcula el costo cuando exista codigo seleccionado o tasa con fuente.',
+      state: costScenarios.length > 0 ? 'done' : status === 'APPROVED' ? 'current' : 'pending',
+    },
+    {
+      title: 'Expediente PDF',
+      detail: terminal ? 'Disponible para descarga y evidencia del piloto.' : 'Disponible como snapshot operativo del avance actual.',
+      state: terminal ? 'current' : 'pending',
+    },
+  ];
+}
+
+function workflowStateClass(state: WorkflowStep['state']) {
+  if (state === 'done') return 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-50';
+  if (state === 'current') return 'border-blue-200 bg-blue-50 text-blue-950 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-50';
+  return 'border-neutral-200 bg-white text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300';
+}
+
+function workflowStateLabel(state: WorkflowStep['state']) {
+  if (state === 'done') return 'Listo';
+  if (state === 'current') return 'Ahora';
+  return 'Despues';
+}
+
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -128,6 +198,14 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const canSubmit = classificationCase.status === 'DRAFT' || classificationCase.status === 'NEEDS_INFORMATION';
   const showReviewActions = canReview && classificationCase.status === 'NEEDS_REVIEW';
+  const workflowSteps = buildWorkflowSteps({
+    status: classificationCase.status,
+    canSubmit,
+    canReview,
+    candidates: classificationCase.candidates,
+    reviews: classificationCase.reviews,
+    costScenarios,
+  });
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -138,6 +216,27 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
       <p className="mb-6 text-sm text-neutral-500">
         Estado: <span className="font-medium">{STATUS_LABEL[classificationCase.status] ?? classificationCase.status}</span>
       </p>
+
+      <section className="mb-8 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Avance del expediente</h2>
+          <span className="text-xs text-neutral-500">{workflowSteps.filter((step) => step.state === 'done').length}/{workflowSteps.length} listos</span>
+        </div>
+        <ol className="grid gap-2 sm:grid-cols-2">
+          {workflowSteps.map((step, index) => (
+            <li key={step.title} className={`min-h-24 rounded-md border p-3 text-sm ${workflowStateClass(step.state)}`}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium">{index + 1}. {step.title}</p>
+                <span className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-black/20 dark:text-neutral-100">
+                  {workflowStateLabel(step.state)}
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 opacity-80">{step.detail}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       <div className="mb-8">
         <DossierDownloadButton caseId={classificationCase.id} />
       </div>
