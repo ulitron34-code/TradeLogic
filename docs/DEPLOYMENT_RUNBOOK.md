@@ -15,7 +15,7 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 
 ## Secuencia despues de cada push
 
-1. Confirmar que GitHub `main` recibio el commit esperado.
+1. Confirmar que GitHub `main` recibio el commit esperado y guardar auditoria local de variables sin secretos: `npm run audit:env-readiness -- --strict --output artifacts/env-readiness.json`.
 2. Abrir Supabase y verificar que la base este disponible, sin migraciones pendientes ni alertas criticas.
 3. Abrir el dashboard de Render y verificar que el deploy de API termine correctamente.
 4. Abrir el dashboard de Vercel y verificar que el deploy de web termine correctamente.

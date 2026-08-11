@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-const { readFileSync } = require('node:fs');
+const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
+const path = require('node:path');
 
 const BACKEND_REQUIRED = [
   'NODE_ENV',
@@ -40,7 +41,7 @@ const WEB_REQUIRED = [
 
 function usage() {
   return `Usage:
-  node scripts/audit-env-readiness.cjs [--strict]
+  node scripts/audit-env-readiness.cjs [--strict] [--output artifacts/env-readiness.json]
 
 Checks env examples, Render blueprint and Vercel docs for the variables required by API, worker and web. It never reads real secret values.
 `;
@@ -48,10 +49,22 @@ Checks env examples, Render blueprint and Vercel docs for the variables required
 
 function parseArgs(argv) {
   const options = { strict: false };
-  for (const arg of argv) {
-    if (arg === '--help' || arg === '-h') options.help = true;
-    else if (arg === '--strict') options.strict = true;
-    else throw new Error(`Unexpected argument: ${arg}`);
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--help' || arg === '-h') {
+      options.help = true;
+      continue;
+    }
+    if (arg === '--strict') {
+      options.strict = true;
+      continue;
+    }
+    const value = argv[index + 1];
+    if (!arg.startsWith('--')) throw new Error(`Unexpected argument: ${arg}`);
+    if (!value || value.startsWith('--')) throw new Error(`Missing value for ${arg}`);
+    if (arg === '--output') options.output = value;
+    else throw new Error(`Unknown option: ${arg}`);
+    index += 1;
   }
   return options;
 }
@@ -103,6 +116,14 @@ function textHasAll(text, keys) {
   return keys.filter((key) => !text.includes(key));
 }
 
+function writeSummary(outputPath, summary) {
+  if (!outputPath) return null;
+  const resolved = path.resolve(outputPath);
+  mkdirSync(path.dirname(resolved), { recursive: true });
+  writeFileSync(resolved, `${JSON.stringify(summary, null, 2)}\n`, 'utf8');
+  return resolved;
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -133,7 +154,8 @@ function main() {
     checkedAt: new Date().toISOString(),
     checks,
   };
-  console.log(JSON.stringify(summary, null, 2));
+  const output = writeSummary(options.output, summary);
+  console.log(JSON.stringify({ ...summary, output: output ?? undefined }, null, 2));
   if (options.strict && !ok) process.exitCode = 1;
 }
 

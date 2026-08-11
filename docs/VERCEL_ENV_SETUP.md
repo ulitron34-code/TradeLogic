@@ -63,7 +63,7 @@ SUPABASE_SERVICE_ROLE_KEY=<solo tareas administrativas server-side futuras>
 Antes de tocar dashboards, validar que ejemplos, Render y esta guia sigan alineados:
 
 ```bash
-npm run audit:env-readiness -- --strict
+npm run audit:env-readiness -- --strict --output artifacts/env-readiness.json
 ```
 
 ## Si se quiere API en Vercel despues
