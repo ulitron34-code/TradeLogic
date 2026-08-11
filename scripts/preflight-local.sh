@@ -27,6 +27,7 @@ scripts/smoke-authenticated.cjs
 scripts/record-deployment-targets.cjs
 scripts/verify-tariff-source.cjs
 scripts/verify-tariff-import-input.cjs
+scripts/generate-supabase-tariff-import-sql.cjs
 scripts/verify-pilot-evidence.cjs
 supabase/verify_tariff_catalog.sql
 render.yaml
@@ -39,6 +40,8 @@ done
 node -e "for (const f of ['package.json','MANIFEST.json','apps/api/package.json','apps/worker/package.json','packages/db/package.json']) JSON.parse(require('fs').readFileSync(f,'utf8'));"
 node scripts/verify-tariff-source.cjs
 node scripts/verify-tariff-import-input.cjs
+node --check scripts/generate-supabase-tariff-import-sql.cjs
+node scripts/generate-supabase-tariff-import-sql.cjs --help >/dev/null
 node --check scripts/record-deployment-targets.cjs
 node scripts/record-deployment-targets.cjs --help >/dev/null
 node --check scripts/smoke-production.cjs

@@ -37,6 +37,12 @@ Antes de la carga real, validar la entrada versionada sin dependencias de pnpm/t
 npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json
 ```
 
+Si `pnpm`, `tsx`, Prisma o la conexion directa al puerto 5432 fallan desde la PC/USB, generar un SQL idempotente para pegarlo en el SQL editor de Supabase. Este archivo valida el conteo esperado, actualiza claves naturales existentes e inserta las faltantes sin necesitar acceso directo a la base desde la maquina local:
+
+```bash
+npm run generate:supabase-tariff-import-sql -- --output artifacts/import_tariff_catalog.sql
+```
+
 La carga real debe ejecutarse solo desde el entorno controlado que apunta a Supabase/produccion. El importador abre Prisma unicamente cuando se usa `--apply` y aborta si el conteo validado no es exactamente 20,227:
 
 ```bash
