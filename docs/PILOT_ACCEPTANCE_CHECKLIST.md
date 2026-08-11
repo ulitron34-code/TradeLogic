@@ -13,6 +13,7 @@ Guardar estos archivos en `artifacts/` durante el piloto. No se versionan en Git
 - `deployment-targets.json`: generado por `npm run record:deployment-targets -- --api-base-url ... --web-base-url ... --output artifacts/deployment-targets.json`; no contiene secretos, solo URLs publicas, dashboards y commit.
 - `env-readiness.json`: generado por `npm run audit:env-readiness -- --strict --output artifacts/env-readiness.json`; confirma que ejemplos, Render blueprint y guia Vercel tienen las variables esperadas, sin leer secretos reales.
 - `smoke-production.json`: generado por `npm run smoke:production -- --targets artifacts/deployment-targets.json --output artifacts/smoke-production.json`.
+- `deployment-diagnosis.json`: generado por `npm run diagnose:deployment -- --targets artifacts/deployment-targets.json --output artifacts/deployment-diagnosis.json` cuando el smoke publico falla o se requiere explicar una desalineacion de Render. No reemplaza el smoke exitoso para cierre de piloto.
 - `smoke-authenticated.json`: generado por `npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --output artifacts/smoke-authenticated.json` con un JWT real de cuenta piloto.
 - `tariff-import-input.json`: generado por `npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json`; prueba 20,227 registros listos para importacion y claves unicas.
 - `tariff-catalog-verification.json`: copiar el valor final `tariff_catalog_verification_json` que devuelve `supabase/verify_tariff_catalog.sql` despues de importar el catalogo FA/NICO.
@@ -35,4 +36,4 @@ Despues de guardar los archivos anteriores:
 npm run verify:pilot-evidence -- --artifacts-dir artifacts
 ```
 
-El verificador no reemplaza la revision humana del recorrido UI; ahora exige manual-pilot-run.json para evitar cerrar el piloto sin evidencia del recorrido real y del expediente PDF descargado.
+El verificador no reemplaza la revision humana del recorrido UI; ahora exige manual-pilot-run.json para evitar cerrar el piloto sin evidencia del recorrido real y del expediente PDF descargado. Si `prepare:pilot-evidence` genera `deployment-diagnosis.json` con estado degradado, primero corregir el deploy y repetir el smoke publico.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { execFileSync } = require('node:child_process');
+const { spawnSync } = require('node:child_process');
 const { mkdirSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
 
@@ -11,7 +11,7 @@ function usage() {
   return `Usage:
   node scripts/prepare-pilot-evidence.cjs [--artifacts-dir artifacts] [--api-base-url https://...] [--web-base-url https://...] [--timeout-ms 30000] [--retries 2] [--skip-smoke]
 
-Prepares non-secret pilot evidence: deployment targets, environment readiness, tariff import input, optional public smoke, and pilot readiness summary.
+Prepares non-secret pilot evidence: deployment targets, environment readiness, tariff import input, optional public smoke, deployment diagnosis, and pilot readiness summary.
 Authenticated smoke, Supabase tariff verification and manual browser evidence still require a real pilot session.
 `;
 }
@@ -67,8 +67,21 @@ function artifactPath(artifactsDir, fileName) {
   return path.join(artifactsDir, fileName);
 }
 
-function runStep(name, command, args) {
-  execFileSync(command, args, { stdio: 'inherit' });
+function runStep(name, command, args, { allowFailure = false, failureStatus = 'failed' } = {}) {
+  const result = spawnSync(command, args, { stdio: 'inherit', shell: false });
+  if (result.error) {
+    if (!allowFailure) throw result.error;
+    return { name, status: failureStatus, error: result.error.message };
+  }
+  if (result.status !== 0) {
+    const step = { name, status: failureStatus, exitCode: result.status };
+    if (!allowFailure) {
+      const error = new Error(`${name} failed with exit code ${result.status}`);
+      Object.assign(error, { step });
+      throw error;
+    }
+    return step;
+  }
   return { name, status: 'ok' };
 }
 
@@ -106,13 +119,23 @@ function main() {
   ]));
 
   if (!options.skipSmoke) {
-    generated.push(runStep('smoke-production', node, [
+    const smoke = runStep('smoke-production', node, [
       'scripts/smoke-production.cjs',
       '--targets', artifactPath(artifactsDir, 'deployment-targets.json'),
       '--timeout-ms', options.timeoutMs,
       '--retries', options.retries,
       '--output', artifactPath(artifactsDir, 'smoke-production.json'),
-    ]));
+    ], { allowFailure: true });
+    generated.push(smoke);
+
+    if (smoke.status !== 'ok') {
+      generated.push(runStep('deployment-diagnosis', node, [
+        'scripts/diagnose-deployment.cjs',
+        '--targets', artifactPath(artifactsDir, 'deployment-targets.json'),
+        '--timeout-ms', options.timeoutMs,
+        '--output', artifactPath(artifactsDir, 'deployment-diagnosis.json'),
+      ], { allowFailure: true, failureStatus: 'reported' }));
+    }
   }
 
   generated.push(runStep('pilot-readiness', node, [
@@ -121,16 +144,20 @@ function main() {
     '--output', artifactPath(artifactsDir, 'pilot-readiness.json'),
   ]));
 
+  const failed = generated.filter((step) => step.status !== 'ok');
   const summary = {
-    status: 'ok',
+    status: failed.length === 0 ? 'ok' : 'needs-attention',
     checkedAt: new Date().toISOString(),
     artifactsDir,
     generated,
-    next: 'Complete Supabase tariff verification, authenticated smoke with a pilot JWT, and manual-pilot-run.json before verify:pilot-evidence.',
+    next: failed.length > 0
+      ? 'Review failed generated steps and artifacts/deployment-diagnosis.json before rerunning smoke or closing pilot evidence.'
+      : 'Complete Supabase tariff verification, authenticated smoke with a pilot JWT, and manual-pilot-run.json before verify:pilot-evidence.',
   };
   const summaryPath = artifactPath(artifactsDir, 'pilot-evidence-prep.json');
   writeJson(summaryPath, summary);
   console.log(JSON.stringify({ ...summary, output: summaryPath }, null, 2));
+  if (failed.length > 0) process.exitCode = 1;
 }
 
 try {
