@@ -145,6 +145,13 @@ test('includes optional deployment diagnosis in pilot readiness output', () => {
     message: 'API process and database are healthy, but /version is missing.',
     checkedAt: new Date().toISOString(),
     nextActions: ['Fix Start Command'],
+    renderRecovery: {
+      dashboardUrl: 'https://dashboard.render.com/web/custom-service',
+      settingsPath: 'Settings -> Build & Deploy',
+      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/ready' },
+      manualDeployAction: 'Manual Deploy -> Deploy latest commit',
+      verifyAfterDeploy: ['GET /version must return 200'],
+    },
     checks: [
       { name: 'api-health', ok: true },
       { name: 'api-ready', ok: true },
@@ -160,6 +167,8 @@ test('includes optional deployment diagnosis in pilot readiness output', () => {
   assert.equal(readiness.diagnostics[0].status, 'reported');
   assert.equal(readiness.diagnostics[0].details.code, 'render_serving_previous_api_build');
   assert.deepEqual(readiness.diagnostics[0].details.failedChecks, ['api-version']);
+  assert.equal(readiness.diagnostics[0].details.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
+  assert.equal(readiness.diagnostics[0].details.renderRecovery.expectedSettings.startCommand, 'pnpm --filter @platform/api start');
 });
 
 test('manual evidence validators fail pending templates without recursion', () => {

@@ -197,6 +197,7 @@ function auditDiagnostics(artifactsDir) {
         checkedAt: summary.checkedAt,
         failedChecks: Array.isArray(summary.checks) ? summary.checks.filter((check) => check.ok !== true).map((check) => check.name) : [],
         nextActions: Array.isArray(summary.nextActions) ? summary.nextActions : [],
+        ...(summary.renderRecovery ? { renderRecovery: summary.renderRecovery } : {}),
       },
     }];
   } catch (error) {
