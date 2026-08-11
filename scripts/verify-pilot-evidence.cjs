@@ -3,6 +3,15 @@ const { existsSync, readFileSync } = require('node:fs');
 const path = require('node:path');
 
 const DEFAULT_ARTIFACTS_DIR = 'artifacts';
+const REQUIRED_MANUAL_STEPS = [
+  'login',
+  'create-product',
+  'upload-evidence',
+  'start-classification-case',
+  'submit-analysis',
+  'review-decision',
+  'download-dossier-pdf',
+];
 
 function usage() {
   return `Usage:
@@ -14,6 +23,7 @@ Required files:
   smoke-authenticated.json
   tariff-import-input.json
   tariff-catalog-verification.json
+  manual-pilot-run.json
 `;
 }
 
@@ -40,9 +50,13 @@ function readJson(filePath) {
   return JSON.parse(readFileSync(filePath, 'utf8'));
 }
 
+function requireIsoDate(value, field, filePath) {
+  if (!value || Number.isNaN(Date.parse(value))) throw new Error(`${filePath} missing valid ${field}`);
+}
+
 function requireSmoke(summary, filePath, expectedChecks) {
   if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
-  if (!summary.checkedAt) throw new Error(`${filePath} missing checkedAt`);
+  requireIsoDate(summary.checkedAt, 'checkedAt', filePath);
   if (!Array.isArray(summary.checks)) throw new Error(`${filePath} missing checks array`);
   for (const checkName of expectedChecks) {
     const check = summary.checks.find((item) => item.name === checkName);
@@ -88,6 +102,29 @@ function requireTariffVerification(summary, filePath) {
   }
 }
 
+function requireManualPilotRun(summary, filePath) {
+  if (summary.status !== 'ok') throw new Error(`${filePath} status is not ok`);
+  requireIsoDate(summary.checkedAt, 'checkedAt', filePath);
+  if (!summary.tester || typeof summary.tester !== 'string') throw new Error(`${filePath} missing tester`);
+  if (!summary.environment?.webBaseUrl) throw new Error(`${filePath} missing environment.webBaseUrl`);
+  const webUrl = new URL(summary.environment.webBaseUrl);
+  if (!['http:', 'https:'].includes(webUrl.protocol)) throw new Error(`${filePath} environment.webBaseUrl must be http or https`);
+  if (!summary.scenario?.caseId) throw new Error(`${filePath} missing scenario.caseId`);
+  if (summary.scenario.dossierDownloaded !== true) throw new Error(`${filePath} must confirm scenario.dossierDownloaded=true`);
+  if (!String(summary.scenario.dossierFilename ?? '').toLowerCase().endsWith('.pdf')) {
+    throw new Error(`${filePath} scenario.dossierFilename must be a PDF filename`);
+  }
+  if (Array.isArray(summary.blockers) && summary.blockers.length > 0) {
+    throw new Error(`${filePath} has blockers: ${summary.blockers.join('; ')}`);
+  }
+  if (!Array.isArray(summary.steps)) throw new Error(`${filePath} missing steps array`);
+  for (const stepName of REQUIRED_MANUAL_STEPS) {
+    const step = summary.steps.find((item) => item.name === stepName);
+    if (!step) throw new Error(`${filePath} missing manual step ${stepName}`);
+    if (step.status !== 'ok') throw new Error(`${filePath} manual step ${stepName} is not ok`);
+  }
+}
+
 function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
@@ -101,6 +138,7 @@ function main() {
   const authenticatedPath = path.join(artifactsDir, 'smoke-authenticated.json');
   const tariffInputPath = path.join(artifactsDir, 'tariff-import-input.json');
   const tariffPath = path.join(artifactsDir, 'tariff-catalog-verification.json');
+  const manualPath = path.join(artifactsDir, 'manual-pilot-run.json');
 
   const targets = readJson(targetsPath);
   requireDeploymentTargets(targets, targetsPath);
@@ -109,7 +147,7 @@ function main() {
   requireSmoke(production, productionPath, ['api-health', 'api-ready', 'web-root']);
 
   const authenticated = readJson(authenticatedPath);
-  requireSmoke(authenticated, authenticatedPath, ['auth-context', 'products-list', 'cases-list', 'alerts-list']);
+  requireSmoke(authenticated, authenticatedPath, ['auth-context', 'products-list', 'cases-list', 'alerts-list', 'tariff-catalog-status']);
 
   const tariffInput = readJson(tariffInputPath);
   requireTariffImportInput(tariffInput, tariffInputPath);
@@ -117,11 +155,14 @@ function main() {
   const tariff = readJson(tariffPath);
   requireTariffVerification(tariff, tariffPath);
 
+  const manual = readJson(manualPath);
+  requireManualPilotRun(manual, manualPath);
+
   console.log(JSON.stringify({
     status: 'ok',
     artifactsDir,
     checkedAt: new Date().toISOString(),
-    files: [targetsPath, productionPath, authenticatedPath, tariffInputPath, tariffPath],
+    files: [targetsPath, productionPath, authenticatedPath, tariffInputPath, tariffPath, manualPath],
   }, null, 2));
 }
 

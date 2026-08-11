@@ -24,6 +24,7 @@
     "verify:tariff-import-input": "node scripts/verify-tariff-import-input.cjs",
     "generate:supabase-tariff-import-sql": "node scripts/generate-supabase-tariff-import-sql.cjs",
     "write:supabase-tariff-import-guide": "node scripts/write-supabase-tariff-import-guide.cjs",
+    "write:pilot-manual-evidence-template": "node scripts/write-pilot-manual-evidence-template.cjs",
     "verify:pilot-evidence": "node scripts/verify-pilot-evidence.cjs"
   },
   "devDependencies": {

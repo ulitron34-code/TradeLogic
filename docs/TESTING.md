@@ -85,3 +85,13 @@ Despues de importar FA/NICO en Supabase, repetir el smoke autenticado con valida
 ```bash
 TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifacts/deployment-targets.json --require-tariff-catalog --output artifacts/smoke-authenticated.json
 ```
+
+## Evidencia manual del piloto
+
+Despues de completar la importacion FA/NICO y el smoke autenticado con `--require-tariff-catalog`, generar una plantilla con:
+
+```bash
+npm run write:pilot-manual-evidence-template -- --output artifacts/manual-pilot-run.json
+```
+
+Completar `tester`, `commitSha`, IDs del producto/caso y cada paso del recorrido real: login, producto, evidencia, caso, submit, revision y descarga del expediente PDF. El archivo solo debe quedar con `status: "ok"` cuando no haya bloqueos y todos los pasos esten en `ok`.
