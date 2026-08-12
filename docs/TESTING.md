@@ -58,7 +58,7 @@ Criterio de exito:
 - `GET /health` responde HTTP 2xx con `status: ok`.
 - `GET /ready` responde HTTP 2xx con `status: ready` y `database: ok`.
 - Si hay `commitSha` esperado, `GET /version` reporta el mismo commit desplegado en Render.
-- La web, si se proporciona `--web-base-url`, responde con HTTP menor a 500.
+- La web, si se proporciona `--web-base-url`, responde con HTTP menor a 500, no muestra proteccion de acceso de Vercel y contiene una senal reconocible de TradeLogic.
 
 Si se usa `--output`, guardar el JSON junto con la evidencia del deploy o piloto. Ese archivo incluye fecha de ejecucion, URLs consultadas, codigos HTTP y resultado de cada check.
 

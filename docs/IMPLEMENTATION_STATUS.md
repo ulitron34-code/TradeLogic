@@ -4,8 +4,8 @@ Actualizado: 2026-08-12
 
 ## Verificacion actual (2026-08-12)
 
-- Render esta operativo en `https://tradelogic-api.onrender.com`: `/health`, `/ready` y `/version` responden 200; `/ready` confirma `database: ok` y `/version` reporta el commit `097309096ab7487a99852437261061e0f083906a`.
-- El smoke publico completo pasa (`npm run smoke:production`): API, readiness, version y web de Vercel responden correctamente.
+- Render esta operativo en `https://tradelogic-api.onrender.com`: `/health`, `/ready` y `/version` responden 200; `/ready` confirma `database: ok`. La verificacion del 2026-08-12 encontro Render sirviendo `7ed9f62aebd6b3ebe52c5e97694ca661fa6c16e5`, mientras `main` local/GitHub ya estaba en `0c178354f930648e1d02666dc08472839cebe760`; falta ejecutar o esperar deploy del ultimo commit.
+- El smoke publico endurecido confirma API sana para el commit desplegado, pero falla `web-root` porque Vercel muestra `Login – Vercel`/proteccion de acceso en lugar de la landing TradeLogic. El criterio de smoke ahora detecta ese falso positivo.
 - Se cargo en Supabase el catalogo oficial FA/NICO: 20,227 filas, distribuidas en 19,690 filas base y 537 modificaciones de abril de 2026. La verificacion confirma cero duplicados por clave natural, cero NICO invalidos y cero tasas fuera del techo de seguridad; las tasas oficiales mayores a 100% se conservan porque son validas.
 - Se agrego `scripts/split-supabase-tariff-import.cjs` para dividir futuras cargas grandes en lotes idempotentes compatibles con el SQL Editor de Supabase.
 - El dashboard de Vercel tiene proteccion de acceso activa: la URL publica responde, pero una visita sin sesion muestra el login de Vercel. Para un acceso publico real hay que desactivar esa proteccion o definir el dominio de produccion sin autenticacion.

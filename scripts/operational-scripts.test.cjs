@@ -228,3 +228,43 @@ test('prepare-pilot-evidence summary inherits pilot readiness next action', () =
   const summary = readJson(path.join(dir, 'pilot-evidence-prep.json'));
   assert.equal(summary.next, 'Settings -> Build & Deploy: confirmar Start Command = pnpm --filter @platform/api start; despues ejecutar Manual Deploy -> Deploy latest commit.');
 });
+test('smoke-production fails when web root is Vercel access protection', async (t) => {
+  const { server, baseUrl } = await createServer((request, response) => {
+    if (request.url === '/health') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ok', service: 'api' }));
+      return;
+    }
+    if (request.url === '/ready') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok' }));
+      return;
+    }
+    if (request.url === '/version') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ok', service: 'api', commitSha: 'abc123' }));
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'text/html' });
+    response.end('<!doctype html><title>Login – Vercel</title><a href="/login?next=/sso-api">Vercel</a>');
+  });
+  t.after(() => server.close());
+
+  const dir = mkdtempSync(path.join(tmpdir(), 'tradelogic-vercel-protection-'));
+  const output = path.join(dir, 'smoke-production.json');
+  const result = await runNodeAsync([
+    'scripts/smoke-production.cjs',
+    '--api-base-url', baseUrl,
+    '--web-base-url', baseUrl,
+    '--expected-commit', 'abc123',
+    '--timeout-ms', '1000',
+    '--retries', '0',
+    '--output', output,
+  ]);
+
+  assert.equal(result.status, 1, result.stdout || result.stderr);
+  const summary = readJson(output);
+  assert.equal(summary.status, 'failed');
+  assert.deepEqual(summary.failedChecks, ['web-root']);
+  assert.match(summary.error, /Vercel access protection/);
+});

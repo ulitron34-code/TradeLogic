@@ -95,7 +95,15 @@ async function fetchJson(url, timeoutMs) {
 async function fetchPage(url, timeoutMs) {
   const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { Accept: 'text/html,*/*' } });
   const text = await response.text();
-  return { url, status: response.status, ok: response.status < 500, bytes: Buffer.byteLength(text) };
+  const title = text.match(/<title>([^<]*)<\/title>/i)?.[1] ?? null;
+  return {
+    url,
+    status: response.status,
+    ok: response.status < 500,
+    bytes: Buffer.byteLength(text),
+    title,
+    bodyPreview: text.slice(0, 2000),
+  };
 }
 
 async function withRetries(operation, retries) {
@@ -151,7 +159,13 @@ function validateVersion(result, expectedCommit) {
 
 function validateWeb(result) {
   if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
-  return { bytes: result.bytes };
+  const preview = String(result.bodyPreview ?? '');
+  const title = String(result.title ?? '');
+  const vercelProtected = /login\s*[–-]\s*vercel/i.test(title) || (preview.includes('login?next=') && /vercel/i.test(preview));
+  if (vercelProtected) throw new Error(`${result.url} is showing Vercel access protection instead of the TradeLogic app`);
+  const tradeLogicMarker = /tradelogic|trade logic|inteligencia aduanera|clasificaci[oó]n/i.test(`${title} ${preview}`);
+  if (!tradeLogicMarker) throw new Error(`${result.url} did not include a TradeLogic application marker`);
+  return { bytes: result.bytes, title: result.title };
 }
 
 async function writeSummary(outputPath, summary) {
