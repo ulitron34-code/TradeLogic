@@ -129,7 +129,7 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
   assert.match(summary.message, /older API build|latest deploy failed/);
   assert.equal(summary.checks.find((check) => check.name === 'api-ready').body.database, 'ok');
   assert.equal(summary.checks.find((check) => check.name === 'api-version').status, 404);
-  assert.equal(summary.expectedRenderWebSettings.startCommand, 'pnpm --filter @platform/api start');
+  assert.equal(summary.expectedRenderWebSettings.startCommand, 'node apps/api/dist/server.js');
   assert.equal(summary.expectedRenderWebSettings.preDeployCommand, 'pnpm --filter @platform/db prisma:deploy');
   assert.equal(summary.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
   assert.equal(summary.renderRecovery.expectedSettings.healthCheckPath, '/health');
@@ -150,7 +150,7 @@ test('includes optional deployment diagnosis in pilot readiness output', () => {
     renderRecovery: {
       dashboardUrl: 'https://dashboard.render.com/web/custom-service',
       settingsPath: 'Settings -> Build & Deploy',
-      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/health' },
+      expectedSettings: { startCommand: 'node apps/api/dist/server.js', healthCheckPath: '/health' },
       manualDeployAction: 'Manual Deploy -> Deploy latest commit',
       verifyAfterDeploy: ['GET /version must return 200'],
     },
@@ -170,7 +170,7 @@ test('includes optional deployment diagnosis in pilot readiness output', () => {
   assert.equal(readiness.diagnostics[0].details.code, 'render_serving_previous_api_build');
   assert.deepEqual(readiness.diagnostics[0].details.failedChecks, ['api-version']);
   assert.equal(readiness.diagnostics[0].details.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
-  assert.equal(readiness.diagnostics[0].details.renderRecovery.expectedSettings.startCommand, 'pnpm --filter @platform/api start');
+  assert.equal(readiness.diagnostics[0].details.renderRecovery.expectedSettings.startCommand, 'node apps/api/dist/server.js');
   assert.match(readiness.next, /Settings -> Build & Deploy/);
   assert.match(readiness.next, /Manual Deploy -> Deploy latest commit/);
 });
@@ -205,7 +205,7 @@ test('prepare-pilot-evidence summary inherits pilot readiness next action', () =
     renderRecovery: {
       dashboardUrl: 'https://dashboard.render.com/web/custom-service',
       settingsPath: 'Settings -> Build & Deploy',
-      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/health' },
+      expectedSettings: { startCommand: 'node apps/api/dist/server.js', healthCheckPath: '/health' },
       manualDeployAction: 'Manual Deploy -> Deploy latest commit',
       verifyAfterDeploy: ['GET /version must return 200'],
     },
@@ -226,7 +226,7 @@ test('prepare-pilot-evidence summary inherits pilot readiness next action', () =
 
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const summary = readJson(path.join(dir, 'pilot-evidence-prep.json'));
-  assert.equal(summary.next, 'Settings -> Build & Deploy: confirmar Start Command = pnpm --filter @platform/api start; despues ejecutar Manual Deploy -> Deploy latest commit.');
+  assert.equal(summary.next, 'Settings -> Build & Deploy: confirmar Start Command = node apps/api/dist/server.js; despues ejecutar Manual Deploy -> Deploy latest commit.');
 });
 test('smoke-production fails when web root is Vercel access protection', async (t) => {
   const { server, baseUrl } = await createServer((request, response) => {
