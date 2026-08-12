@@ -1,6 +1,6 @@
 # Runbook de deploy y smoke test
 
-Actualizado: 2026-08-10
+Actualizado: 2026-08-12
 
 ## Tableros
 
@@ -12,6 +12,23 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 
 - API publica de Render: `https://tradelogic-api.onrender.com`
 - Web publica de Vercel: `https://tradelogic-git-main-ulitron34-codes-projects.vercel.app`
+
+El Background Worker de Render todavía no está creado. Cuando se active, debe
+usar el mismo repositorio y rama `main`, región Oregon, y la configuración del
+blueprint `render.yaml`:
+
+```text
+Build Command:
+pnpm install --frozen-lockfile --prod=false && pnpm --filter @platform/worker... build
+
+Start Command:
+pnpm --filter @platform/worker start
+```
+
+El arranque ejecuta `node dist/index.js`. Deben configurarse en Render las
+variables `DATABASE_URL`, `REDIS_URL`, Supabase, S3, JWT, `ENCRYPTION_KEY`,
+calendarios regulatorios y, si se desea enriquecimiento con IA,
+`ANTHROPIC_API_KEY`. El plan Starter mostrado por Render cuesta $7 USD/mes.
 
 ## Secuencia despues de cada push
 
@@ -49,7 +66,7 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 10. Generar `artifacts/manual-pilot-run.json` con `npm run write:pilot-manual-evidence-template -- --output artifacts/manual-pilot-run.json`, completar el recorrido UI real y confirmar descarga del PDF.
 11. Auditar faltantes con `npm run audit:pilot-readiness -- --artifacts-dir artifacts --output artifacts/pilot-readiness.json`.
 12. Validar evidencia minima con `npm run verify:pilot-evidence -- --artifacts-dir artifacts`.
-13. Respaldar el estado del repo en `F:/ADUANA/TradeLogic/backups`.
+13. Respaldar el estado del repo en `E:/ADUANA/TradeLogic/backups`.
 
 ## Criterios de no-go
 
@@ -61,10 +78,9 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 
 ## Pendientes operativos
 
-- Registrar aqui la API publica exacta de Render cuando se confirme desde el dashboard.
-- Registrar aqui la web publica exacta de Vercel cuando se confirme desde el dashboard.
-- Ejecutar la importacion controlada del catalogo FA/NICO en Supabase/produccion y guardar el resultado del conteo.
-- Despues de importar, pegar `supabase/verify_tariff_catalog.sql` en el SQL editor de Supabase. Copiar el valor final `tariff_catalog_verification_json` a `artifacts/tariff-catalog-verification.json`; todos los checks deben devolver `ok`.
+- Activar el Background Worker de Render y verificar sus logs de arranque, Redis y procesamiento de una cola real.
+- Ejecutar el smoke autenticado y el recorrido manual UI/PDF del piloto.
+- Probar la ingesta DOF y el enriquecimiento Anthropic contra servicios reales cuando estén configuradas sus credenciales.
 
 ## Recuperacion de deploy atorado en Render
 
