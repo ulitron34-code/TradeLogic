@@ -4,11 +4,12 @@ Actualizado: 2026-08-12
 
 ## Verificacion actual (2026-08-12)
 
-- Render esta operativo en `https://tradelogic-api.onrender.com`: `/health`, `/ready` y `/version` responden 200; `/ready` confirma `database: ok`. La verificacion del 2026-08-12 encontro Render sirviendo `7ed9f62aebd6b3ebe52c5e97694ca661fa6c16e5`, mientras `main` local/GitHub ya estaba en `6c922f53a89f521a6f76579343c01e6d844249dd`; falta ejecutar o esperar deploy del ultimo commit.
-- El smoke publico endurecido confirma `/health`, `/ready` y `web-root` de Vercel con titulo `TradeLogic`; solo falla `api-version` porque Render sigue en el commit `7ed9f62aebd6b3ebe52c5e97694ca661fa6c16e5` y aun no alcanza `6c922f53a89f521a6f76579343c01e6d844249dd`.
+- Render responde de nuevo en `https://tradelogic-api.onrender.com`: `/health`, `/ready` y `/version` devuelven 200; `/ready` confirma `database: ok`. La verificacion del 2026-08-12 10:27 encontro que produccion sigue sirviendo `7ed9f62aebd6b3ebe52c5e97694ca661fa6c16e5`, mientras GitHub ya tenia `79319b5d2e638a5c7d0c090d556a61ea16bdcc6d`; el deploy `dep-d9u9hrfmnsvc73a8i880` fue iniciado para `79319b5` pero aun no se ha promovido.
+- El smoke publico endurecido confirma `web-root` de Vercel con titulo `TradeLogic`; el bloqueo actual de deploy es `api-version`/commit mismatch porque Render sigue en `7ed9f62aebd6b3ebe52c5e97694ca661fa6c16e5` y aun no alcanza el ultimo commit de `main`.
 - Se cargo en Supabase el catalogo oficial FA/NICO: 20,227 filas, distribuidas en 19,690 filas base y 537 modificaciones de abril de 2026. La verificacion confirma cero duplicados por clave natural, cero NICO invalidos y cero tasas fuera del techo de seguridad; las tasas oficiales mayores a 100% se conservan porque son validas.
 - Se agrego `scripts/split-supabase-tariff-import.cjs` para dividir futuras cargas grandes en lotes idempotentes compatibles con el SQL Editor de Supabase.
 - La proteccion de acceso de Vercel fue desactivada: la URL publica ya muestra la landing TradeLogic y el smoke detecta `web-root` como OK.
+- La calculadora de landed cost ya no queda como captura manual opaca: el backend usa automaticamente el IGI porcentual vigente del `TariffCode` seleccionado y la UI de `/cases/[id]` muestra la tasa oficial, fraccion/NICO, fuente y liga antes de calcular; la tasa manual queda como excepcion con fundamento.
 - El worker compila y sus pruebas quedan cubiertas por CI, pero aun no existe como servicio en Render. Render ofrece el tipo Background Worker desde $7 USD/mes; su provision requiere confirmar ese costo antes de crear el recurso.
 - El piloto aun no se puede marcar listo: falta smoke autenticado con un JWT real y el recorrido manual de UI/PDF (`manual-pilot-run.json`).
 
@@ -137,7 +138,7 @@ Actualizacion 2026-08-10: la jurisprudencia ya no queda aislada en el catalogo. 
 5. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
 6. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
 7. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
-8. **Catalogo SNICE FA/NICO**: importacion controlada completada; conectar ahora la calculadora de landed cost a las tasas reales de `TariffCode`, evitando captura manual cuando el dato exista.
+8. **Catalogo SNICE FA/NICO / landed cost**: importacion controlada completada y calculadora conectada al IGI oficial porcentual de `TariffCode` cuando el caso tiene codigo seleccionado; la UI ya muestra la tasa/fuente antes de calcular. Pendiente: ampliar regimenes, preferencias y exenciones cuando existan reglas oficiales versionadas.
 9. Expediente en PDF (queda fuera del alcance del plan original).
 10. Del plan maestro actualizado, siguen pendientes por bloqueos externos: digest semanal por correo/WhatsApp (necesita credenciales de mensajeria), portal white-label para despachos (decision de diseño/producto antes de programar), bot de WhatsApp Business (necesita cuenta de WhatsApp Business API), conciliacion IMMEX (modulo nuevo, requiere diseño de datos).
 

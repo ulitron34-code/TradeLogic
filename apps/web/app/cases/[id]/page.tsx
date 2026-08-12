@@ -3,7 +3,7 @@ import { confidenceBand } from '@platform/domain';
 import { apiFetch, ApiError } from '../../lib/api';
 import { SubmitCaseButton } from './submit-case-button';
 import { ReviewActions } from './review-actions';
-import { CostCalculator, type CostScenario } from './cost-calculator';
+import { CostCalculator, type CostScenario, type OfficialDutyRate } from './cost-calculator';
 import { DossierDownloadButton } from './dossier-download-button';
 
 type Rationale = {
@@ -19,6 +19,7 @@ type Rationale = {
 
 type Candidate = {
   id: string;
+  tariffCodeId: string;
   score: number | string;
   rank: number;
   rationale: Rationale;
@@ -30,6 +31,8 @@ type Candidate = {
     sourceVersion: string;
     sourceUrl: string | null;
     legalNotes: string | null;
+    generalRate: number | string | null;
+    rateUnit: string | null;
     validFrom: string;
     validTo: string | null;
     regulatoryRequirements: RegulatoryRequirement[];
@@ -57,6 +60,7 @@ type AuditEvent = { id: string; action: string; entityType: string; entityId: st
 type ClassificationCaseDetail = {
   id: string;
   status: string;
+  selectedCodeId: string | null;
   confidence: number | string | null;
   product: { id: string; name: string; sku: string | null };
   candidates: Candidate[];
@@ -92,6 +96,8 @@ const BAND_LABEL: Record<string, string> = {
 };
 
 const REVIEW_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
+
+
 
 type WorkflowStep = {
   title: string;
@@ -163,6 +169,26 @@ function workflowStateLabel(state: WorkflowStep['state']) {
   return 'Despues';
 }
 
+function resolveOfficialDutyRate(classificationCase: ClassificationCaseDetail): OfficialDutyRate | null {
+  if (!classificationCase.selectedCodeId) return null;
+  const selectedCandidate = classificationCase.candidates.find(
+    (candidate) => candidate.tariffCodeId === classificationCase.selectedCodeId,
+  );
+  if (!selectedCandidate || selectedCandidate.tariffCode.rateUnit !== 'PERCENT') return null;
+  if (selectedCandidate.tariffCode.generalRate === null) return null;
+  const ratePercent = Number(selectedCandidate.tariffCode.generalRate);
+  if (!Number.isFinite(ratePercent)) return null;
+  return {
+    code: selectedCandidate.tariffCode.code,
+    nico: selectedCandidate.tariffCode.nico,
+    ratePercent,
+    sourceVersion: selectedCandidate.tariffCode.sourceVersion,
+    sourceUrl: selectedCandidate.tariffCode.sourceUrl,
+    validFrom: selectedCandidate.tariffCode.validFrom,
+    validTo: selectedCandidate.tariffCode.validTo,
+  };
+}
+
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -198,6 +224,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const canSubmit = classificationCase.status === 'DRAFT' || classificationCase.status === 'NEEDS_INFORMATION';
   const showReviewActions = canReview && classificationCase.status === 'NEEDS_REVIEW';
+  const officialDutyRate = resolveOfficialDutyRate(classificationCase);
   const workflowSteps = buildWorkflowSteps({
     status: classificationCase.status,
     canSubmit,
@@ -344,7 +371,11 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
       <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">Costo de importación</h2>
       <div className="mb-8">
-        <CostCalculator caseId={classificationCase.id} initialScenarios={costScenarios} />
+        <CostCalculator
+          caseId={classificationCase.id}
+          initialScenarios={costScenarios}
+          officialDutyRate={officialDutyRate}
+        />
       </div>
 
       {classificationCase.reviews.length > 0 ? (

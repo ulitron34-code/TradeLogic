@@ -4,6 +4,16 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetchClient } from '../../lib/api-client';
 
+export type OfficialDutyRate = {
+  code: string;
+  nico: string | null;
+  ratePercent: number;
+  sourceVersion: string;
+  sourceUrl: string | null;
+  validFrom: string;
+  validTo: string | null;
+};
+
 export type CostScenario = {
   id: string;
   currency: string;
@@ -31,7 +41,19 @@ function formatCurrency(value: number, currency: string) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(value);
 }
 
-export function CostCalculator({ caseId, initialScenarios }: { caseId: string; initialScenarios: CostScenario[] }) {
+function formatPercent(value: number) {
+  return new Intl.NumberFormat('es-MX', { maximumFractionDigits: 4 }).format(value);
+}
+
+export function CostCalculator({
+  caseId,
+  initialScenarios,
+  officialDutyRate,
+}: {
+  caseId: string;
+  initialScenarios: CostScenario[];
+  officialDutyRate: OfficialDutyRate | null;
+}) {
   const router = useRouter();
   const [scenarios, setScenarios] = useState(initialScenarios);
   const [open, setOpen] = useState(initialScenarios.length === 0);
@@ -98,6 +120,21 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
 
       {open ? (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded border border-neutral-200 p-4 dark:border-neutral-800">
+          {officialDutyRate ? (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-50">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium">IGI oficial disponible</p>
+                <span className="text-xs">{officialDutyRate.code}{officialDutyRate.nico ? `/${officialDutyRate.nico}` : ''}</span>
+              </div>
+              <p className="mt-1 text-xs leading-5">
+                Se usara {formatPercent(officialDutyRate.ratePercent)}% de {officialDutyRate.sourceVersion}
+                {officialDutyRate.sourceUrl ? (
+                  <> · <a className="underline" href={officialDutyRate.sourceUrl} target="_blank" rel="noreferrer">ver fuente</a></>
+                ) : null}
+                . Captura una tasa manual solo si debes documentar una preferencia, exencion o criterio revisado.
+              </p>
+            </div>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <label className="flex flex-col gap-1 text-sm">
               Valor en aduana
@@ -111,7 +148,7 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
               />
             </label>
             <label className="flex flex-col gap-1 text-sm">
-              Arancel (%) (opcional)
+              Arancel manual (%)
               <input
                 name="duty_rate_percent"
                 type="number"
@@ -151,7 +188,7 @@ export function CostCalculator({ caseId, initialScenarios }: { caseId: string; i
             </label>
           </div>
           <p className="text-xs text-neutral-400">
-            IVA se calcula al 16% por defecto. Si el caso tiene un código seleccionado con IGI oficial vigente, TradeLogic lo utiliza automáticamente; captura una tasa manual solo cuando tengas una fuente o fundamento verificable.
+            IVA se calcula al 16% por defecto. Si dejas vacío el arancel manual, TradeLogic usará la tasa oficial vigente cuando esté disponible en el caso aprobado.
           </p>
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex gap-2">
