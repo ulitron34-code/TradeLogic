@@ -268,3 +268,44 @@ test('smoke-production fails when web root is Vercel access protection', async (
   assert.deepEqual(summary.failedChecks, ['web-root']);
   assert.match(summary.error, /Vercel access protection/);
 });
+
+test('diagnose-deployment reports protected Vercel web root', async (t) => {
+  const { server, baseUrl } = await createServer((request, response) => {
+    if (request.url === '/health') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ok', service: 'api' }));
+      return;
+    }
+    if (request.url === '/ready') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok' }));
+      return;
+    }
+    if (request.url === '/version') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ok', service: 'api', commitSha: 'abc123' }));
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'text/html' });
+    response.end('<!doctype html><title>Login – Vercel</title><a href="/login?next=/sso-api">Vercel</a>');
+  });
+  t.after(() => server.close());
+
+  const dir = mkdtempSync(path.join(tmpdir(), 'tradelogic-diagnose-vercel-'));
+  const output = path.join(dir, 'deployment-diagnosis.json');
+  const result = await runNodeAsync([
+    'scripts/diagnose-deployment.cjs',
+    '--api-base-url', baseUrl,
+    '--web-base-url', baseUrl,
+    '--expected-commit', 'abc123',
+    '--timeout-ms', '1000',
+    '--output', output,
+  ]);
+
+  assert.equal(result.status, 1, result.stdout || result.stderr);
+  const summary = readJson(output);
+  assert.equal(summary.status, 'failed');
+  const web = summary.checks.find((check) => check.name === 'web-root');
+  assert.equal(web.ok, false);
+  assert.match(web.error, /Vercel access protection/);
+});

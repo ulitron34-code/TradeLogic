@@ -102,7 +102,19 @@ async function fetchJson(url, timeoutMs) {
 async function fetchPage(url, timeoutMs) {
   const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), headers: { Accept: 'text/html,*/*' } });
   const text = await response.text();
-  return { url, status: response.status, ok: response.status < 500, bytes: Buffer.byteLength(text) };
+  const title = text.match(/<title>([^<]*)<\/title>/i)?.[1] ?? null;
+  const preview = text.slice(0, 2000);
+  const vercelProtected = /login\s*[–-]\s*vercel/i.test(String(title ?? '')) || (preview.includes('login?next=') && /vercel/i.test(preview));
+  const tradeLogicMarker = /tradelogic|trade logic|inteligencia aduanera|clasificaci[oó]n/i.test(`${title ?? ''} ${preview}`);
+  return {
+    url,
+    status: response.status,
+    ok: response.status < 500 && !vercelProtected && tradeLogicMarker,
+    bytes: Buffer.byteLength(text),
+    title,
+    ...(vercelProtected ? { error: 'web root is showing Vercel access protection instead of the TradeLogic app' } : {}),
+    ...(!vercelProtected && !tradeLogicMarker ? { error: 'web root did not include a TradeLogic application marker' } : {}),
+  };
 }
 
 async function safeCheck(name, operation) {
