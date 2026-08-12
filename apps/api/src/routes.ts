@@ -143,7 +143,8 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     try {
       await queueReadinessCheck();
       return { status: 'ready', service: 'api', database: 'ok', redis: 'ok' };
-    } catch {
+    } catch (error) {
+      _request.log.warn({ error }, 'redis readiness check failed');
       return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', redis: 'unavailable', retryable: true });
     }
   });
