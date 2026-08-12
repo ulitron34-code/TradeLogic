@@ -111,6 +111,14 @@ export type RouteDependencies = {
   headObject?: typeof defaultHeadObject;
 };
 
+function sanitizeReadinessError(error: unknown) {
+  if (!(error instanceof Error)) return { name: 'UnknownError', message: 'Unknown Redis readiness failure' };
+  return {
+    name: error.name,
+    message: error.message.replace(/rediss?:\/\/[^\s@]+@/g, 'redis://***@'),
+    code: typeof (error as { code?: unknown }).code === 'string' ? (error as { code: string }).code : undefined,
+  };
+}
 function requireIdempotencyKey(value: string | string[] | undefined) {
   const key = Array.isArray(value) ? value[0] : value;
   if (!key) {
@@ -144,8 +152,9 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       await queueReadinessCheck();
       return { status: 'ready', service: 'api', database: 'ok', redis: 'ok' };
     } catch (error) {
-      _request.log.warn({ error }, 'redis readiness check failed');
-      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', redis: 'unavailable', retryable: true });
+      const redisError = sanitizeReadinessError(error);
+      _request.log.warn({ err: error, redisError }, 'redis readiness check failed');
+      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', redis: 'unavailable', redisError, retryable: true });
     }
   });
 
