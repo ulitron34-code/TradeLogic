@@ -1,9 +1,8 @@
 // Motor de costo de importacion (landed cost), deterministico y sin
-// dependencias externas. El arancel se recibe como parametro en vez de
-// buscarse automaticamente porque hoy no hay una fuente de tasas
-// arancelarias reales seedeada (T-MEC/trato general varian por fraccion y
-// pais de origen) — inventar una tasa produciria un calculo financiero
-// incorrecto, asi que el usuario la captura explicitamente por ahora.
+// dependencias externas. La API resuelve automaticamente la tasa IGI
+// porcentual vigente del catalogo oficial cuando el caso tiene codigo
+// seleccionado; la funcion pura sigue recibiendo la tasa ya resuelta para
+// mantener separado el calculo de la consulta de persistencia.
 //
 // Nota: vive en este archivo (no en un modulo separado) porque el bundler de
 // Next.js (webpack) no resuelve imports relativos con extension `.js` que
