@@ -88,6 +88,8 @@ services:
         sync: false
       - key: ENCRYPTION_KEY
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: FX_PROVIDER
         value: banxico
       - key: REGULATORY_POLL_CRON
