@@ -28,7 +28,7 @@ await jurisprudenceIngestionQueue.add(
   { repeat: { pattern: env.JURISPRUDENCE_POLL_CRON }, jobId: 'jurisprudence-ingestion-scheduled' },
 );
 
-new Worker(
+const regulatoryWorker = new Worker(
   REGULATORY_INGESTION_QUEUE,
   async () => {
     const today = new Date();
@@ -46,7 +46,7 @@ new Worker(
   { connection },
 );
 
-new Worker(JURISPRUDENCE_INGESTION_QUEUE, async () => {
+const jurisprudenceWorker = new Worker(JURISPRUDENCE_INGESTION_QUEUE, async () => {
   try {
     const result = await runJurisprudenceIngestion();
     console.log('jurisprudence ingestion run', result);
@@ -55,10 +55,31 @@ new Worker(JURISPRUDENCE_INGESTION_QUEUE, async () => {
   }
 }, { connection });
 
-new Worker('classification-analysis', async job => {
+const classificationWorker = new Worker('classification-analysis', async job => {
   if (job.name !== 'classification.case.submitted') return;
   await runClassificationAnalysis(job.data as ClassificationAnalysisEvent);
 }, { connection });
 
 console.log('worker started');
+
+const workers = [regulatoryWorker, jurisprudenceWorker, classificationWorker];
+
+async function shutdown(signal: string) {
+  console.log(`worker shutting down (${signal})`);
+  await Promise.all([
+    ...workers.map((worker) => worker.close()),
+    regulatoryIngestionQueue.close(),
+    jurisprudenceIngestionQueue.close(),
+  ]);
+  await connection.quit();
+}
+
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.once(signal, () => {
+    void shutdown(signal).catch((error) => {
+      console.error('worker shutdown failed', error);
+      process.exitCode = 1;
+    });
+  });
+}
 
