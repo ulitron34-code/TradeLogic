@@ -6,7 +6,15 @@ import { runRegulatoryIngestion } from './regulatoryIngestion.js';
 import { runJurisprudenceIngestion } from './jurisprudenceIngestion.js';
 import { runClassificationAnalysis, type ClassificationAnalysisEvent } from './classificationAnalysis.js';
 
-const connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
+const connection = new Redis(env.REDIS_URL, {
+  connectTimeout: 5_000,
+  enableReadyCheck: false,
+  maxRetriesPerRequest: null,
+  retryStrategy: (attempt) => Math.min(attempt * 250, 2_000),
+});
+connection.on('error', (error) => {
+  console.warn('redis connection error', { message: error.message });
+});
 
 const REGULATORY_INGESTION_QUEUE = 'regulatory-ingestion';
 const JURISPRUDENCE_INGESTION_QUEUE = 'jurisprudence-ingestion';
@@ -82,4 +90,3 @@ for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     });
   });
 }
-

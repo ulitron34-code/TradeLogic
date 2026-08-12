@@ -110,7 +110,7 @@ pnpm --filter @platform/api start
 curl https://tradelogic-api.onrender.com/version
 ```
 
-La respuesta debe incluir `commitSha` con el commit esperado. Despues correr `npm run diagnose:deployment -- --targets artifacts/deployment-targets.json` y el smoke publico con `--expected-commit`.
+La respuesta debe incluir `commitSha` con el commit esperado. Despues correr `npm run diagnose:deployment -- --targets artifacts/deployment-targets.json` y el smoke publico con `--expected-commit`. En Render, el `healthCheckPath` del web service debe ser `/health`; `/ready` valida dependencias y se usa para smoke/monitoreo, no para promover deploys.
 
 ### Caso Redis mal configurado
 

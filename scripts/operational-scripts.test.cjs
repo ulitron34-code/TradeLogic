@@ -132,7 +132,7 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
   assert.equal(summary.expectedRenderWebSettings.startCommand, 'pnpm --filter @platform/api start');
   assert.equal(summary.expectedRenderWebSettings.preDeployCommand, 'pnpm --filter @platform/db prisma:deploy');
   assert.equal(summary.renderRecovery.dashboardUrl, 'https://dashboard.render.com/web/custom-service');
-  assert.equal(summary.renderRecovery.expectedSettings.healthCheckPath, '/ready');
+  assert.equal(summary.renderRecovery.expectedSettings.healthCheckPath, '/health');
   assert.equal(summary.renderRecovery.localBlueprint.status, 'ok');
   assert.equal(summary.renderRecovery.localBlueprint.checks.find((check) => check.name === 'api-start-command').ok, true);
   assert.ok(summary.renderRecovery.verifyAfterDeploy.some((step) => step.includes('/version')));
@@ -150,7 +150,7 @@ test('includes optional deployment diagnosis in pilot readiness output', () => {
     renderRecovery: {
       dashboardUrl: 'https://dashboard.render.com/web/custom-service',
       settingsPath: 'Settings -> Build & Deploy',
-      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/ready' },
+      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/health' },
       manualDeployAction: 'Manual Deploy -> Deploy latest commit',
       verifyAfterDeploy: ['GET /version must return 200'],
     },
@@ -205,7 +205,7 @@ test('prepare-pilot-evidence summary inherits pilot readiness next action', () =
     renderRecovery: {
       dashboardUrl: 'https://dashboard.render.com/web/custom-service',
       settingsPath: 'Settings -> Build & Deploy',
-      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/ready' },
+      expectedSettings: { startCommand: 'pnpm --filter @platform/api start', healthCheckPath: '/health' },
       manualDeployAction: 'Manual Deploy -> Deploy latest commit',
       verifyAfterDeploy: ['GET /version must return 200'],
     },

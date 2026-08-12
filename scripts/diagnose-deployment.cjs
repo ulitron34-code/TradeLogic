@@ -12,7 +12,7 @@ const EXPECTED_RENDER_WEB_SETTINGS = {
   buildCommand: 'pnpm install --frozen-lockfile --prod=false && pnpm --filter @platform/api... build',
   preDeployCommand: 'pnpm --filter @platform/db prisma:deploy',
   startCommand: 'pnpm --filter @platform/api start',
-  healthCheckPath: '/ready',
+  healthCheckPath: '/health',
 };
 
 function usage() {
