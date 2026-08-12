@@ -3,7 +3,7 @@ services:
     name: tradelogic-api
     runtime: node
     plan: starter
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/api... build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @platform/api... build
     preDeployCommand: pnpm --filter @platform/db prisma:deploy
     startCommand: pnpm --filter @platform/api start
     healthCheckPath: /ready
@@ -53,7 +53,7 @@ services:
     name: tradelogic-worker
     runtime: node
     plan: starter
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/worker... build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @platform/worker... build
     startCommand: pnpm --filter @platform/worker start
     envVars:
       - key: NODE_ENV
