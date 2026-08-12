@@ -9,7 +9,7 @@ const DEFAULT_WEB_BASE_URL = 'https://tradelogic-git-main-ulitron34-codes-projec
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RENDER_DASHBOARD = 'https://dashboard.render.com/web/srv-d9rvfk8n74is73fl9bt0';
 const EXPECTED_RENDER_WEB_SETTINGS = {
-  buildCommand: 'corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/api... build',
+  buildCommand: 'pnpm install --frozen-lockfile && pnpm --filter @platform/api... build',
   preDeployCommand: 'pnpm --filter @platform/db prisma:deploy',
   startCommand: 'pnpm --filter @platform/api start',
   healthCheckPath: '/ready',
