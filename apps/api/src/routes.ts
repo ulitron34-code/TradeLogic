@@ -12,7 +12,7 @@ import {
 import { resolveAuthContext, type AuthContext } from './auth.js';
 import { ensureDevContext } from './context.js';
 import { hashPayload, replayOrStore } from './idempotency.js';
-import { enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted } from './queue.js';
+import { checkQueueReadiness as defaultCheckQueueReadiness, enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted } from './queue.js';
 
 async function defaultResolveContext(request: FastifyRequest, db: typeof defaultDb): Promise<AuthContext> {
   if (env.DEV_AUTH_BYPASS) return ensureDevContext();
@@ -104,6 +104,7 @@ function deploymentMetadata() {
 export type RouteDependencies = {
   db?: typeof defaultDb;
   readinessCheck?: () => Promise<void>;
+  queueReadinessCheck?: () => Promise<void>;
   resolveContext?: (request: FastifyRequest, db: typeof defaultDb) => Promise<AuthContext>;
   enqueueClassificationSubmitted?: typeof defaultEnqueueClassificationSubmitted;
   presignUpload?: typeof defaultPresignUpload;
@@ -123,6 +124,7 @@ function requireIdempotencyKey(value: string | string[] | undefined) {
 export async function registerRoutes(app: FastifyInstance, dependencies: RouteDependencies = {}) {
   const db = dependencies.db ?? defaultDb;
   const readinessCheck = dependencies.readinessCheck ?? (async () => { await db.$queryRaw`SELECT 1`; });
+  const queueReadinessCheck = dependencies.queueReadinessCheck ?? defaultCheckQueueReadiness;
   const resolveContext = dependencies.resolveContext ?? defaultResolveContext;
   const enqueueClassificationSubmitted = dependencies.enqueueClassificationSubmitted ?? defaultEnqueueClassificationSubmitted;
   const presignUpload = dependencies.presignUpload ?? defaultPresignUpload;
@@ -135,9 +137,14 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   app.get('/ready', async (_request, reply) => {
     try {
       await readinessCheck();
-      return { status: 'ready', service: 'api', database: 'ok' };
     } catch {
-      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'unavailable', retryable: true });
+      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'unavailable', redis: 'unknown', retryable: true });
+    }
+    try {
+      await queueReadinessCheck();
+      return { status: 'ready', service: 'api', database: 'ok', redis: 'ok' };
+    } catch {
+      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', redis: 'unavailable', retryable: true });
     }
   });
 
