@@ -113,10 +113,11 @@ export type RouteDependencies = {
 
 function sanitizeReadinessError(error: unknown) {
   if (!(error instanceof Error)) return { name: 'UnknownError', message: 'Unknown Redis readiness failure' };
+  const errorWithCode = error as Error & { code?: unknown };
   return {
     name: error.name,
     message: error.message.replace(/rediss?:\/\/[^\s@]+@/g, 'redis://***@'),
-    code: typeof (error as { code?: unknown }).code === 'string' ? (error as { code: string }).code : undefined,
+    code: typeof errorWithCode.code === 'string' ? errorWithCode.code : undefined,
   };
 }
 function requireIdempotencyKey(value: string | string[] | undefined) {
