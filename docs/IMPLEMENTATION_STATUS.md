@@ -1,20 +1,29 @@
 # Estado de Implementacion
 
-Actualizado: 2026-08-11
+Actualizado: 2026-08-12
 
-## Verificacion de produccion (2026-08-11)
+## Verificacion actual (2026-08-12)
+
+- Render esta operativo en `https://tradelogic-api.onrender.com`: `/health`, `/ready` y `/version` responden 200; `/ready` confirma `database: ok` y `/version` reporta el commit `097309096ab7487a99852437261061e0f083906a`.
+- El smoke publico completo pasa (`npm run smoke:production`): API, readiness, version y web de Vercel responden correctamente.
+- Se cargo en Supabase el catalogo oficial FA/NICO: 20,227 filas, distribuidas en 19,690 filas base y 537 modificaciones de abril de 2026. La verificacion confirma cero duplicados por clave natural, cero NICO invalidos y cero tasas fuera del techo de seguridad; las tasas oficiales mayores a 100% se conservan porque son validas.
+- Se agrego `scripts/split-supabase-tariff-import.cjs` para dividir futuras cargas grandes en lotes idempotentes compatibles con el SQL Editor de Supabase.
+- El dashboard de Vercel tiene proteccion de acceso activa: la URL publica responde, pero una visita sin sesion muestra el login de Vercel. Para un acceso publico real hay que desactivar esa proteccion o definir el dominio de produccion sin autenticacion.
+- El piloto aun no se puede marcar listo: falta smoke autenticado con un JWT real y el recorrido manual de UI/PDF (`manual-pilot-run.json`).
+
+## Verificacion historica de produccion (2026-08-11)
 
 - Estado publico actual: `https://tradelogic-api.onrender.com/health` responde 200 y `https://tradelogic-api.onrender.com/ready` responde 200 con `database: ok`; la web de Vercel responde 200.
-- Bloqueo vigente: `https://tradelogic-api.onrender.com/version` devuelve 404, por lo que Render esta sirviendo una version anterior de la API o el ultimo deploy no se promovio. El commit esperado al verificar fue `aa31c2a`.
+- Bloqueo resuelto posteriormente: en esa verificacion `/version` devolvia 404 porque Render servia una version anterior; el build y la configuracion fueron corregidos el 2026-08-12.
 - Se agregaron controles operativos para no perder evidencia de este estado: `npm run diagnose:deployment` clasifica el caso como `render_serving_previous_api_build` e incluye `renderRecovery` con los valores exactos a revisar en Render y el estado del `render.yaml` local; `npm run smoke:production` escribe `smoke-production.json` aun cuando falla, y `npm run prepare:pilot-evidence` genera `deployment-diagnosis.json` cuando el smoke publico falla.
-- Accion requerida en Render: revisar Settings -> Build & Deploy del servicio `tradelogic-api`; el `Start Command` debe ser `pnpm --filter @platform/api start` y la importacion `tariff:import` debe quedar fuera del arranque web. Despues ejecutar Manual Deploy -> Deploy latest commit y repetir `npm run diagnose:deployment`.
+- Accion historica completada: se corrigio el `Build Command` para no ejecutar `corepack enable` y para conservar devDependencies durante compilacion (`pnpm install --frozen-lockfile --prod=false`); despues se publico y verifico el deploy.
 
 ## Verificacion de produccion (2026-08-10)
 
 - Render ejecuta `DIRECT_URL="$DATABASE_URL" pnpm --filter @platform/db prisma:deploy` antes de iniciar API y worker; se usa el pooler de Supabase porque el host directo `db.*:5432` no es accesible desde Render.
 - Supabase confirma las migraciones `0_init` a `6_add_tariff_trade_rates` finalizadas. Las migraciones 1 y 2 tienen ademas una fila historica revertida por los intentos fallidos; las filas aplicadas actuales estan finalizadas y no bloquean `migrate deploy`.
 - Se verifico que existen las tablas `RegulatoryRequirement`, `JurisprudenceCase`, `HistoricalAuditRun` y `HistoricalDeclaration`, junto con sus columnas y politicas RLS. `/health` y `/ready` de Render responden 200; `/ready` confirma `database: ok`. El smoke publico real tambien valida la web de Vercel (`https://tradelogic-git-main-ulitron34-codes-projects.vercel.app`) con respuesta 200.
-- El catalogo CSV oficial ya esta versionado en el repositorio. El importador cuenta con dry-run sin conexion a Prisma y guardia de conteo esperado (`--expected-records 20227`); la importacion masiva en la base de produccion sigue pendiente de ejecutar desde el entorno controlado.
+- El catalogo CSV oficial esta versionado y ya fue importado en Supabase mediante lotes idempotentes controlados; la evidencia `artifacts/tariff-catalog-verification.json` confirma 20,227 filas.
 
 ## Correccion de estado (2026-08-10)
 
@@ -120,14 +129,14 @@ El plan original de 6 bloques esta completo. Lo que queda es trabajo de endureci
 
 Actualizacion 2026-08-10: la jurisprudencia ya no queda aislada en el catalogo. El endpoint de detalle de caso y el expediente PDF buscan tesis del SJF cuyas referencias de fraccion coinciden con los candidatos deterministas, y muestran IUS, clave, rubro, fuente, URL y motivo de coincidencia. La coincidencia es informativa y no altera el ranking.
 
-1. **Corregir deploy de Render**: el servicio publico responde `/health` y `/ready`, pero `/version` devuelve 404 contra el commit esperado. Revisar `Start Command`, quitar `tariff:import` del arranque web, ejecutar Manual Deploy -> Deploy latest commit y confirmar con `npm run diagnose:deployment`.
+1. **Render**: completado y verificado con `/health`, `/ready`, `/version` y smoke publico en verde; conservar el `Build Command` sin `corepack enable` y con `--prod=false`.
 2. **Aplicar la migracion de `SHCP` a produccion** (`prisma migrate deploy` con permisos de superusuario) — generada pero no aplicada, ver bloque 6 arriba.
 3. Verificar el flujo completo de la UI en un navegador real (login -> crear producto -> subir evidencia -> iniciar caso -> enviar -> revisar) — no se pudo hacer en esta sesion por falta de Docker/Redis local y credenciales.
 4. Completar pruebas de integracion del worker desplegado con Redis/DB reales; ya existen pruebas inyectables para `classification-analysis` y `regulatoryIngestion.ts`, incluido el manejo de `enrichClassification` en su punto de enganche.
 5. Probar la capa de IA contra la API real de Anthropic en cuanto haya `ANTHROPIC_API_KEY` — hoy solo esta verificada con fixtures.
 6. Verificar la ingesta DOF contra el servicio real corriendo (no solo fixtures) una vez que el worker este desplegado con Redis real.
 7. Ampliar fuentes regulatorias mas alla de Hacienda/Economia (ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT ya estan en el enum `SourceAuthority`).
-8. Ejecutar la importacion controlada del catalogo SNICE FA/NICO 2026 en produccion y despues conectar la calculadora de landed cost a tasas reales disponibles en `TariffCode`, evitando captura manual cuando el dato exista.
+8. **Catalogo SNICE FA/NICO**: importacion controlada completada; conectar ahora la calculadora de landed cost a las tasas reales de `TariffCode`, evitando captura manual cuando el dato exista.
 9. Expediente en PDF (queda fuera del alcance del plan original).
 10. Del plan maestro actualizado, siguen pendientes por bloqueos externos: digest semanal por correo/WhatsApp (necesita credenciales de mensajeria), portal white-label para despachos (decision de diseño/producto antes de programar), bot de WhatsApp Business (necesita cuenta de WhatsApp Business API), conciliacion IMMEX (modulo nuevo, requiere diseño de datos).
 

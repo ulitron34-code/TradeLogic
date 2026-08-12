@@ -77,7 +77,7 @@ Si `GET /health` y `GET /ready` responden 200 pero `GET /version` devuelve 404, 
 
 ```text
 Build Command:
-corepack enable && pnpm install --frozen-lockfile && pnpm --filter @platform/api... build
+pnpm install --frozen-lockfile --prod=false && pnpm --filter @platform/api... build
 
 Pre-Deploy Command:
 pnpm --filter @platform/db prisma:deploy

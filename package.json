@@ -23,6 +23,7 @@
     "verify:tariff-source": "node scripts/verify-tariff-source.cjs",
     "verify:tariff-import-input": "node scripts/verify-tariff-import-input.cjs",
     "generate:supabase-tariff-import-sql": "node scripts/generate-supabase-tariff-import-sql.cjs",
+    "split:supabase-tariff-import": "node scripts/split-supabase-tariff-import.cjs",
     "write:supabase-tariff-import-guide": "node scripts/write-supabase-tariff-import-guide.cjs",
     "write:pilot-manual-evidence-template": "node scripts/write-pilot-manual-evidence-template.cjs",
     "audit:pilot-readiness": "node scripts/audit-pilot-readiness.cjs",

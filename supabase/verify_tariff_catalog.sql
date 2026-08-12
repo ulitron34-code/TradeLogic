@@ -46,7 +46,8 @@ where "sourceVersion" in ('SNICE-LIGIE-BASE-2021-11-19', 'SNICE-TIGIE-MOD-ABRIL-
   and nico is not null
   and nico !~ '^[0-9]{2}$';
 
--- 5. Percentage rates should stay in a sane range; non-percent rates are stored in rateUnit/exportRateUnit text.
+-- 5. Percentage rates must be non-negative and below a safety ceiling of 1000.
+-- Official Mexican tariff rates can legitimately exceed 100% (for example 156% and 210.44%).
 select
   'invalid_percentage_rates' as check_name,
   count(*) as invalid_rows,
@@ -54,8 +55,8 @@ select
 from "TariffCode"
 where "sourceVersion" in ('SNICE-LIGIE-BASE-2021-11-19', 'SNICE-TIGIE-MOD-ABRIL-2026')
   and (
-    ("generalRate" is not null and ("generalRate" < 0 or "generalRate" > 100))
-    or ("exportRate" is not null and ("exportRate" < 0 or "exportRate" > 100))
+    ("generalRate" is not null and ("generalRate" < 0 or "generalRate" > 1000))
+    or ("exportRate" is not null and ("exportRate" < 0 or "exportRate" > 1000))
   );
 
 -- 6. Machine-readable evidence. Copy this single JSON value into artifacts/tariff-catalog-verification.json.
@@ -88,8 +89,8 @@ with catalog_rows as (
 ), invalid_percentage_rates as (
   select count(*)::int as invalid_rows
   from catalog_rows
-  where ("generalRate" is not null and ("generalRate" < 0 or "generalRate" > 100))
-    or ("exportRate" is not null and ("exportRate" < 0 or "exportRate" > 100))
+  where ("generalRate" is not null and ("generalRate" < 0 or "generalRate" > 1000))
+    or ("exportRate" is not null and ("exportRate" < 0 or "exportRate" > 1000))
 ), summary as (
   select
     row_count.rows,
