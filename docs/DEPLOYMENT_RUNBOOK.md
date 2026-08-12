@@ -111,3 +111,15 @@ curl https://tradelogic-api.onrender.com/version
 ```
 
 La respuesta debe incluir `commitSha` con el commit esperado. Despues correr `npm run diagnose:deployment -- --targets artifacts/deployment-targets.json` y el smoke publico con `--expected-commit`.
+
+### Caso Redis mal configurado
+
+Si los logs del runtime muestran errores rojos como `getaddrinfo ENOTFOUND red...`, revisar `REDIS_URL` antes de empujar mas commits. Ese error indica que la API intenta resolver un host Redis incompleto o inexistente.
+
+1. En Render, crear o abrir el recurso **Key Value** usado por TradeLogic.
+2. Copiar su **Internal Redis URL** completa. Debe empezar con `redis://` y verse como `redis://red-xxxxxxxxxxxxxxxxxxxx:6379`.
+3. En el servicio `tradelogic-api`, entrar a **Environment** y configurar `REDIS_URL` con esa URL completa.
+4. Guardar cambios y ejecutar **Manual Deploy -> Clear build cache & deploy**.
+5. Confirmar que `/ready` incluya `redis: ok` y que `/version` reporte el commit esperado.
+
+Mientras `/version` siga reportando un commit anterior y `/ready` no incluya `redis: ok`, no conviene empujar otro commit: cada push puede disparar otro deploy encima del problema original y complicar el diagnostico.
