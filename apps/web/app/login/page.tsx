@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '../lib/supabase/client';
 
@@ -10,6 +10,30 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function redirectAuthenticatedUser() {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!cancelled && session) {
+          router.replace('/dashboard');
+          router.refresh();
+        }
+      } catch {
+        // Keep the login form visible; submit will show configuration errors.
+      }
+    }
+
+    void redirectAuthenticatedUser();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
