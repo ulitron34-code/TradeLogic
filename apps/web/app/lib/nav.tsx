@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation';
 import { createClient } from './supabase/client';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Inicio' },
-  { href: '/products', label: 'Productos' },
+  { href: '/dashboard', label: 'Centro' },
+  { href: '/classify', label: 'Clasificar' },
+  { href: '/products', label: 'Mercancías' },
   { href: '/cases', label: 'Casos' },
   { href: '/alerts', label: 'Alertas' },
-  { href: '/audits', label: 'Auditoria' },
+  { href: '/audits', label: 'Auditoría' },
 ];
 
 export function Nav({ email, organizationName }: { email: string; organizationName: string }) {
@@ -27,7 +28,7 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
 
   return (
     <nav className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link href="/dashboard" className="text-sm font-semibold">
             TradeLogic
