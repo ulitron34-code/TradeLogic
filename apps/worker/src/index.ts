@@ -15,6 +15,9 @@ const connection = new Redis(env.REDIS_URL, {
 connection.on('error', (error) => {
   console.warn('redis connection error', { message: error.message });
 });
+connection.on('ready', () => {
+  console.log('redis connection ready');
+});
 
 const REGULATORY_INGESTION_QUEUE = 'regulatory-ingestion';
 const JURISPRUDENCE_INGESTION_QUEUE = 'jurisprudence-ingestion';
@@ -68,9 +71,38 @@ const classificationWorker = new Worker('classification-analysis', async job => 
   await runClassificationAnalysis(job.data as ClassificationAnalysisEvent);
 }, { connection });
 
-console.log('worker started');
-
 const workers = [regulatoryWorker, jurisprudenceWorker, classificationWorker];
+const workerQueues = [
+  REGULATORY_INGESTION_QUEUE,
+  JURISPRUDENCE_INGESTION_QUEUE,
+  'classification-analysis',
+] as const;
+
+for (const [index, worker] of workers.entries()) {
+  const queue = workerQueues[index];
+  worker.on('ready', () => {
+    console.log('worker queue ready', { queue });
+  });
+  worker.on('error', (error) => {
+    console.error('worker queue error', { queue, message: error.message });
+  });
+  worker.on('failed', (job, error) => {
+    console.error('worker job failed', {
+      queue,
+      jobId: job?.id ?? null,
+      jobName: job?.name ?? null,
+      message: error.message,
+    });
+  });
+}
+
+console.log('worker started', {
+  queues: workerQueues,
+  schedules: {
+    regulatoryIngestion: env.REGULATORY_POLL_CRON,
+    jurisprudenceIngestion: env.JURISPRUDENCE_POLL_CRON,
+  },
+});
 
 async function shutdown(signal: string) {
   console.log(`worker shutting down (${signal})`);
