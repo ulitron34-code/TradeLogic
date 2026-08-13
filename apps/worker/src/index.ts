@@ -67,8 +67,26 @@ const jurisprudenceWorker = new Worker(JURISPRUDENCE_INGESTION_QUEUE, async () =
 }, { connection });
 
 const classificationWorker = new Worker('classification-analysis', async job => {
-  if (job.name !== 'classification.case.submitted') return;
-  await runClassificationAnalysis(job.data as ClassificationAnalysisEvent);
+  if (job.name !== 'classification.case.submitted') {
+    console.warn('classification job ignored: unknown job name', { jobId: job.id, jobName: job.name });
+    return { status: 'IGNORED_UNKNOWN_JOB' as const };
+  }
+
+  const event = job.data as ClassificationAnalysisEvent;
+  console.log('classification job received', {
+    jobId: job.id,
+    eventId: event.event_id,
+    caseId: event.payload.case_id,
+    organizationId: event.organization_id,
+  });
+  const result = await runClassificationAnalysis(event);
+  console.log('classification job completed', {
+    jobId: job.id,
+    eventId: event.event_id,
+    caseId: event.payload.case_id,
+    result,
+  });
+  return result;
 }, { connection });
 
 const workers = [regulatoryWorker, jurisprudenceWorker, classificationWorker];
