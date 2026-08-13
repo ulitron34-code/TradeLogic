@@ -16,6 +16,7 @@ export function SubmitCaseButton({ caseId }: { caseId: string }) {
       await apiFetchClient(`/api/v1/classification-cases/${caseId}/submit`, {
         method: 'POST',
         headers: { 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify({}),
       });
       router.refresh();
     } catch (submitError) {
