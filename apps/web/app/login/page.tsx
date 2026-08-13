@@ -16,17 +16,22 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-    setLoading(false);
-    if (signInError) {
-      setError(signInError.message);
-      return;
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'No se pudo iniciar sesión. Revisa la configuración de Supabase en Vercel.');
+    } finally {
+      setLoading(false);
     }
-
-    router.push('/dashboard');
-    router.refresh();
   }
 
   return (
@@ -58,7 +63,7 @@ export default function LoginPage() {
             className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
           />
         </label>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
         <button
           type="submit"
           disabled={loading}
