@@ -486,6 +486,37 @@ describe('classification case flow', () => {
     expect(state.queuedEvents[0]!.payload.case_id).toBe(caseId);
     expect(state.cases.get(caseId)!.status).toBe('INTAKE');
   });
+  it('requeues a stuck intake case for classification analysis', async () => {
+    const { state, makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'case-requeue-create' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/submit`,
+      headers: { 'Idempotency-Key': 'case-requeue-submit' },
+    });
+
+    const retried = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/requeue`,
+      headers: { 'Idempotency-Key': 'case-requeue-1' },
+    });
+
+    expect(retried.statusCode).toBe(202);
+    expect(retried.json()).toMatchObject({ status: 'INTAKE', queued: true, retried: true });
+    expect(state.queuedEvents).toHaveLength(2);
+    expect(state.queuedEvents[1]!.payload.case_id).toBe(caseId);
+    expect(state.auditEvents.at(-1)).toMatchObject({ action: 'classification.case.requeued', entityId: caseId });
+  });
 });
 
 describe('multi-tenant isolation (T-012)', () => {

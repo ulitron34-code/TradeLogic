@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { confidenceBand } from '@platform/domain';
 import { apiFetch, ApiError } from '../../lib/api';
-import { SubmitCaseButton } from './submit-case-button';
+import { RequeueCaseButton, SubmitCaseButton } from './submit-case-button';
 import { ReviewActions } from './review-actions';
 import { CostCalculator, type CostScenario, type OfficialDutyRate } from './cost-calculator';
 import { DossierDownloadButton } from './dossier-download-button';
@@ -327,6 +327,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   }
 
   const canSubmit = classificationCase.status === 'DRAFT' || classificationCase.status === 'NEEDS_INFORMATION';
+  const canRequeue = classificationCase.status === 'INTAKE' || classificationCase.status === 'IN_ANALYSIS';
   const showReviewActions = canReview && classificationCase.status === 'NEEDS_REVIEW';
   const officialDutyRate = resolveOfficialDutyRate(classificationCase);
   const workflowSteps = buildWorkflowSteps({
@@ -357,6 +358,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
         <div className="flex flex-wrap gap-2">
           <DossierDownloadButton caseId={classificationCase.id} />
           {canSubmit ? <SubmitCaseButton caseId={classificationCase.id} /> : null}
+          {canRequeue ? <RequeueCaseButton caseId={classificationCase.id} /> : null}
         </div>
       </div>
 

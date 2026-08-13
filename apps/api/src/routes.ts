@@ -130,6 +130,35 @@ function requireIdempotencyKey(value: string | string[] | undefined) {
   return key;
 }
 
+function productVersionIdFromAssumptions(assumptions: unknown) {
+  if (typeof assumptions !== 'object' || assumptions === null || Array.isArray(assumptions)) return undefined;
+  const productVersionId = (assumptions as Record<string, unknown>).productVersionId;
+  return typeof productVersionId === 'string' && productVersionId ? productVersionId : undefined;
+}
+
+function buildClassificationSubmittedEvent(input: {
+  caseId: string;
+  productId: string;
+  assumptions: unknown;
+  organizationId: string;
+  actorId: string;
+}) {
+  const productVersionId = productVersionIdFromAssumptions(input.assumptions);
+  return {
+    event_id: randomUUID(),
+    occurred_at: new Date().toISOString(),
+    organization_id: input.organizationId,
+    actor_id: input.actorId,
+    trace_id: randomUUID(),
+    schema_version: 1 as const,
+    payload: {
+      case_id: input.caseId,
+      product_id: input.productId,
+      ...(productVersionId ? { product_version_id: productVersionId } : {}),
+    },
+  };
+}
+
 export async function registerRoutes(app: FastifyInstance, dependencies: RouteDependencies = {}) {
   const db = dependencies.db ?? defaultDb;
   const readinessCheck = dependencies.readinessCheck ?? (async () => { await db.$queryRaw`SELECT 1`; });
@@ -499,25 +528,13 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
           data: { status: 'INTAKE' },
         });
 
-        const traceId = randomUUID();
-        const eventId = randomUUID();
-        const productVersionId =
-          typeof submittedCase.assumptions === 'object' && submittedCase.assumptions !== null && !Array.isArray(submittedCase.assumptions)
-            ? String((submittedCase.assumptions as Record<string, unknown>).productVersionId ?? '')
-            : '';
-        const event = {
-          event_id: eventId,
-          occurred_at: new Date().toISOString(),
-          organization_id: organization.id,
-          actor_id: user.id,
-          trace_id: traceId,
-          schema_version: 1 as const,
-          payload: {
-            case_id: submittedCase.id,
-            product_id: submittedCase.productId,
-            ...(productVersionId ? { product_version_id: productVersionId } : {}),
-          },
-        };
+        const event = buildClassificationSubmittedEvent({
+          caseId: submittedCase.id,
+          productId: submittedCase.productId,
+          assumptions: submittedCase.assumptions,
+          organizationId: organization.id,
+          actorId: user.id,
+        });
 
         await scopedDb.auditEvent.create({
           data: {
@@ -527,8 +544,8 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
             entityType: 'ClassificationCase',
             entityId: submittedCase.id,
             before: { status: existingCase.status },
-            after: { status: submittedCase.status, eventId },
-            traceId,
+            after: { status: submittedCase.status, eventId: event.event_id },
+            traceId: event.trace_id,
           },
         });
 
@@ -537,7 +554,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
         return {
           id: submittedCase.id,
           status: submittedCase.status,
-          event_id: eventId,
+          event_id: event.event_id,
           queued: true,
         };
       },
@@ -546,6 +563,76 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     return reply.code(202).send(response);
   });
 
+  app.post('/api/v1/classification-cases/:caseId/requeue', async (request, reply) => {
+    const { user, organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const idempotencyKey = requireIdempotencyKey(request.headers['idempotency-key']);
+    const requestHash = hashPayload({ caseId: params.caseId });
+
+    const response = await replayOrStore({
+      organizationId: organization.id,
+      key: idempotencyKey,
+      scope: 'classification-cases:requeue',
+      requestHash,
+      build: async () => {
+        const existingCase = await scopedDb.classificationCase.findFirst({
+          where: { id: params.caseId, organizationId: organization.id },
+        });
+
+        if (!existingCase) {
+          const error = new Error('Classification case not found');
+          Object.assign(error, { statusCode: 404, code: 'CLASSIFICATION_CASE_NOT_FOUND' });
+          throw error;
+        }
+
+        if (existingCase.status !== 'INTAKE' && existingCase.status !== 'IN_ANALYSIS') {
+          const error = new Error(`Cannot requeue case from status ${existingCase.status}`);
+          Object.assign(error, { statusCode: 409, code: 'INVALID_CASE_STATUS' });
+          throw error;
+        }
+
+        const queuedCase = existingCase.status === 'INTAKE'
+          ? existingCase
+          : await scopedDb.classificationCase.update({
+              where: { id: existingCase.id },
+              data: { status: 'INTAKE' },
+            });
+        const event = buildClassificationSubmittedEvent({
+          caseId: queuedCase.id,
+          productId: queuedCase.productId,
+          assumptions: queuedCase.assumptions,
+          organizationId: organization.id,
+          actorId: user.id,
+        });
+
+        await scopedDb.auditEvent.create({
+          data: {
+            organizationId: organization.id,
+            actorId: user.id,
+            action: 'classification.case.requeued',
+            entityType: 'ClassificationCase',
+            entityId: queuedCase.id,
+            before: { status: existingCase.status },
+            after: { status: queuedCase.status, eventId: event.event_id },
+            traceId: event.trace_id,
+          },
+        });
+
+        await enqueueClassificationSubmitted(event);
+
+        return {
+          id: queuedCase.id,
+          status: queuedCase.status,
+          event_id: event.event_id,
+          queued: true,
+          retried: true,
+        };
+      },
+    }, scopedDb);
+
+    return reply.code(202).send(response);
+  });
   app.get('/api/v1/classification-cases/:caseId', async (request, reply) => {
     const { organization } = await resolveContext(request, db);
     const scopedDb = scopeToOrganization(db, organization.id);
