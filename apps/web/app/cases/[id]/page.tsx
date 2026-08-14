@@ -87,6 +87,19 @@ type QueueSnapshot = {
   name: string;
   isPaused: boolean;
   counts: Record<string, number>;
+  recentJobs?: Array<{
+    id: string | null;
+    name: string;
+    state: string;
+    attemptsMade: number;
+    failedReason: string | null;
+    processedOn: number | null;
+    finishedOn: number | null;
+    timestamp: number;
+    eventId: string | null;
+    caseId: string | null;
+    organizationId: string | null;
+  }>;
 };
 
 type ClassificationCaseDetail = {
@@ -391,7 +404,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   let queueSnapshot: QueueSnapshot | null = null;
   if (canRequeue && canReview) {
     try {
-      queueSnapshot = await apiFetch<QueueSnapshot>('/api/v1/ops/classification-queue');
+      queueSnapshot = await apiFetch<QueueSnapshot>(`/api/v1/ops/classification-queue?caseId=${classificationCase.id}`);
     } catch {
       queueSnapshot = null;
     }
@@ -495,6 +508,34 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               </div>
             ))}
           </dl>
+          {queueSnapshot.recentJobs && queueSnapshot.recentJobs.length > 0 ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-xs">
+                <thead className="border-b border-amber-200/80 uppercase tracking-wide opacity-70 dark:border-amber-900">
+                  <tr>
+                    <th className="py-2 pr-3 font-semibold">Estado</th>
+                    <th className="py-2 pr-3 font-semibold">Caso</th>
+                    <th className="py-2 pr-3 font-semibold">Intentos</th>
+                    <th className="py-2 pr-3 font-semibold">Recibido</th>
+                    <th className="py-2 pr-3 font-semibold">Falla</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {queueSnapshot.recentJobs.slice(0, 5).map((job) => (
+                    <tr key={job.id ?? `${job.name}-${job.timestamp}`} className="border-b border-amber-200/60 last:border-0 dark:border-amber-900/60">
+                      <td className="py-2 pr-3 font-medium">{job.state}</td>
+                      <td className="py-2 pr-3 font-mono">{job.caseId?.slice(0, 8) ?? 'sin caso'}</td>
+                      <td className="py-2 pr-3">{job.attemptsMade}</td>
+                      <td className="py-2 pr-3">{Number.isFinite(job.timestamp) ? new Date(job.timestamp).toLocaleString('es-MX') : 'sin fecha'}</td>
+                      <td className="py-2 pr-3">{job.failedReason ?? 'sin falla'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="mt-4 rounded bg-white/70 p-3 text-sm dark:bg-black/20">No hay jobs recientes visibles en la cola.</p>
+          )}
         </section>
       ) : null}
 

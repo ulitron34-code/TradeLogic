@@ -5,9 +5,14 @@ import { env } from '@platform/config';
 export const CLASSIFICATION_ANALYSIS_QUEUE = 'classification-analysis';
 
 const REDIS_READINESS_TIMEOUT_MS = 5_000;
+const CLASSIFICATION_DIAGNOSTIC_JOB_LIMIT = 10;
 
 let queue: Queue | undefined;
 let redisConnection: Redis | undefined;
+
+type ClassificationQueueSnapshotOptions = {
+  eventIds?: string[];
+};
 
 function createRedisConnection() {
   const connection = new Redis(env.REDIS_URL, {
@@ -68,17 +73,39 @@ export async function enqueueClassificationSubmitted(event: {
   });
 }
 
-export async function getClassificationQueueSnapshot() {
+async function serializeJob(job: Awaited<ReturnType<Queue['getJob']>>) {
+  if (!job) return null;
+  return {
+    id: job.id ?? null,
+    name: job.name,
+    state: await job.getState(),
+    attemptsMade: job.attemptsMade,
+    failedReason: job.failedReason ?? null,
+    processedOn: job.processedOn ?? null,
+    finishedOn: job.finishedOn ?? null,
+    timestamp: job.timestamp,
+    eventId: typeof job.data?.event_id === 'string' ? job.data.event_id : null,
+    caseId: typeof job.data?.payload?.case_id === 'string' ? job.data.payload.case_id : null,
+    organizationId: typeof job.data?.organization_id === 'string' ? job.data.organization_id : null,
+  };
+}
+
+export async function getClassificationQueueSnapshot(options: ClassificationQueueSnapshotOptions = {}) {
   const queue = getClassificationAnalysisQueue();
   const [counts, isPaused] = await Promise.all([
     queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
     queue.isPaused(),
   ]);
+  const jobs = options.eventIds?.length
+    ? (await Promise.all(options.eventIds.slice(0, CLASSIFICATION_DIAGNOSTIC_JOB_LIMIT).map((eventId) => queue.getJob(eventId)))).filter((job) => job !== undefined)
+    : await queue.getJobs(['waiting', 'active', 'failed', 'delayed', 'completed'], 0, CLASSIFICATION_DIAGNOSTIC_JOB_LIMIT - 1, false);
+  const recentJobs = await Promise.all(jobs.map((job) => serializeJob(job)));
 
   return {
     name: CLASSIFICATION_ANALYSIS_QUEUE,
     isPaused,
     counts,
+    recentJobs: recentJobs.filter((job) => job !== null),
   };
 }
 

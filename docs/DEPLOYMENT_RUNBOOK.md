@@ -64,10 +64,10 @@ TRADELOGIC_ACCESS_TOKEN=eyJ... npm run smoke:authenticated -- --targets artifact
 Si un caso queda en `INTAKE`/`IN_ANALYSIS` despues de reencolarlo, consultar el diagnostico autenticado de la cola de clasificacion:
 
 ```bash
-curl -H "Authorization: Bearer $TRADELOGIC_ACCESS_TOKEN" https://tradelogic-api.onrender.com/api/v1/ops/classification-queue
+curl -H "Authorization: Bearer $TRADELOGIC_ACCESS_TOKEN" "https://tradelogic-api.onrender.com/api/v1/ops/classification-queue?caseId=CASE_ID"
 ```
 
-La respuesta no expone secretos; muestra `waiting`, `active`, `completed`, `failed`, `delayed`, `paused` e `isPaused` para saber si el job entro a Redis, si lo tomo el worker o si fallo.
+La respuesta no expone secretos; muestra `waiting`, `active`, `completed`, `failed`, `delayed`, `paused`, `isPaused` y `recentJobs`. Con `caseId`, `recentJobs` se limita a los eventos de auditoria de ese caso en la organizacion actual. Usar `recentJobs[].state`, `attemptsMade` y `failedReason` para saber si el job entro a Redis, si lo tomo el worker o si fallo.
 
 8. Guardar los JSON de smoke junto con la evidencia del deploy/piloto.
 9. Antes de importar FA/NICO, guardar evidencia de entrada con `npm run verify:tariff-import-input -- --output artifacts/tariff-import-input.json`. Si la ruta Prisma/pnpm no responde, generar `artifacts/import_tariff_catalog.sql` con `npm run generate:supabase-tariff-import-sql -- --output artifacts/import_tariff_catalog.sql`, crear `artifacts/import_tariff_catalog_guide.md` con `npm run write:supabase-tariff-import-guide -- --sql artifacts/import_tariff_catalog.sql --input-summary artifacts/tariff-import-input.json --output artifacts/import_tariff_catalog_guide.md`, y pegar el SQL completo en el SQL editor de Supabase.

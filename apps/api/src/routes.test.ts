@@ -282,8 +282,21 @@ function createHarness() {
     },
     auditEvent: {
       create: async ({ data }: any) => {
-        state.auditEvents.push(data);
-        return data;
+        const record = { id: `audit-${state.auditEvents.length + 1}`, occurredAt: new Date(), ...data };
+        state.auditEvents.push(record);
+        return record;
+      },
+      findMany: async ({ where, orderBy, take }: any = {}) => {
+        let events = state.auditEvents.filter((event) => {
+          if (where?.organizationId && event.organizationId !== where.organizationId) return false;
+          if (where?.entityType && event.entityType !== where.entityType) return false;
+          if (where?.entityId && event.entityId !== where.entityId) return false;
+          if (where?.action?.in && !where.action.in.includes(event.action)) return false;
+          if (where?.action && typeof where.action === 'string' && event.action !== where.action) return false;
+          return true;
+        });
+        if (orderBy?.occurredAt === 'desc') events = events.sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+        return typeof take === 'number' ? events.slice(0, take) : events;
       },
     },
   };
@@ -301,7 +314,7 @@ function createHarness() {
         if (options.databaseReady === false) throw new Error('database unavailable');
       },
       queueReadinessCheck: async () => {},
-      getClassificationQueueSnapshot: async () => ({
+      getClassificationQueueSnapshot: async (options?: { eventIds?: string[] }) => ({
         name: 'classification-analysis',
         isPaused: false,
         counts: {
@@ -312,6 +325,22 @@ function createHarness() {
           delayed: 0,
           paused: 0,
         },
+        recentJobs: state.queuedEvents
+          .filter((event) => !options?.eventIds || options.eventIds.includes(event.event_id))
+          .slice(-10)
+          .map((event) => ({
+            id: event.event_id,
+            name: 'classification.case.submitted',
+            state: 'waiting',
+            attemptsMade: 0,
+            failedReason: null,
+            processedOn: null,
+            finishedOn: null,
+            timestamp: Date.parse(event.occurred_at),
+            eventId: event.event_id,
+            caseId: event.payload.case_id,
+            organizationId: event.organization_id,
+          })),
       }),
       resolveContext: async () => identity,
       enqueueClassificationSubmitted: async (event) => {
@@ -445,7 +474,48 @@ describe('classification case flow', () => {
         delayed: 0,
         paused: 0,
       },
+      recentJobs: [],
     });
+  });
+
+  it('filters classification queue diagnostics to one case when caseId is provided', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+
+    const firstCase = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'case-queue-filter-create-1' },
+      payload: { product_id: product.id },
+    });
+    const secondCase = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'case-queue-filter-create-2' },
+      payload: { product_id: product.id },
+    });
+
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${firstCase.json().id}/submit`,
+      headers: { 'Idempotency-Key': 'case-queue-filter-submit-1' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${secondCase.json().id}/submit`,
+      headers: { 'Idempotency-Key': 'case-queue-filter-submit-2' },
+    });
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/v1/ops/classification-queue?caseId=${firstCase.json().id}`,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().caseId).toBe(firstCase.json().id);
+    expect(response.json().recentJobs).toHaveLength(1);
+    expect(response.json().recentJobs[0]).toMatchObject({ caseId: firstCase.json().id, state: 'waiting' });
   });
 
   it('restricts classification queue diagnostics to operational roles', async () => {

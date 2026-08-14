@@ -75,6 +75,7 @@ const historicalAuditBody = z.object({
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 const paramsWithAlertId = z.object({ alertId: z.string().uuid() });
+const classificationQueueQuery = z.object({ caseId: z.string().uuid().optional() });
 
 const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
 const TARIFF_CATALOG_EXPECTED_ROWS = 20227;
@@ -140,6 +141,12 @@ function productVersionIdFromAssumptions(assumptions: unknown) {
   if (typeof assumptions !== 'object' || assumptions === null || Array.isArray(assumptions)) return undefined;
   const productVersionId = (assumptions as Record<string, unknown>).productVersionId;
   return typeof productVersionId === 'string' && productVersionId ? productVersionId : undefined;
+}
+
+function eventIdFromAuditAfter(after: unknown) {
+  if (typeof after !== 'object' || after === null || Array.isArray(after)) return null;
+  const eventId = (after as Record<string, unknown>).eventId;
+  return typeof eventId === 'string' && eventId ? eventId : null;
 }
 
 function buildClassificationSubmittedEvent(input: {
@@ -290,10 +297,37 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       Object.assign(error, { statusCode: 403, code: 'FORBIDDEN' });
       throw error;
     }
-    const snapshot = await getClassificationQueueSnapshot();
+    const scopedDb = scopeToOrganization(db, context.organization.id);
+    const query = classificationQueueQuery.parse(request.query);
+    let eventIds: string[] | undefined;
+
+    if (query.caseId) {
+      const classificationCase = await scopedDb.classificationCase.findFirst({
+        where: { id: query.caseId, organizationId: context.organization.id },
+      });
+      if (!classificationCase) {
+        const error = new Error('Classification case not found');
+        Object.assign(error, { statusCode: 404, code: 'CLASSIFICATION_CASE_NOT_FOUND' });
+        throw error;
+      }
+      const events = await scopedDb.auditEvent.findMany({
+        where: {
+          organizationId: context.organization.id,
+          entityType: 'ClassificationCase',
+          entityId: classificationCase.id,
+          action: { in: ['classification.case.submitted', 'classification.case.requeued'] },
+        },
+        orderBy: { occurredAt: 'desc' },
+        take: 10,
+      });
+      eventIds = events.map((event) => eventIdFromAuditAfter(event.after)).filter((eventId): eventId is string => Boolean(eventId));
+    }
+
+    const snapshot = await getClassificationQueueSnapshot({ eventIds });
     return {
       service: 'api',
       organizationId: context.organization.id,
+      ...(query.caseId ? { caseId: query.caseId } : {}),
       ...snapshot,
     };
   });
