@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { db, type Prisma } from '@platform/db';
+import { db, scopeToOrganization, type Prisma } from '@platform/db';
 import { rankTariffCandidates, requiresHumanReview } from '@platform/domain';
 import { claimsForCandidate, enrichClassification } from '@platform/ai';
 
@@ -15,7 +15,7 @@ export async function runClassificationAnalysis(
   event: ClassificationAnalysisEvent,
   dependencies: { db: typeof db } = { db },
 ) {
-  const database = dependencies.db;
+  const database = scopeToOrganization(dependencies.db, event.organization_id);
   const classificationCase = await database.classificationCase.findFirst({
     where: { id: event.payload.case_id, organizationId: event.organization_id, status: 'INTAKE' },
     include: { product: { include: { versions: { orderBy: { version: 'desc' } } } } },
