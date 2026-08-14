@@ -17,6 +17,7 @@ process.env.REGULATORY_POLL_CRON ??= '0 * * * 1-5';
 process.env.SUPABASE_URL ??= 'https://example.supabase.co';
 process.env.LOG_LEVEL ??= 'silent';
 import type { FastifyInstance } from 'fastify';
+import type { RouteDependencies } from './routes.js';
 import { DEV_ORG_ID, DEV_USER_ID, electronicProductFixture } from './test/fixtures.js';
 
 type RecordMap<T> = Map<string, T>;
@@ -308,40 +309,41 @@ function createHarness() {
 
   async function makeApp(identity: typeof ownerIdentity = ownerIdentity, options: { databaseReady?: boolean } = {}) {
     const { buildApp } = await import('./app.js');
+    const getClassificationQueueSnapshot: NonNullable<RouteDependencies['getClassificationQueueSnapshot']> = async (snapshotOptions) => ({
+      name: 'classification-analysis',
+      isPaused: false,
+      counts: {
+        waiting: state.queuedEvents.length,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      },
+      recentJobs: state.queuedEvents
+        .filter((event) => !snapshotOptions?.eventIds || snapshotOptions.eventIds.includes(event.event_id))
+        .slice(-10)
+        .map((event) => ({
+          id: event.event_id,
+          name: 'classification.case.submitted',
+          state: 'waiting' as const,
+          attemptsMade: 0,
+          failedReason: null,
+          processedOn: null,
+          finishedOn: null,
+          timestamp: Date.parse(event.occurred_at),
+          eventId: event.event_id,
+          caseId: event.payload.case_id,
+          organizationId: event.organization_id,
+        })),
+    });
     const app = await buildApp({
       db: db as any,
       readinessCheck: async () => {
         if (options.databaseReady === false) throw new Error('database unavailable');
       },
       queueReadinessCheck: async () => {},
-      getClassificationQueueSnapshot: async (options?: { eventIds?: string[] }) => ({
-        name: 'classification-analysis',
-        isPaused: false,
-        counts: {
-          waiting: state.queuedEvents.length,
-          active: 0,
-          completed: 0,
-          failed: 0,
-          delayed: 0,
-          paused: 0,
-        },
-        recentJobs: state.queuedEvents
-          .filter((event) => !options?.eventIds || options.eventIds.includes(event.event_id))
-          .slice(-10)
-          .map((event) => ({
-            id: event.event_id,
-            name: 'classification.case.submitted',
-            state: 'waiting' as const,
-            attemptsMade: 0,
-            failedReason: null,
-            processedOn: null,
-            finishedOn: null,
-            timestamp: Date.parse(event.occurred_at),
-            eventId: event.event_id,
-            caseId: event.payload.case_id,
-            organizationId: event.organization_id,
-          })),
-      }),
+      getClassificationQueueSnapshot,
       resolveContext: async () => identity,
       enqueueClassificationSubmitted: async (event) => {
         state.queuedEvents.push(event);
