@@ -12,7 +12,11 @@ import {
 import { resolveAuthContext, type AuthContext } from './auth.js';
 import { ensureDevContext } from './context.js';
 import { hashPayload, replayOrStore } from './idempotency.js';
-import { checkQueueReadiness as defaultCheckQueueReadiness, enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted } from './queue.js';
+import {
+  checkQueueReadiness as defaultCheckQueueReadiness,
+  enqueueClassificationSubmitted as defaultEnqueueClassificationSubmitted,
+  getClassificationQueueSnapshot as defaultGetClassificationQueueSnapshot,
+} from './queue.js';
 
 async function defaultResolveContext(request: FastifyRequest, db: typeof defaultDb): Promise<AuthContext> {
   if (env.DEV_AUTH_BYPASS) return ensureDevContext();
@@ -40,6 +44,7 @@ const reviewCaseBody = z.object({
 // RBAC.md: "Aprobar caso critico" solo lo permiten Owner, Admin y Reviewer.
 const REVIEW_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
 const AUDIT_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
+const OPS_ROLES = new Set(['OWNER', 'ADMIN', 'REVIEWER']);
 
 const alertStatusBody = z.object({
   status: z.enum(['OPEN', 'ACKNOWLEDGED', 'SNOOZED', 'RESOLVED', 'DISMISSED']),
@@ -107,6 +112,7 @@ export type RouteDependencies = {
   queueReadinessCheck?: () => Promise<void>;
   resolveContext?: (request: FastifyRequest, db: typeof defaultDb) => Promise<AuthContext>;
   enqueueClassificationSubmitted?: typeof defaultEnqueueClassificationSubmitted;
+  getClassificationQueueSnapshot?: typeof defaultGetClassificationQueueSnapshot;
   presignUpload?: typeof defaultPresignUpload;
   headObject?: typeof defaultHeadObject;
 };
@@ -165,6 +171,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   const queueReadinessCheck = dependencies.queueReadinessCheck ?? defaultCheckQueueReadiness;
   const resolveContext = dependencies.resolveContext ?? defaultResolveContext;
   const enqueueClassificationSubmitted = dependencies.enqueueClassificationSubmitted ?? defaultEnqueueClassificationSubmitted;
+  const getClassificationQueueSnapshot = dependencies.getClassificationQueueSnapshot ?? defaultGetClassificationQueueSnapshot;
   const presignUpload = dependencies.presignUpload ?? defaultPresignUpload;
   const headObject = dependencies.headObject ?? defaultHeadObject;
 
@@ -273,6 +280,21 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       percentImportRates,
       percentExportRates,
       checks,
+    };
+  });
+
+  app.get('/api/v1/ops/classification-queue', async (request) => {
+    const context = await resolveContext(request, db);
+    if (!context.roles.some((role) => OPS_ROLES.has(role))) {
+      const error = new Error('Only OWNER, ADMIN, or REVIEWER can inspect operations diagnostics');
+      Object.assign(error, { statusCode: 403, code: 'FORBIDDEN' });
+      throw error;
+    }
+    const snapshot = await getClassificationQueueSnapshot();
+    return {
+      service: 'api',
+      organizationId: context.organization.id,
+      ...snapshot,
     };
   });
 

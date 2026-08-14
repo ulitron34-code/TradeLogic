@@ -301,6 +301,18 @@ function createHarness() {
         if (options.databaseReady === false) throw new Error('database unavailable');
       },
       queueReadinessCheck: async () => {},
+      getClassificationQueueSnapshot: async () => ({
+        name: 'classification-analysis',
+        isPaused: false,
+        counts: {
+          waiting: state.queuedEvents.length,
+          active: 0,
+          completed: 0,
+          failed: 0,
+          delayed: 0,
+          paused: 0,
+        },
+      }),
       resolveContext: async () => identity,
       enqueueClassificationSubmitted: async (event) => {
         state.queuedEvents.push(event);
@@ -412,6 +424,40 @@ describe('classification case flow', () => {
       expect.objectContaining({ name: 'invalid_percentage_rates', status: 'fail', invalidRows: 1 }),
     ]));
   });
+
+  it('reports classification queue counts for operations diagnosis', async () => {
+    const { makeApp } = createHarness();
+    const app = await makeApp();
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/ops/classification-queue' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      service: 'api',
+      organizationId: DEV_ORG_ID,
+      name: 'classification-analysis',
+      isPaused: false,
+      counts: {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      },
+    });
+  });
+
+  it('restricts classification queue diagnostics to operational roles', async () => {
+    const { makeApp, ownerIdentity } = createHarness();
+    const app = await makeApp({ ...ownerIdentity, roles: ['MEMBER'] } as any);
+
+    const response = await app.inject({ method: 'GET', url: '/api/v1/ops/classification-queue' });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().code).toBe('FORBIDDEN');
+  });
+
   it('creates products and cases with idempotent replay', async () => {
     const { makeApp } = createHarness();
     const app = await makeApp();

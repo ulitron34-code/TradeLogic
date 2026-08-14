@@ -68,6 +68,20 @@ export async function enqueueClassificationSubmitted(event: {
   });
 }
 
+export async function getClassificationQueueSnapshot() {
+  const queue = getClassificationAnalysisQueue();
+  const [counts, isPaused] = await Promise.all([
+    queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed', 'paused'),
+    queue.isPaused(),
+  ]);
+
+  return {
+    name: CLASSIFICATION_ANALYSIS_QUEUE,
+    isPaused,
+    counts,
+  };
+}
+
 export async function checkQueueReadiness() {
   await withTimeout(
     getRedisConnection().ping(),
