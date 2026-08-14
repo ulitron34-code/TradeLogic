@@ -331,7 +331,7 @@ function createHarness() {
           .map((event) => ({
             id: event.event_id,
             name: 'classification.case.submitted',
-            state: 'waiting',
+            state: 'waiting' as const,
             attemptsMade: 0,
             failedReason: null,
             processedOn: null,
