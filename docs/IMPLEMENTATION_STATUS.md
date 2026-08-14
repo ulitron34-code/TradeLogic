@@ -4,7 +4,7 @@ Actualizado: 2026-08-14
 
 ## Verificacion actual (2026-08-14)
 
-- GitHub `main` esta alineado con la USB y el ultimo commit local/push es `01bbfa9` (`Fix classification queue snapshot options`), que corrige el uso de propiedades opcionales en el diagnostico de cola con `exactOptionalPropertyTypes`.
+- GitHub `main` esta alineado con la USB. El ultimo commit de codigo que la API debe publicar es `01bbfa9` (`Fix classification queue snapshot options`), que corrige el uso de propiedades opcionales en el diagnostico de cola con `exactOptionalPropertyTypes`.
 - Render API sigue respondiendo en produccion, pero el diagnostico publico `artifacts/deployment-diagnosis-latest.json` reporta `render_commit_mismatch`: `/version` todavia devuelve `61c265f5a1f4bb4ffff0cbd32b56a74229122c38` cuando el commit esperado es `01bbfa9d3ef3c4b4e12d64704f1193b10f0db8a6`. Falta confirmar que Render publique `01bbfa9` antes de cerrar este bloque.
 - Vercel ya permite acceso publico a la web `https://tradelogic-delta.vercel.app` y el usuario confirmo navegacion autenticada en dashboard/casos.
 - El Background Worker de Render ya existe como `tradelogic-worker`, arranca con `redis connection ready` y declara las colas `regulatory-ingestion`, `jurisprudence-ingestion` y `classification-analysis`.
