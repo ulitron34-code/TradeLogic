@@ -80,7 +80,8 @@ function tariffCatalogLabel(status: TariffCatalogStatus | null) {
 
 function buildPendingTasks(cases: CaseItem[], alerts: Alert[], products: Product[]): WorkTask[] {
   const openAlerts = alerts.filter((alert) => !['RESOLVED', 'DISMISSED'].includes(alert.status));
-  const casesInReview = cases.filter((item) => ['SUBMITTED', 'IN_REVIEW', 'PENDING_REVIEW'].includes(item.status));
+  const casesInReview = cases.filter((item) => ['NEEDS_REVIEW', 'SUBMITTED', 'IN_REVIEW', 'PENDING_REVIEW'].includes(item.status));
+  const casesProcessing = cases.filter((item) => ['INTAKE', 'IN_ANALYSIS'].includes(item.status));
   const draftCases = cases.filter((item) => ['DRAFT', 'NEEDS_INFORMATION'].includes(item.status));
   const tasks: WorkTask[] = [];
 
@@ -100,6 +101,16 @@ function buildPendingTasks(cases: CaseItem[], alerts: Alert[], products: Product
       detail: 'Revisa candidatos, confianza y fundamentos antes de congelar el expediente.',
       href: '/cases',
       action: 'Ver revisión',
+      tone: 'blue',
+    });
+  }
+
+  if (casesProcessing.length > 0) {
+    tasks.push({
+      title: `${casesProcessing.length} caso(s) en procesamiento`,
+      detail: 'El worker está preparando candidatos y fundamento; si tarda demasiado, podrás reencolarlo desde el detalle.',
+      href: '/cases',
+      action: 'Ver procesamiento',
       tone: 'blue',
     });
   }

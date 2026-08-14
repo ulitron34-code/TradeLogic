@@ -37,6 +37,7 @@ export function ClassifyStartForm() {
   const [electricFeature, setElectricFeature] = useState(yesNoOptions[2]);
   const [regulatedUse, setRegulatedUse] = useState('');
   const [availableDocuments, setAvailableDocuments] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState(1);
@@ -104,7 +105,7 @@ export function ClassifyStartForm() {
         }),
       });
 
-      const classificationCase = await apiFetchClient<{ id: string }>('/api/v1/classification-cases', {
+      const classificationCase = await apiFetchClient<{ id: string; product_version_id: string }>('/api/v1/classification-cases', {
         method: 'POST',
         headers: { 'Idempotency-Key': makeIdempotencyKey() },
         body: JSON.stringify({
@@ -116,6 +117,8 @@ export function ClassifyStartForm() {
           },
         }),
       });
+
+      await Promise.all(selectedFiles.map((file) => uploadEvidence(classificationCase.product_version_id, file)));
 
       router.push(`/cases/${classificationCase.id}`);
       router.refresh();
@@ -286,6 +289,20 @@ export function ClassifyStartForm() {
         Documentos disponibles o faltantes
         <textarea rows={3} value={availableDocuments} onChange={(event) => setAvailableDocuments(event.target.value)} placeholder="Ej. factura, ficha técnica, foto, catálogo, certificado de origen; falta packing list..." className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
       </label>
+      <label className="flex flex-col gap-2 text-sm">
+        Adjuntar evidencia ahora (opcional)
+        <input
+          type="file"
+          multiple
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.webp"
+          onChange={(event) => setSelectedFiles(Array.from(event.target.files ?? []))}
+          className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
+        />
+        <span className="text-xs text-neutral-500">
+          Puedes seleccionar factura, ficha técnica, fotografías o certificados. Cada archivo debe pesar menos de 50 MB.
+          {selectedFiles.length > 0 ? ` ${selectedFiles.length} archivo(s) listo(s) para subir.` : ''}
+        </span>
+      </label>
         </>
       ) : null}
 
@@ -341,4 +358,42 @@ function buildPendingQuestions(attributes: Record<string, unknown>) {
   if (!attributes.availableDocuments) pending.push('Cargar o identificar factura, ficha técnica, imagen o catálogo disponible.');
   if (!attributes.originCountry) pending.push('Confirmar país de origen para tratados y restricciones.');
   return pending;
+}
+
+async function uploadEvidence(productVersionId: string, file: File) {
+  if (file.size > 50 * 1024 * 1024) {
+    throw new Error(`El archivo ${file.name} supera el límite de 50 MB.`);
+  }
+
+  const buffer = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  const sha256 = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+  const mimeType = file.type || 'application/octet-stream';
+  const presigned = await apiFetchClient<{ upload_url: string; storage_key: string }>(
+    '/api/v1/documents/presign',
+    {
+      method: 'POST',
+      body: JSON.stringify({ filename: file.name, mimeType }),
+    },
+  );
+  const uploadResponse = await fetch(presigned.upload_url, {
+    method: 'PUT',
+    headers: { 'Content-Type': mimeType },
+    body: file,
+  });
+  if (!uploadResponse.ok) throw new Error(`No se pudo subir ${file.name} (${uploadResponse.status}).`);
+  await apiFetchClient('/api/v1/documents', {
+    method: 'POST',
+    body: JSON.stringify({
+      storage_key: presigned.storage_key,
+      filename: file.name,
+      mime_type: mimeType,
+      size_bytes: file.size,
+      sha256,
+      source_type: 'PRODUCT_EVIDENCE',
+      product_version_id: productVersionId,
+    }),
+  });
 }
