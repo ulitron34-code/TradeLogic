@@ -83,6 +83,11 @@ type Review = { id: string; decision: string; notes: string | null; createdAt: s
 type Jurisprudence = { ius: number; claveTesis: string; rubro: string; fuente: string | null; sourceUrl: string; relevance: string };
 type AuditEvent = { id: string; action: string; entityType: string; entityId: string; traceId: string; occurredAt: string; after: unknown };
 type EvidenceItem = { id: string; claimType: string; document?: { filename?: string | null } | null };
+type QueueSnapshot = {
+  name: string;
+  isPaused: boolean;
+  counts: Record<string, number>;
+};
 
 type ClassificationCaseDetail = {
   id: string;
@@ -383,6 +388,14 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const canSubmit = classificationCase.status === 'DRAFT' || classificationCase.status === 'NEEDS_INFORMATION';
   const canRequeue = classificationCase.status === 'INTAKE' || classificationCase.status === 'IN_ANALYSIS';
   const showReviewActions = canReview && classificationCase.status === 'NEEDS_REVIEW';
+  let queueSnapshot: QueueSnapshot | null = null;
+  if (canRequeue && canReview) {
+    try {
+      queueSnapshot = await apiFetch<QueueSnapshot>('/api/v1/ops/classification-queue');
+    } catch {
+      queueSnapshot = null;
+    }
+  }
   const officialDutyRate = resolveOfficialDutyRate(classificationCase);
   const workflowSteps = buildWorkflowSteps({
     status: classificationCase.status,
@@ -459,6 +472,31 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           </article>
         ))}
       </section>
+
+      {queueSnapshot ? (
+        <section className="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/25 dark:text-amber-100">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide opacity-70">Diagnóstico de cola</p>
+              <h2 className="mt-1 text-lg font-semibold">{queueSnapshot.name}</h2>
+              <p className="mt-1 text-sm opacity-80">
+                Úsalo si el caso permanece en cola: confirma si Redis recibió el job, si el worker lo tomó o si falló.
+              </p>
+            </div>
+            <span className="rounded bg-white/70 px-3 py-1 text-sm font-medium dark:bg-black/20">
+              {queueSnapshot.isPaused ? 'Cola pausada' : 'Cola activa'}
+            </span>
+          </div>
+          <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            {['waiting', 'active', 'completed', 'failed', 'delayed', 'paused'].map((key) => (
+              <div key={key} className="rounded bg-white/70 p-3 dark:bg-black/20">
+                <dt className="text-xs uppercase tracking-wide opacity-65">{key}</dt>
+                <dd className="mt-1 text-lg font-semibold">{queueSnapshot.counts[key] ?? 0}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      ) : null}
 
       {pendingQuestions.length > 0 ? (
         <section className="mb-8 rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/25 dark:text-amber-100">
