@@ -328,7 +328,7 @@ function createHarness() {
           name: 'classification.case.submitted',
           state: 'waiting' as const,
           attemptsMade: 0,
-          failedReason: null,
+          failedReason: '',
           processedOn: null,
           finishedOn: null,
           timestamp: Date.parse(event.occurred_at),
