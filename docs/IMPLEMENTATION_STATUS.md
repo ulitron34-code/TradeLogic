@@ -4,21 +4,20 @@ Actualizado: 2026-08-14
 
 ## Verificacion actual (2026-08-14)
 
-- GitHub `main` esta alineado con la USB. El ultimo commit de codigo que la API debe publicar es `01bbfa9` (`Fix classification queue snapshot options`), que corrige el uso de propiedades opcionales en el diagnostico de cola con `exactOptionalPropertyTypes`.
-- Render API sigue respondiendo en produccion, pero el diagnostico publico `artifacts/deployment-diagnosis-latest.json` reporta `render_commit_mismatch`: `/version` todavia devuelve `61c265f5a1f4bb4ffff0cbd32b56a74229122c38` cuando el commit esperado es `01bbfa9d3ef3c4b4e12d64704f1193b10f0db8a6`. Falta confirmar que Render publique `01bbfa9` antes de cerrar este bloque.
+- GitHub `main` esta alineado con la USB. El ultimo commit de codigo publicado por la API es `62ea1cf` (`Align queue diagnostics test failed reason`), que termina de alinear el mock de diagnostico de cola con el tipo real usado por Render en build.
+- Render API ya publico `62ea1cfee4961fd3d7cce5bb4e1ea68b8c4fbc7c`; `/version` responde ese commit y `/ready` confirma `database: ok` y `redis: ok`.
 - Vercel ya permite acceso publico a la web `https://tradelogic-delta.vercel.app` y el usuario confirmo navegacion autenticada en dashboard/casos.
 - El Background Worker de Render ya existe como `tradelogic-worker`, arranca con `redis connection ready` y declara las colas `regulatory-ingestion`, `jurisprudence-ingestion` y `classification-analysis`.
-- La API tiene diagnostico operativo protegido en `/api/v1/ops/classification-queue`; desde `9589813`, cuando se consulta con `caseId`, los `recentJobs` se limitan a eventos de auditoria de ese caso y de la organizacion autenticada. `01bbfa9` corrige el build de esa llamada para no enviar `{ eventIds: undefined }`.
-- La UI de detalle de caso muestra diagnostico de cola cuando un caso queda en `INTAKE` o `IN_ANALYSIS`, incluyendo conteos, jobs recientes, intentos y fallas. Falta verificarlo en produccion despues de que Render publique `01bbfa9`.
-- La USB tiene respaldo del codigo en `F:\ADUANA\TradeLogic\backups\TradeLogic-20260814-121204-01bbfa9-source.zip`.
+- La API tiene diagnostico operativo protegido en `/api/v1/ops/classification-queue`; desde `9589813`, cuando se consulta con `caseId`, los `recentJobs` se limitan a eventos de auditoria de ese caso y de la organizacion autenticada. En produccion, el endpoint ya existe y sin token devuelve `401 UNAUTHENTICATED`, como corresponde.
+- La UI de detalle de caso muestra diagnostico de cola cuando un caso queda en `INTAKE` o `IN_ANALYSIS`, incluyendo conteos, jobs recientes, intentos y fallas. Falta verificarlo con sesion autenticada y un caso real en produccion.
+- La USB tiene respaldo del codigo en `F:\ADUANA\TradeLogic\backups\TradeLogic-20260814-134735-62ea1cf-source.zip`.
 
 ## Pendiente inmediato del bloque fuerte
 
-1. Confirmar en Render que `/version` reporte `01bbfa9`.
-2. Con sesion autenticada real, reencolar o enviar un caso y observar `classification job received` / `classification job completed` en logs del worker.
-3. Confirmar que la pantalla del caso deje de quedarse atorada en `INTAKE`/`IN_ANALYSIS` o, si falla, que muestre `failedReason` desde el diagnostico.
-4. Ejecutar smoke autenticado y completar `artifacts/manual-pilot-run.json` con evidencia del recorrido UI/PDF.
-5. Validar la ingesta DOF real y ajustar relevancia/deduplicacion de alertas con datos vivos.
+1. Con sesion autenticada real, reencolar o enviar un caso y observar `classification job received` / `classification job completed` en logs del worker.
+2. Confirmar que la pantalla del caso deje de quedarse atorada en `INTAKE`/`IN_ANALYSIS` o, si falla, que muestre `failedReason` desde el diagnostico.
+3. Ejecutar smoke autenticado y completar `artifacts/manual-pilot-run.json` con evidencia del recorrido UI/PDF.
+4. Validar la ingesta DOF real y ajustar relevancia/deduplicacion de alertas con datos vivos.
 
 ## Verificacion actual (2026-08-12)
 
