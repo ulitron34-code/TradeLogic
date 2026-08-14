@@ -9,15 +9,15 @@ Actualizado: 2026-08-14
 - Vercel ya permite acceso publico a la web `https://tradelogic-delta.vercel.app` y el usuario confirmo navegacion autenticada en dashboard/casos.
 - El Background Worker de Render ya existe como `tradelogic-worker`, arranca con `redis connection ready` y declara las colas `regulatory-ingestion`, `jurisprudence-ingestion` y `classification-analysis`.
 - La API tiene diagnostico operativo protegido en `/api/v1/ops/classification-queue`; desde `9589813`, cuando se consulta con `caseId`, los `recentJobs` se limitan a eventos de auditoria de ese caso y de la organizacion autenticada. En produccion, el endpoint ya existe y sin token devuelve `401 UNAUTHENTICATED`, como corresponde.
-- La UI de detalle de caso muestra diagnostico de cola cuando un caso queda en `INTAKE` o `IN_ANALYSIS`, incluyendo conteos, jobs recientes, intentos y fallas. Falta verificarlo con sesion autenticada y un caso real en produccion.
-- La USB tiene respaldo del codigo en `F:\ADUANA\TradeLogic\backups\TradeLogic-20260814-134735-62ea1cf-source.zip`.
+- El worker de clasificacion ya usa `scopeToOrganization` (`e2e7fe3`) para respetar RLS y poder ver el caso de la organizacion del evento.
+- Flujo API -> Redis -> worker -> UI verificado con el caso `ec4936b6-f57b-437e-a3c8-19ec240436ed`: la UI mostro `completed: 11`, el worker registro `classification job received` y `classification job completed`, y el resultado fue `NEEDS_REVIEW` con `candidateCount: 5`.
+- La USB tiene respaldo del codigo en `F:\ADUANA\TradeLogic\backups\TradeLogic-20260814-142707-e2e7fe3-source.zip`.
 
 ## Pendiente inmediato del bloque fuerte
 
-1. Con sesion autenticada real, reencolar o enviar un caso y observar `classification job received` / `classification job completed` en logs del worker.
-2. Confirmar que la pantalla del caso deje de quedarse atorada en `INTAKE`/`IN_ANALYSIS` o, si falla, que muestre `failedReason` desde el diagnostico.
-3. Ejecutar smoke autenticado y completar `artifacts/manual-pilot-run.json` con evidencia del recorrido UI/PDF.
-4. Validar la ingesta DOF real y ajustar relevancia/deduplicacion de alertas con datos vivos.
+1. Completar el recorrido de revision humana del caso que quedo en `NEEDS_REVIEW`.
+2. Ejecutar smoke autenticado y completar `artifacts/manual-pilot-run.json` con evidencia del recorrido UI/PDF.
+3. Validar la ingesta DOF real y ajustar relevancia/deduplicacion de alertas con datos vivos.
 
 ## Verificacion actual (2026-08-12)
 
