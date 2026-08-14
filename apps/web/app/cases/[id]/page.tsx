@@ -82,6 +82,7 @@ type CaseAssumptions = {
 type Review = { id: string; decision: string; notes: string | null; createdAt: string };
 type Jurisprudence = { ius: number; claveTesis: string; rubro: string; fuente: string | null; sourceUrl: string; relevance: string };
 type AuditEvent = { id: string; action: string; entityType: string; entityId: string; traceId: string; occurredAt: string; after: unknown };
+type EvidenceItem = { id: string; claimType: string; document?: { filename?: string | null } | null };
 
 type ClassificationCaseDetail = {
   id: string;
@@ -93,6 +94,7 @@ type ClassificationCaseDetail = {
   candidates: Candidate[];
   reviews: Review[];
   jurisprudence: Jurisprudence[];
+  evidence?: EvidenceItem[];
   auditEvents?: AuditEvent[];
   riskAssessment?: {
     score: number;
@@ -135,6 +137,12 @@ type ResultBlock = {
   status: string;
   detail: string;
   href?: string;
+};
+
+type ReadinessCheck = {
+  label: string;
+  state: 'ready' | 'attention' | 'pending';
+  detail: string;
 };
 
 function buildWorkflowSteps({
@@ -293,6 +301,52 @@ function actionRecommendation(status: string, pendingQuestions: string[], candid
   return 'Continuar construyendo el expediente con evidencia y revisión profesional.';
 }
 
+function buildPreShipmentChecks({
+  classificationCase,
+  intake,
+  topCandidate,
+  costScenarios,
+  pendingQuestions,
+}: {
+  classificationCase: ClassificationCaseDetail;
+  intake: Intake | undefined;
+  topCandidate: Candidate | undefined;
+  costScenarios: CostScenario[];
+  pendingQuestions: string[];
+}): ReadinessCheck[] {
+  const evidence = classificationCase.evidence ?? [];
+  const hasDescription = Boolean(intake?.material && intake?.mainFunction);
+  const hasOrigin = Boolean(intake?.originCountry);
+  const hasOriginEvidence = evidence.some((item) => item.claimType.toLowerCase().includes('origin'));
+  const hasValueEvidence = evidence.some((item) => item.claimType.toLowerCase().includes('valuation'));
+  const requirements = classificationCase.candidates.flatMap((candidate) => candidate.tariffCode.regulatoryRequirements);
+  const mandatoryRequirements = requirements.filter((requirement) => requirement.mandatory);
+  const hasReview = classificationCase.reviews.length > 0 || ['APPROVED', 'REJECTED'].includes(classificationCase.status);
+
+  return [
+    { label: 'Descripción técnica', state: hasDescription ? 'ready' : 'pending', detail: hasDescription ? 'Material y función principal capturados.' : 'Falta material y/o función principal.' },
+    { label: 'Clasificación candidata', state: topCandidate ? 'ready' : 'pending', detail: topCandidate ? `${topCandidate.tariffCode.code} disponible para revisión.` : 'Envía el caso a análisis.' },
+    { label: 'Evidencia del producto', state: evidence.length > 0 ? 'ready' : 'attention', detail: evidence.length > 0 ? `${evidence.length} evidencia(s) con huella registrada.` : 'Carga fichas, fotos o documentos técnicos.' },
+    { label: 'Origen y preferencia', state: hasOrigin && hasOriginEvidence ? 'ready' : hasOrigin ? 'attention' : 'pending', detail: hasOrigin && hasOriginEvidence ? 'Origen y evidencia disponibles.' : hasOrigin ? 'Falta prueba de origen para aplicar tratado.' : 'Captura país y procedencia.' },
+    { label: 'Regulaciones y permisos', state: 'attention', detail: mandatoryRequirements.length > 0 ? `${mandatoryRequirements.length} requisito(s) obligatorio(s) requieren confirmación documental.` : 'No hay requisitos obligatorios cargados; confirmar fuentes oficiales.' },
+    { label: 'Valoración y costo integral', state: costScenarios.length > 0 && hasValueEvidence ? 'ready' : costScenarios.length > 0 ? 'attention' : 'pending', detail: costScenarios.length > 0 ? hasValueEvidence ? 'Escenario calculado con evidencia de valor.' : 'Escenario calculado; falta evidencia de valor si aplica.' : 'Calcula valor en aduana, arancel, DTA, IVA y gastos.' },
+    { label: 'Información pendiente', state: pendingQuestions.length === 0 ? 'ready' : 'pending', detail: pendingQuestions.length === 0 ? 'No quedan preguntas de captura inicial.' : `${pendingQuestions.length} respuesta(s) pendiente(s).` },
+    { label: 'Revisión y liberación', state: hasReview ? 'ready' : 'pending', detail: hasReview ? 'Existe una decisión registrada.' : 'Requiere revisión profesional antes de liberar.' },
+  ];
+}
+
+function readinessClass(state: ReadinessCheck['state']) {
+  if (state === 'ready') return 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/25 dark:text-emerald-50';
+  if (state === 'attention') return 'border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950/25 dark:text-amber-100';
+  return 'border-neutral-200 bg-white text-neutral-700 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-300';
+}
+
+function readinessLabel(state: ReadinessCheck['state']) {
+  if (state === 'ready') return 'Listo';
+  if (state === 'attention') return 'Confirmar';
+  return 'Pendiente';
+}
+
 export default async function CaseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -342,6 +396,15 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const pendingQuestions = classificationCase.assumptions?.pendingQuestions ?? [];
   const topCandidate = classificationCase.candidates[0];
   const resultBlocks = buildResultBlocks({ classificationCase, costScenarios, pendingQuestions });
+  const preShipmentChecks = buildPreShipmentChecks({ classificationCase, intake, topCandidate, costScenarios, pendingQuestions });
+  const readyChecks = preShipmentChecks.filter((check) => check.state === 'ready').length;
+  const regulatorySources = Array.from(
+    new Map(
+      classificationCase.candidates
+        .flatMap((candidate) => candidate.tariffCode.regulatoryRequirements)
+        .map((requirement) => [requirement.authority, requirement]),
+    ).values(),
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -427,6 +490,28 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="mb-8 rounded-lg border border-blue-200 bg-blue-50/60 p-5 dark:border-blue-900 dark:bg-blue-950/15">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Bloque preembarque</p>
+            <h2 className="mt-1 text-xl font-semibold">¿El expediente está listo para operar?</h2>
+            <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">Semáforo de captura, clasificación, evidencia, regulaciones, costo y revisión humana.</p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-blue-900 dark:bg-black/20 dark:text-blue-100">{readyChecks}/{preShipmentChecks.length} listos</span>
+        </div>
+        <ul className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          {preShipmentChecks.map((check) => (
+            <li key={check.label} className={`rounded-md border p-3 text-sm ${readinessClass(check.state)}`}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">{check.label}</span>
+                <span className="text-xs font-semibold">{readinessLabel(check.state)}</span>
+              </div>
+              <p className="mt-2 text-xs leading-5 opacity-80">{check.detail}</p>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {classificationCase.riskAssessment ? (
@@ -560,6 +645,23 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               Abrir mercancía y evidencia
             </Link>
           </section>
+          <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+            <h2 className="font-semibold">Fuentes regulatorias</h2>
+            {regulatorySources.length > 0 ? (
+              <ul className="mt-3 flex flex-col gap-2 text-sm">
+                {regulatorySources.map((requirement) => (
+                  <li key={`${requirement.authority}-${requirement.id}`} className="rounded bg-neutral-50 p-2 dark:bg-neutral-900">
+                    <span className="font-medium">{requirement.authority}</span>
+                    <span className="ml-2 text-xs text-neutral-500">{requirement.sourceVersion}</span>
+                    <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">{requirement.title}</p>
+                    <a className="text-xs underline" href={requirement.sourceUrl} target="_blank" rel="noreferrer">Abrir fuente</a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">No hay fuentes regulatorias ligadas al candidato actual; confirmar catálogo oficial antes de liberar.</p>
+            )}
+          </section>
         </aside>
       </section>
 
@@ -607,6 +709,21 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           </ol>
         </section>
       ) : null}
+
+      <section className="mt-8 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">Preparación para piloto y auditoría</h2>
+            <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">El expediente conserva evidencia, decisiones y trazas. El piloto debe validar exactitud contra expedientes históricos reales.</p>
+          </div>
+          <Link href="/audits" className="text-sm font-medium text-blue-700 underline dark:text-blue-300">Abrir auditorÃ­a histÃ³rica</Link>
+        </div>
+        <div className="mt-4 grid gap-2 text-sm md:grid-cols-3">
+          <div className="rounded bg-neutral-50 p-3 dark:bg-neutral-900"><span className="font-medium">Evidencia</span><p className="mt-1 text-xs text-neutral-500">{classificationCase.evidence?.length ?? 0} documento(s) ligado(s).</p></div>
+          <div className="rounded bg-neutral-50 p-3 dark:bg-neutral-900"><span className="font-medium">Decisión</span><p className="mt-1 text-xs text-neutral-500">{classificationCase.reviews.length > 0 ? 'Hay revisión registrada.' : 'Pendiente de revisión profesional.'}</p></div>
+          <div className="rounded bg-neutral-50 p-3 dark:bg-neutral-900"><span className="font-medium">Trazabilidad</span><p className="mt-1 text-xs text-neutral-500">{auditEvents.length} evento(s) consultables.</p></div>
+        </div>
+      </section>
 
       {showReviewActions ? (
         <section className="mt-8">
