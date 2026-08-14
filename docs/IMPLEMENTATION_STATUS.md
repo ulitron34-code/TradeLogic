@@ -1,6 +1,24 @@
 # Estado de Implementacion
 
-Actualizado: 2026-08-12
+Actualizado: 2026-08-14
+
+## Verificacion actual (2026-08-14)
+
+- GitHub `main` esta alineado con la USB y el ultimo commit local/push es `9589813` (`Scope classification queue diagnostics to cases`).
+- Render API sigue respondiendo en produccion, pero al ultimo chequeo publico `/version` todavia reportaba `61c265f5a1f4bb4ffff0cbd32b56a74229122c38`; falta confirmar que Render publique `9589813` antes de cerrar este bloque.
+- Vercel ya permite acceso publico a la web `https://tradelogic-delta.vercel.app` y el usuario confirmo navegacion autenticada en dashboard/casos.
+- El Background Worker de Render ya existe como `tradelogic-worker`, arranca con `redis connection ready` y declara las colas `regulatory-ingestion`, `jurisprudence-ingestion` y `classification-analysis`.
+- La API tiene diagnostico operativo protegido en `/api/v1/ops/classification-queue`; desde `9589813`, cuando se consulta con `caseId`, los `recentJobs` se limitan a eventos de auditoria de ese caso y de la organizacion autenticada.
+- La UI de detalle de caso muestra diagnostico de cola cuando un caso queda en `INTAKE` o `IN_ANALYSIS`, incluyendo conteos, jobs recientes, intentos y fallas. Falta verificarlo en produccion despues de que Render publique `9589813`.
+- La USB tiene respaldo del codigo en `F:\ADUANA\TradeLogic\backups\TradeLogic-20260814-112911-9589813-code.zip`.
+
+## Pendiente inmediato del bloque fuerte
+
+1. Confirmar en Render que `/version` reporte `9589813`.
+2. Con sesion autenticada real, reencolar o enviar un caso y observar `classification job received` / `classification job completed` en logs del worker.
+3. Confirmar que la pantalla del caso deje de quedarse atorada en `INTAKE`/`IN_ANALYSIS` o, si falla, que muestre `failedReason` desde el diagnostico.
+4. Ejecutar smoke autenticado y completar `artifacts/manual-pilot-run.json` con evidencia del recorrido UI/PDF.
+5. Validar la ingesta DOF real y ajustar relevancia/deduplicacion de alertas con datos vivos.
 
 ## Verificacion actual (2026-08-12)
 

@@ -1,6 +1,6 @@
 # Runbook de deploy y smoke test
 
-Actualizado: 2026-08-12
+Actualizado: 2026-08-14
 
 ## Tableros
 
@@ -13,9 +13,9 @@ Estos enlaces son tableros de administracion. Para los smoke tests se necesitan 
 - API publica de Render: `https://tradelogic-api.onrender.com`
 - Web publica de Vercel: `https://tradelogic-git-main-ulitron34-codes-projects.vercel.app`
 
-El Background Worker de Render todavía no está creado. Cuando se active, debe
-usar el mismo repositorio y rama `main`, región Oregon, y la configuración del
-blueprint `render.yaml`:
+El Background Worker de Render ya fue creado como `tradelogic-worker`. Debe
+mantener el mismo repositorio y rama `main`, region Oregon, y la configuracion
+del blueprint `render.yaml`:
 
 ```text
 Build Command:
@@ -25,10 +25,12 @@ Start Command:
 pnpm --filter @platform/worker start
 ```
 
-El arranque ejecuta `node dist/index.js`. Deben configurarse en Render las
-variables `DATABASE_URL`, `REDIS_URL`, Supabase, S3, JWT, `ENCRYPTION_KEY`,
-calendarios regulatorios y, si se desea enriquecimiento con IA,
-`ANTHROPIC_API_KEY`. El plan Starter mostrado por Render cuesta $7 USD/mes.
+El arranque ejecuta `node dist/index.js`. En logs sanos debe verse `redis connection ready`,
+`worker started` y las colas `regulatory-ingestion`, `jurisprudence-ingestion` y
+`classification-analysis`. Deben mantenerse en Render las variables `DATABASE_URL`,
+`REDIS_URL`, Supabase, S3, JWT, `ENCRYPTION_KEY`, calendarios regulatorios y, si
+se desea enriquecimiento con IA, `ANTHROPIC_API_KEY`. El plan Starter mostrado por
+Render cuesta $7 USD/mes.
 
 ## Secuencia despues de cada push
 
@@ -86,7 +88,7 @@ La respuesta no expone secretos; muestra `waiting`, `active`, `completed`, `fail
 
 ## Pendientes operativos
 
-- Activar el Background Worker de Render y verificar sus logs de arranque, Redis y procesamiento de una cola real.
+- Verificar procesamiento de una cola real en el Background Worker de Render y conservar evidencia de `classification job received` / `classification job completed`.
 - Ejecutar el smoke autenticado y el recorrido manual UI/PDF del piloto.
 - Probar la ingesta DOF y el enriquecimiento Anthropic contra servicios reales cuando estén configuradas sus credenciales.
 
