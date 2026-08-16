@@ -81,6 +81,7 @@ const bulkClassificationBody = z.object({
 });
 
 const originAssessmentBody = z.object({
+  agreement: z.enum(['T-MEC', 'TLCUEM', 'TLC México-AELC', 'AAE México-Japón', 'TLC México-Israel', 'TIPAT/CPTPP', 'OTRO']).default('T-MEC'),
   tariff_code: z.string().min(1).max(30),
   type: z.enum(['CTC', 'RVC', 'PROCESS']),
   threshold_percent: z.number().min(0).max(100).optional(),
@@ -789,11 +790,11 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const body = originAssessmentBody.parse(request.body);
     const existingCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id } });
     if (!existingCase) return reply.notFound('Classification case not found');
-    const result = evaluateOrigin({ rule: { id: `tmec-${params.caseId}`, tariffCode: body.tariff_code, agreement: 'T-MEC', type: body.type, ...(body.threshold_percent !== undefined ? { thresholdPercent: body.threshold_percent } : {}), ...(body.required_process ? { requiredProcess: body.required_process } : {}), sourceUrl: body.source_url, sourceVersion: body.source_version, validFrom: new Date().toISOString() }, finishedGoodValue: body.finished_good_value, ...(body.non_originating_value !== undefined ? { nonOriginatingValue: body.non_originating_value } : {}), ...(body.tariff_shift_satisfied !== undefined ? { tariffShiftSatisfied: body.tariff_shift_satisfied } : {}), ...(body.process_satisfied !== undefined ? { processSatisfied: body.process_satisfied } : {}), evidenceCount: body.evidence_count });
+    const result = evaluateOrigin({ rule: { id: `origin-${params.caseId}`, tariffCode: body.tariff_code, agreement: body.agreement, type: body.type, ...(body.threshold_percent !== undefined ? { thresholdPercent: body.threshold_percent } : {}), ...(body.required_process ? { requiredProcess: body.required_process } : {}), sourceUrl: body.source_url, sourceVersion: body.source_version, validFrom: new Date().toISOString() }, finishedGoodValue: body.finished_good_value, ...(body.non_originating_value !== undefined ? { nonOriginatingValue: body.non_originating_value } : {}), ...(body.tariff_shift_satisfied !== undefined ? { tariffShiftSatisfied: body.tariff_shift_satisfied } : {}), ...(body.process_satisfied !== undefined ? { processSatisfied: body.process_satisfied } : {}), evidenceCount: body.evidence_count });
     const assumptions = existingCase.assumptions && typeof existingCase.assumptions === 'object' && !Array.isArray(existingCase.assumptions) ? existingCase.assumptions as Record<string, unknown> : {};
     await scopedDb.classificationCase.update({ where: { id: existingCase.id }, data: { assumptions: { ...assumptions, originAssessment: { ...body, result, assessedAt: new Date().toISOString() } } } });
-    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.origin_assessed', entityType: 'ClassificationCase', entityId: existingCase.id, after: { status: result.status, sourceVersion: body.source_version, agreement: 'T-MEC' }, traceId: randomUUID() } });
-    return reply.send({ agreement: 'T-MEC', ...result });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.origin_assessed', entityType: 'ClassificationCase', entityId: existingCase.id, after: { status: result.status, sourceVersion: body.source_version, agreement: body.agreement }, traceId: randomUUID() } });
+    return reply.send({ agreement: body.agreement, ...result });
   });
   app.get('/api/v1/classification-cases/:caseId', async (request, reply) => {
     const { organization } = await resolveContext(request, db);

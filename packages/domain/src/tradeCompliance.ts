@@ -72,7 +72,7 @@ export type OriginRuleType = 'CTC' | 'RVC' | 'PROCESS';
 export type OriginRule = {
   id: string;
   tariffCode: string;
-  agreement: 'T-MEC';
+  agreement: 'T-MEC' | 'TLCUEM' | 'TLC México-AELC' | 'AAE México-Japón' | 'TLC México-Israel' | 'TIPAT/CPTPP' | 'OTRO';
   type: OriginRuleType;
   thresholdPercent?: number;
   requiredProcess?: string;
