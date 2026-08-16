@@ -13,6 +13,7 @@ export {
   failClassificationJob,
   getClassificationDatabaseSnapshot,
   type ClassificationQueueEvent,
+  type ClassificationQueueSnapshot,
 } from './classificationQueue.js';
 
 // Document.sizeBytes es BigInt en Postgres; JSON.stringify no sabe serializar

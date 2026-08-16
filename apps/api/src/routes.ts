@@ -323,7 +323,9 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       eventIds = events.map((event) => eventIdFromAuditAfter(event.after)).filter((eventId): eventId is string => Boolean(eventId));
     }
 
-    const snapshot = await getClassificationQueueSnapshot({ eventIds, organizationId: context.organization.id });
+    const snapshot = await getClassificationQueueSnapshot(eventIds
+      ? { eventIds, organizationId: context.organization.id }
+      : { organizationId: context.organization.id });
     return {
       service: 'api',
       organizationId: context.organization.id,

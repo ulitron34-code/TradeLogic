@@ -3,6 +3,7 @@ import {
   getClassificationDatabaseSnapshot,
   db,
   type ClassificationQueueEvent,
+  type ClassificationQueueSnapshot,
 } from '@platform/db';
 
 export const CLASSIFICATION_ANALYSIS_QUEUE = 'classification-postgres';
@@ -11,7 +12,7 @@ export async function enqueueClassificationSubmitted(event: ClassificationQueueE
   await enqueueClassificationJob(event);
 }
 
-export async function getClassificationQueueSnapshot(options: { eventIds?: string[]; organizationId?: string } = {}) {
+export async function getClassificationQueueSnapshot(options: { eventIds?: string[]; organizationId?: string } = {}): Promise<ClassificationQueueSnapshot> {
   return getClassificationDatabaseSnapshot(options.eventIds, options.organizationId);
 }
 

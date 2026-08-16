@@ -13,6 +13,25 @@ export type ClassificationQueueEvent = {
 
 type QueueClient = Pick<PrismaClient, '$queryRaw' | 'classificationJob'>;
 
+export type ClassificationQueueSnapshot = {
+  name: string;
+  isPaused: boolean;
+  counts: { waiting: number; active: number; completed: number; failed: number; delayed: number; paused: number };
+  recentJobs: Array<{
+    id: string;
+    name: string;
+    state: string;
+    attemptsMade: number;
+    failedReason: string | null;
+    processedOn: number | null;
+    finishedOn: number | null;
+    timestamp: number;
+    eventId: string;
+    caseId: string;
+    organizationId: string;
+  }>;
+};
+
 export async function enqueueClassificationJob(
   event: ClassificationQueueEvent,
   client: QueueClient = db,
@@ -75,7 +94,7 @@ export async function failClassificationJob(id: string, error: unknown, attempts
   });
 }
 
-export async function getClassificationDatabaseSnapshot(eventIds?: string[], organizationId?: string, client: QueueClient = db) {
+export async function getClassificationDatabaseSnapshot(eventIds?: string[], organizationId?: string, client: QueueClient = db): Promise<ClassificationQueueSnapshot> {
   const eventWhere = eventIds?.length ? { eventId: { in: eventIds.slice(0, 10) } } : {};
   const [groups, jobs] = await Promise.all([
     organizationId
@@ -92,7 +111,7 @@ export async function getClassificationDatabaseSnapshot(eventIds?: string[], org
     counts: { waiting: counts.waiting ?? 0, active: counts.active ?? 0, completed: counts.completed ?? 0, failed: counts.failed ?? 0, delayed: 0, paused: 0 },
     recentJobs: jobs.map((job) => {
       const event = job.event as unknown as ClassificationQueueEvent;
-      return { id: job.id, name: 'classification.case.submitted', state: job.status.toLowerCase(), attemptsMade: job.attempts, failedReason: job.lastError, processedOn: job.lockedAt, finishedOn: job.completedAt, timestamp: job.createdAt, eventId: job.eventId, caseId: event.payload.case_id, organizationId: job.organizationId };
+      return { id: job.id, name: 'classification.case.submitted', state: job.status.toLowerCase(), attemptsMade: job.attempts, failedReason: job.lastError, processedOn: job.lockedAt?.getTime() ?? null, finishedOn: job.completedAt?.getTime() ?? null, timestamp: job.createdAt.getTime(), eventId: job.eventId, caseId: event.payload.case_id, organizationId: job.organizationId };
     }),
   };
 }
