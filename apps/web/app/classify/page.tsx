@@ -29,6 +29,16 @@ export default function ClassifyPage() {
           <p className="mt-1 text-neutral-500">Expediente listo para análisis.</p>
         </div>
       </section>
+      <section className="mb-6 grid gap-3 md:grid-cols-2">
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/25 dark:text-blue-100">
+          <p className="font-semibold">¿Qué obtendrás?</p>
+          <p className="mt-1 opacity-80">Un expediente con candidatos de fracción, fundamento, regulaciones, tratados, costos, jurisprudencia relacionada y pendientes.</p>
+        </div>
+        <div className="rounded-lg border border-neutral-200 bg-white p-4 text-sm dark:border-neutral-800 dark:bg-neutral-950">
+          <p className="font-semibold">Responde con lo que tengas</p>
+          <p className="mt-1 text-neutral-600 dark:text-neutral-400">Si falta material, origen o evidencia, el sistema lo marcará como pendiente para no inventar una conclusión.</p>
+        </div>
+      </section>
       <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
         <ClassifyStartForm />
       </section>
