@@ -6,6 +6,7 @@ import { ReviewActions } from './review-actions';
 import { CostCalculator, type CostScenario, type OfficialDutyRate } from './cost-calculator';
 import { DossierDownloadButton } from './dossier-download-button';
 import { OriginAssessmentForm } from './origin-assessment-form';
+import { RequestReviewButton } from './request-review-button';
 
 type Rationale = {
   summary?: string;
@@ -267,15 +268,24 @@ function intakeRows(intake: Intake | undefined): Array<{ label: string; value: s
 
 function treatyRoute(origin: string | null | undefined) {
   const normalized = origin?.trim().toLowerCase() ?? '';
-  if (!normalized) return { status: 'Falta origen', detail: 'Captura el país de origen para revisar el tratado, la regla de origen y la prueba documental aplicable.' };
+  const sourceUrl = 'https://www.snice.gob.mx/cs/avi/snice/drrnas.origen.acercade.html';
+  if (!normalized) return { status: 'Falta origen', detail: 'Captura el país de origen para revisar el tratado, la regla de origen y la prueba documental aplicable.', sourceUrl };
   if (['estados unidos', 'united states', 'usa', 'us', 'canada', 'canadá'].includes(normalized)) {
-    return { status: 'Ruta preliminar: T-MEC', detail: `El origen ${origin} permite iniciar la revisión T-MEC; todavía deben validarse fracción, regla de origen y certificación.` };
+    return { status: 'Ruta preliminar: T-MEC', detail: `El origen ${origin} permite iniciar la revisión T-MEC; todavía deben validarse fracción, regla de origen y certificación.`, sourceUrl };
   }
-  const europeanUnion = ['alemania', 'austria', 'bélgica', 'belgica', 'españa', 'espana', 'francia', 'italia', 'países bajos', 'paises bajos', 'polonia', 'portugal', 'irlanda'];
-  if (europeanUnion.includes(normalized)) {
-    return { status: 'Ruta preliminar: TLCUEM', detail: `El origen ${origin} permite iniciar la revisión TLCUEM; todavía deben validarse fracción, regla de origen y prueba documental.` };
+  const treatyGroups: Array<{ countries: string[]; agreement: string }> = [
+    { countries: ['alemania', 'austria', 'bélgica', 'belgica', 'españa', 'espana', 'francia', 'italia', 'países bajos', 'paises bajos', 'polonia', 'portugal', 'irlanda', 'suecia', 'dinamarca', 'finlandia', 'grecia', 'hungría', 'hungria', 'república checa', 'republica checa'], agreement: 'TLCUEM' },
+    { countries: ['suiza', 'noruega', 'islandia', 'liechtenstein'], agreement: 'TLC México-AELC' },
+    { countries: ['japón', 'japon'], agreement: 'AAE México-Japón' },
+    { countries: ['israel'], agreement: 'TLC México-Israel' },
+    { countries: ['chile', 'colombia', 'perú', 'peru', 'uruguay', 'costa rica', 'panamá', 'panama', 'nicaragua', 'el salvador', 'guatemala', 'honduras', 'bolivia'], agreement: 'Acuerdo comercial aplicable' },
+    { countries: ['australia', 'brunéi', 'brunei', 'malasia', 'nueva zelanda', 'singapur', 'vietnam'], agreement: 'TIPAT/CPTPP' },
+  ];
+  const group = treatyGroups.find((item) => item.countries.includes(normalized));
+  if (group) {
+    return { status: `Ruta preliminar: ${group.agreement}`, detail: `El origen ${origin} permite iniciar la revisión de ${group.agreement}; todavía deben validarse fracción, regla de origen y prueba documental.`, sourceUrl };
   }
-  return { status: 'Tratado por consultar', detail: `Origen capturado: ${origin}. El expediente debe consultar el acuerdo aplicable y su regla de origen antes de aplicar preferencia.` };
+  return { status: 'Tratado por consultar', detail: `Origen capturado: ${origin}. El expediente debe consultar el acuerdo aplicable y su regla de origen antes de aplicar preferencia.`, sourceUrl };
 }
 
 function buildResultBlocks({
@@ -732,6 +742,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             <p className="mt-2 text-sm font-medium text-neutral-800 dark:text-neutral-200">{treaty.status}</p>
             <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{treaty.detail}</p>
             <p className="mt-2 text-xs text-neutral-500">No se debe aplicar preferencia sin evidencia documental y fuente vigente.</p>
+            <a href={treaty.sourceUrl} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">Catálogo oficial de acuerdos y origen en SNICE</a>
             {topCandidate ? <OriginAssessmentForm caseId={classificationCase.id} tariffCode={`${topCandidate.tariffCode.code}${topCandidate.tariffCode.nico ? `/${topCandidate.tariffCode.nico}` : ''}`} /> : null}
           </section>
 
@@ -770,6 +781,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-900 dark:bg-black/20 dark:text-blue-100">{canReview ? 'Puedes revisar' : 'Revisor requerido'}</span>
         </div>
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Decisiones</span><p className="mt-1 font-semibold">{classificationCase.reviews.length}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Evidencias</span><p className="mt-1 font-semibold">{classificationCase.evidence?.length ?? 0}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Trazas</span><p className="mt-1 font-semibold">{auditEvents.length}</p></div></div>
+        {!canReview && !['APPROVED', 'REJECTED', 'ARCHIVED', 'SUPERSEDED'].includes(classificationCase.status) ? <RequestReviewButton caseId={classificationCase.id} /> : null}
       </section>
 
       {classificationCase.reviews.length > 0 ? (

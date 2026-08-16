@@ -72,6 +72,8 @@ const historicalAuditBody = z.object({
   csv: z.string().min(1).max(10_000_000),
 });
 
+const reviewRequestBody = z.object({ note: z.string().trim().max(2000).optional() });
+
 const bulkClassificationBody = z.object({
   source_filename: z.string().min(1).max(255),
   source_sha256: z.string().regex(/^[a-f0-9]{64}$/i),
@@ -710,6 +712,20 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     }, scopedDb);
 
     return reply.code(202).send(response);
+  });
+
+  app.post('/api/v1/classification-cases/:caseId/request-review', async (request, reply) => {
+    const { user, organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const body = reviewRequestBody.parse(request.body ?? {});
+    const existingCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id } });
+    if (!existingCase) return reply.notFound('Classification case not found');
+    if (['APPROVED', 'REJECTED', 'ARCHIVED', 'SUPERSEDED'].includes(existingCase.status)) return reply.code(409).send({ code: 'CASE_TERMINAL', message: 'A terminal case cannot request another review' });
+    const assumptions = existingCase.assumptions && typeof existingCase.assumptions === 'object' && !Array.isArray(existingCase.assumptions) ? existingCase.assumptions as Record<string, unknown> : {};
+    const updated = await scopedDb.classificationCase.update({ where: { id: existingCase.id }, data: { status: 'NEEDS_REVIEW', assumptions: { ...assumptions, reviewRequest: { requestedBy: user.id, requestedAt: new Date().toISOString(), note: body.note ?? null } } } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_requested', entityType: 'ClassificationCase', entityId: updated.id, after: { status: updated.status, note: body.note ?? null }, traceId: randomUUID() } });
+    return reply.send({ id: updated.id, status: updated.status, requestedBy: user.id });
   });
 
   app.post('/api/v1/classification-cases/bulk', async (request, reply) => {
