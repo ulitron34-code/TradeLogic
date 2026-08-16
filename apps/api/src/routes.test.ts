@@ -343,6 +343,7 @@ function createHarness() {
         if (options.databaseReady === false) throw new Error('database unavailable');
       },
       queueReadinessCheck: async () => {},
+      migrationReadinessCheck: async () => [],
       getClassificationQueueSnapshot,
       resolveContext: async () => identity,
       enqueueClassificationSubmitted: async (event) => {

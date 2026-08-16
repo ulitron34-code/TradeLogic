@@ -121,6 +121,7 @@ const classificationQueueQuery = z.object({ caseId: z.string().uuid().optional()
 const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
 const TARIFF_CATALOG_EXPECTED_ROWS = 20227;
 const TARIFF_CATALOG_SOURCE_VERSIONS = ['SNICE-LIGIE-BASE-2021-11-19', 'SNICE-TIGIE-MOD-ABRIL-2026'];
+const REQUIRED_PRODUCTION_MIGRATIONS = ['9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls'] as const;
 
 
 const presignDocumentBody = z.object({
@@ -148,6 +149,17 @@ function deploymentMetadata() {
   };
 }
 
+async function defaultCheckProductionMigrations(database: typeof defaultDb) {
+  const rows = await database.$queryRaw<Array<{ migration_name: string }>>`
+    SELECT migration_name
+    FROM "_prisma_migrations"
+    WHERE finished_at IS NOT NULL
+      AND migration_name IN (${Prisma.join(REQUIRED_PRODUCTION_MIGRATIONS)})
+  `;
+  const applied = new Set(rows.map(row => row.migration_name));
+  return REQUIRED_PRODUCTION_MIGRATIONS.filter(migration => !applied.has(migration));
+}
+
 export type RouteDependencies = {
   db?: typeof defaultDb;
   readinessCheck?: () => Promise<void>;
@@ -157,6 +169,7 @@ export type RouteDependencies = {
   getClassificationQueueSnapshot?: typeof defaultGetClassificationQueueSnapshot;
   presignUpload?: typeof defaultPresignUpload;
   headObject?: typeof defaultHeadObject;
+  migrationReadinessCheck?: () => Promise<readonly string[]>;
 };
 
 function sanitizeReadinessError(error: unknown) {
@@ -222,6 +235,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
   const getClassificationQueueSnapshot = dependencies.getClassificationQueueSnapshot ?? defaultGetClassificationQueueSnapshot;
   const presignUpload = dependencies.presignUpload ?? defaultPresignUpload;
   const headObject = dependencies.headObject ?? defaultHeadObject;
+  const migrationReadinessCheck = dependencies.migrationReadinessCheck ?? (() => defaultCheckProductionMigrations(db));
 
   app.get('/health', async () => ({ status: 'ok', service: 'api' }));
 
@@ -234,8 +248,15 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'unavailable', redis: 'unknown', retryable: true });
     }
     try {
+      const missingMigrations = await migrationReadinessCheck();
+      if (missingMigrations.length > 0) return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', migrations: 'pending', missingMigrations, retryable: true });
+    } catch (error) {
+      _request.log.warn({ err: error }, 'production migration readiness check failed');
+      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', migrations: 'unknown', retryable: true });
+    }
+    try {
       await queueReadinessCheck();
-      return { status: 'ready', service: 'api', database: 'ok', queue: 'postgresql', redis: 'not_required' };
+      return { status: 'ready', service: 'api', database: 'ok', migrations: 'ok', queue: 'postgresql', redis: 'not_required' };
     } catch (error) {
       const queueError = sanitizeReadinessError(error);
       _request.log.warn({ err: error, queueError }, 'postgres queue readiness check failed');
