@@ -6,6 +6,7 @@ export {
   type RegulatoryRequirementPersistenceRecord,
 } from './regulatoryRequirement.js';
 export { upsertOriginRuleCatalog, type OriginRuleCatalogPersistenceRecord } from './originRuleCatalog.js';
+export { persistRegulatoryCatalog, type RegulatoryCatalogPersistenceRecord } from './regulatoryCatalog.js';
 export { persistHistoricalAuditRun, type HistoricalAuditRunPersistence } from './historicalAudit.js';
 export {
   enqueueClassificationJob,
