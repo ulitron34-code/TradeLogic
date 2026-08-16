@@ -12,6 +12,8 @@ export type ClassificationQueueEvent = {
 };
 
 type QueueClient = Pick<PrismaClient, '$queryRaw' | 'classificationJob'>;
+const MAX_ATTEMPTS = 3;
+const STALE_LOCK_MINUTES = 5;
 
 export type ClassificationQueueSnapshot = {
   name: string;
@@ -49,6 +51,17 @@ export async function enqueueClassificationJob(
 }
 
 export async function claimNextClassificationJob(client: QueueClient = db) {
+  // Un proceso puede morir despues de reclamar el job y no alcanzar el
+  // manejador de errores. No dejar esos jobs ACTIVE para siempre: al agotar
+  // intentos se marcan como FAILED y quedan visibles para operaciones.
+  await client.$queryRaw`
+    UPDATE "ClassificationJob"
+    SET "status" = 'FAILED', "failedAt" = NOW(), "lockedAt" = NULL,
+        "lastError" = COALESCE("lastError", 'Worker lock expired after maximum attempts')
+    WHERE "status" = 'ACTIVE'
+      AND "attempts" >= ${MAX_ATTEMPTS}
+      AND "lockedAt" < NOW() - (${STALE_LOCK_MINUTES} * INTERVAL '1 minute')
+  `;
   const rows = await client.$queryRaw<Array<{
     id: string;
     event: ClassificationQueueEvent;
@@ -58,7 +71,7 @@ export async function claimNextClassificationJob(client: QueueClient = db) {
       SELECT "id"
       FROM "ClassificationJob"
       WHERE ("status" = 'WAITING' AND "availableAt" <= NOW())
-         OR ("status" = 'ACTIVE' AND "lockedAt" < NOW() - INTERVAL '5 minutes')
+         OR ("status" = 'ACTIVE' AND "attempts" < ${MAX_ATTEMPTS} AND "lockedAt" < NOW() - (${STALE_LOCK_MINUTES} * INTERVAL '1 minute'))
       ORDER BY "createdAt" ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
