@@ -58,6 +58,13 @@ enum AlertStatus {
   DISMISSED
 }
 
+enum ClassificationJobStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
 enum SourceAuthority {
   DOF
   SAT
@@ -87,6 +94,7 @@ model Organization {
   auditEvents AuditEvent[]
   idempotencyRecords IdempotencyRecord[]
   historicalAuditRuns HistoricalAuditRun[]
+  classificationJobs ClassificationJob[]
 }
 model User {
   id String @id @default(uuid()) @db.Uuid
@@ -166,7 +174,29 @@ model ClassificationCase {
   candidates ClassificationCandidate[]
   reviews HumanReview[]
   evidence EvidenceLink[]
+  classificationJobs ClassificationJob[]
   @@index([organizationId, status, createdAt])
+}
+
+model ClassificationJob {
+  id String @id @default(uuid()) @db.Uuid
+  eventId String @unique
+  organizationId String @db.Uuid
+  caseId String @db.Uuid
+  event Json
+  status ClassificationJobStatus @default(WAITING)
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  lockedAt DateTime?
+  completedAt DateTime?
+  failedAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields:[organizationId], references:[id])
+  classificationCase ClassificationCase @relation(fields:[caseId], references:[id])
+  @@index([status, availableAt, createdAt])
+  @@index([organizationId, caseId, createdAt])
 }
 model TariffCode {
   id String @id @default(uuid()) @db.Uuid
