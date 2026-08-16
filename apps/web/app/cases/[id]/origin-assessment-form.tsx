@@ -18,7 +18,7 @@ export function OriginAssessmentForm({ caseId, tariffCode }: { caseId: string; t
     setLoadingRules(true); setError(null);
     try {
       const agreement = String(data.get('agreement') || 'T-MEC');
-      const code = String(data.get('tariff_code') || tariffCode).split('/')[0];
+      const code = String(data.get('tariff_code') || tariffCode).split('/')[0] ?? tariffCode;
       const response = await apiFetchClient<{ data: OriginRule[] }>(`/api/v1/origin-rules?agreement=${encodeURIComponent(agreement)}&tariff_code=${encodeURIComponent(code)}`);
       setRules(response.data);
     } catch (consultError) { setError(consultError instanceof Error ? consultError.message : 'No se pudo consultar el catálogo de origen.'); }
