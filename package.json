@@ -14,6 +14,7 @@
     "db:studio": "pnpm --filter @platform/db prisma:studio",
     "db:tariff-import": "pnpm --filter @platform/db tariff:import --",
     "db:regulatory-import": "pnpm --filter @platform/db regulatory:import --",
+    "db:origin-rules-import": "pnpm --filter @platform/db origin-rules:import --",
     "verify:structure": "node scripts/verify-structure.cjs",
     "preflight:win": "powershell -ExecutionPolicy Bypass -File scripts/preflight-local.ps1",
     "preflight:sh": "sh scripts/preflight-local.sh",
