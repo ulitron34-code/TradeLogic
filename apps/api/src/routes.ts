@@ -73,6 +73,16 @@ const historicalAuditBody = z.object({
 });
 
 const reviewRequestBody = z.object({ note: z.string().trim().max(2000).optional() });
+const caseAssignmentBody = z.object({
+  assignee_id: z.string().uuid(),
+  note: z.string().trim().max(2000).optional(),
+  due_at: z.string().datetime().optional(),
+});
+const caseAssignmentUpdateBody = z.object({
+  status: z.enum(['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+  note: z.string().trim().max(2000).optional(),
+  due_at: z.string().datetime().nullable().optional(),
+});
 
 const bulkClassificationBody = z.object({
   source_filename: z.string().min(1).max(255),
@@ -97,6 +107,7 @@ const originAssessmentBody = z.object({
 
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
+const paramsWithAssignmentId = z.object({ assignmentId: z.string().uuid() });
 const paramsWithAlertId = z.object({ alertId: z.string().uuid() });
 const classificationQueueQuery = z.object({ caseId: z.string().uuid().optional() });
 
@@ -217,11 +228,11 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     }
     try {
       await queueReadinessCheck();
-      return { status: 'ready', service: 'api', database: 'ok', redis: 'ok' };
+      return { status: 'ready', service: 'api', database: 'ok', queue: 'postgresql', redis: 'not_required' };
     } catch (error) {
-      const redisError = sanitizeReadinessError(error);
-      _request.log.warn({ err: error, redisError }, 'redis readiness check failed');
-      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', redis: 'unavailable', redisError, retryable: true });
+      const queueError = sanitizeReadinessError(error);
+      _request.log.warn({ err: error, queueError }, 'postgres queue readiness check failed');
+      return reply.status(503).send({ status: 'not_ready', service: 'api', database: 'ok', queue: 'postgresql', redis: 'not_required', queueError, retryable: true });
     }
   });
 
@@ -727,6 +738,44 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const updated = await scopedDb.classificationCase.update({ where: { id: existingCase.id }, data: { status: 'NEEDS_REVIEW', assumptions: { ...assumptions, reviewRequest: { requestedBy: user.id, requestedAt: new Date().toISOString(), note: body.note ?? null } } } });
     await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_requested', entityType: 'ClassificationCase', entityId: updated.id, after: { status: updated.status, note: body.note ?? null }, traceId: randomUUID() } });
     return reply.send({ id: updated.id, status: updated.status, requestedBy: user.id });
+  });
+
+  app.get('/api/v1/classification-cases/:caseId/assignments', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const existingCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id }, select: { id: true } });
+    if (!existingCase) return reply.notFound('Classification case not found');
+    const assignments = await scopedDb.caseAssignment.findMany({ where: { caseId: params.caseId, organizationId: organization.id }, include: { assignee: { select: { id: true, email: true, displayName: true } }, assignedBy: { select: { id: true, email: true, displayName: true } } }, orderBy: { createdAt: 'desc' } });
+    return reply.send({ data: assignments });
+  });
+
+  app.post('/api/v1/classification-cases/:caseId/assignments', async (request, reply) => {
+    const { user, organization, roles } = await resolveContext(request, db);
+    if (!roles.some(role => REVIEW_ROLES.has(role))) return reply.code(403).send({ code: 'FORBIDDEN', message: 'Only reviewers can assign a case' });
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const body = caseAssignmentBody.parse(request.body);
+    const existingCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id }, select: { id: true } });
+    if (!existingCase) return reply.notFound('Classification case not found');
+    const assignee = await db.membership.findFirst({ where: { organizationId: organization.id, userId: body.assignee_id }, select: { userId: true } });
+    if (!assignee) return reply.code(400).send({ code: 'ASSIGNEE_OUTSIDE_ORGANIZATION', message: 'The assignee is not a member of this organization' });
+    const assignment = await scopedDb.caseAssignment.create({ data: { organizationId: organization.id, caseId: params.caseId, assigneeId: body.assignee_id, assignedById: user.id, note: body.note ?? null, dueAt: body.due_at ? new Date(body.due_at) : null }, include: { assignee: { select: { id: true, email: true, displayName: true } } } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.assignment_created', entityType: 'CaseAssignment', entityId: assignment.id, after: { caseId: params.caseId, assigneeId: body.assignee_id, dueAt: assignment.dueAt }, traceId: randomUUID() } });
+    return reply.code(201).send(assignment);
+  });
+
+  app.patch('/api/v1/classification-case-assignments/:assignmentId', async (request, reply) => {
+    const { user, organization, roles } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithAssignmentId.parse(request.params);
+    const body = caseAssignmentUpdateBody.parse(request.body);
+    const assignment = await scopedDb.caseAssignment.findFirst({ where: { id: params.assignmentId, organizationId: organization.id } });
+    if (!assignment) return reply.notFound('Case assignment not found');
+    if (!roles.some(role => REVIEW_ROLES.has(role)) && assignment.assigneeId !== user.id) return reply.code(403).send({ code: 'FORBIDDEN', message: 'Only the assignee or a reviewer can update this assignment' });
+    const updated = await scopedDb.caseAssignment.update({ where: { id: assignment.id }, data: { status: body.status, ...(body.note !== undefined ? { note: body.note ?? null } : {}), ...(body.due_at !== undefined ? { dueAt: body.due_at ? new Date(body.due_at) : null } : {}) } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.assignment_updated', entityType: 'CaseAssignment', entityId: updated.id, before: { status: assignment.status }, after: { status: updated.status }, traceId: randomUUID() } });
+    return reply.send(updated);
   });
 
   app.post('/api/v1/classification-cases/bulk', async (request, reply) => {

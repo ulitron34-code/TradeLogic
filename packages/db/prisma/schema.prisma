@@ -43,6 +43,13 @@ enum ReviewDecision {
   REJECTED
 }
 
+enum CaseAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 enum AlertSeverity {
   INFO
   WARNING
@@ -107,6 +114,7 @@ model Organization {
   idempotencyRecords IdempotencyRecord[]
   historicalAuditRuns HistoricalAuditRun[]
   classificationJobs ClassificationJob[]
+  caseAssignments CaseAssignment[]
 }
 model User {
   id String @id @default(uuid()) @db.Uuid
@@ -116,6 +124,8 @@ model User {
   createdAt DateTime @default(now())
   memberships Membership[]
   reviews HumanReview[]
+  assignedCases CaseAssignment[] @relation("CaseAssignmentAssignee")
+  createdAssignments CaseAssignment[] @relation("CaseAssignmentAuthor")
 }
 model Membership {
   id String @id @default(uuid()) @db.Uuid
@@ -185,6 +195,7 @@ model ClassificationCase {
   product Product @relation(fields:[productId], references:[id])
   candidates ClassificationCandidate[]
   reviews HumanReview[]
+  assignments CaseAssignment[]
   evidence EvidenceLink[]
   classificationJobs ClassificationJob[]
   @@index([organizationId, status, createdAt])
@@ -292,6 +303,27 @@ model HumanReview {
   case ClassificationCase @relation(fields:[caseId], references:[id])
   reviewer User @relation(fields:[reviewerId], references:[id])
 }
+
+model CaseAssignment {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  caseId String @db.Uuid
+  assigneeId String @db.Uuid
+  assignedById String @db.Uuid
+  status CaseAssignmentStatus @default(ASSIGNED)
+  note String?
+  dueAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id])
+  classificationCase ClassificationCase @relation(fields: [caseId], references: [id])
+  assignee User @relation("CaseAssignmentAssignee", fields: [assigneeId], references: [id])
+  assignedBy User @relation("CaseAssignmentAuthor", fields: [assignedById], references: [id])
+  @@index([organizationId, status, dueAt])
+  @@index([caseId, createdAt])
+  @@index([assigneeId, status])
+}
+
 model RegulatorySource {
   id String @id @default(uuid()) @db.Uuid
   authority SourceAuthority

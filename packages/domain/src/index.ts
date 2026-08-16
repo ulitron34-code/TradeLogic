@@ -223,6 +223,13 @@ export {
   type RegulatoryRequirementValidation,
 } from './regulatoryRequirement.js';
 export {
+  regulatoryCatalogKey,
+  validateRegulatoryCatalog,
+  type NormalizedRegulatoryCatalogRecord,
+  type RegulatoryCatalogRecord,
+  type RegulatoryCatalogValidation,
+} from './regulatoryCatalog.js';
+export {
   assessLegalRisk,
   evaluateOrigin,
   LEGAL_RISK_DISCLAIMER,
