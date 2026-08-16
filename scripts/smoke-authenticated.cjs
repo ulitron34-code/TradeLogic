@@ -10,6 +10,7 @@ const MIN_DOSSIER_BYTES = 500;
 function usage() {
   return `Usage:
   node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--require-tariff-catalog] [--dossier-case-id uuid] [--output smoke-authenticated.json]
+  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... --case-id uuid --dossier-case-id uuid
 
 Environment fallback:
   API_BASE_URL or NEXT_PUBLIC_API_BASE_URL
@@ -38,6 +39,7 @@ function parseArgs(argv) {
     else if (arg === '--timeout-ms') options.timeoutMs = parseTimeout(value);
     else if (arg === '--retries') options.retries = parseRetries(value);
     else if (arg === '--dossier-case-id') options.dossierCaseId = value;
+    else if (arg === '--case-id') options.caseId = value;
     else if (arg === '--output') options.output = value;
     else throw new Error(`Unknown option: ${arg}`);
     index += 1;
@@ -209,6 +211,20 @@ async function main() {
   const alerts = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/alerts`, requestOptions), options.retries);
   assertArrayEnvelope(alerts);
   checks.push(summarizeArray(alerts, 'alerts-list'));
+
+  const members = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/organization/members`, requestOptions), options.retries);
+  assertArrayEnvelope(members);
+  checks.push(summarizeArray(members, 'organization-members'));
+
+  if (options.caseId) {
+    const caseDetail = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/classification-cases/${encodeURIComponent(options.caseId)}`, requestOptions), options.retries);
+    assertOk(caseDetail);
+    if (caseDetail.body?.id !== options.caseId || !caseDetail.body?.product) throw new Error(`${caseDetail.url} did not return a complete case detail`);
+    checks.push({ name: 'case-detail', url: caseDetail.url, status: caseDetail.status, ok: true, caseId: options.caseId, statusValue: caseDetail.body.status, candidates: Array.isArray(caseDetail.body.candidates) ? caseDetail.body.candidates.length : 0 });
+    const assignments = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/classification-cases/${encodeURIComponent(options.caseId)}/assignments`, requestOptions), options.retries);
+    assertArrayEnvelope(assignments);
+    checks.push(summarizeArray(assignments, 'case-assignments'));
+  }
 
   if (options.requireTariffCatalog) {
     const tariffCatalog = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/tariff-catalog/status`, requestOptions), options.retries);
