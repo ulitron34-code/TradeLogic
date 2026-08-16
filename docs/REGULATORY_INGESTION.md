@@ -25,6 +25,15 @@ Alcance acotado para este bloque (T-042): solo se procesan notas cuya seccion de
 
 ## Flujo de ingesta
 
+### Estado actual de implementacion (2026-08-16)
+
+La implementacion vigente usa `IngestionJob` en PostgreSQL y `FOR UPDATE SKIP
+LOCKED`; no depende de BullMQ ni Redis. El worker procesa las secretarias
+`SHCP`, `SE`, `ANAM`, `COFEPRIS`, `SENASICA` y `SEMARNAT` cuando el encabezado
+del DOF se puede mapear de forma explicita. La fecha de consulta se calcula en
+`America/Mexico_City` y los jobs de clasificacion, DOF y jurisprudencia son
+independientes.
+
 1. `apps/worker` registra un job repetible en la cola `regulatory-ingestion` con `repeat: { pattern: env.REGULATORY_POLL_CRON }` (hoy `0 * * * 1-5`, cada hora en dias habiles). El registro es idempotente: BullMQ dedupe por cola + patron + `jobId` fijo, asi que reiniciar el worker no crea jobs repetibles duplicados.
 2. Cada corrida procesa el dia actual en UTC (simplificacion deliberada — no se uso una libreria de zonas horarias para este alcance; si el DOF publica cerca de medianoche hora Ciudad de Mexico el dia detectado podria no coincidir exactamente con el dia calendario CDMX).
 3. Por cada nota relevante: se descarga el detalle, se calcula `sha256` del HTML crudo, y se verifica contra el `@@unique([authority, canonicalUrl, sha256])` ya existente en `RegulatorySource` — mismo contenido no se reprocesa; si el DOF corrige una nota, el `sha256` cambia y se ingiere como fuente nueva.
