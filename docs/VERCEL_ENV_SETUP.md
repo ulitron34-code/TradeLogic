@@ -2,7 +2,7 @@
 
 ## Alcance actual
 
-El frontend `apps/web` se despliega en Vercel como app Next.js. La API Fastify y el worker BullMQ estan en Render como procesos Node persistentes; no deben moverse a funciones serverless mientras dependan de BullMQ/Redis y conexiones persistentes.
+El frontend `apps/web` se despliega en Vercel como app Next.js. La API Fastify y el worker PostgreSQL estan en Render como procesos Node persistentes; no deben moverse a funciones serverless mientras dependan de colas y conexiones persistentes.
 
 ## Configuracion Vercel para web
 
@@ -32,7 +32,6 @@ APP_BASE_URL=https://tradelogic-git-main-ulitron34-codes-projects.vercel.app
 API_BASE_URL=https://tradelogic-api.onrender.com
 DATABASE_URL=<supabase-pooler-or-postgres-url>
 DIRECT_URL=<supabase-direct-url-or-same-pooler-if-direct-5432-is-blocked>
-REDIS_URL=<redis-url>
 SUPABASE_URL=https://<project-ref>.supabase.co
 S3_ENDPOINT=<storage-endpoint>
 S3_REGION=<storage-region>
