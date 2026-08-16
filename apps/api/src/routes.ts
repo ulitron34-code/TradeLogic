@@ -3,7 +3,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
 import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, evaluateOrigin, parseClassificationIntakeCsv, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
-import { Prisma, db as defaultDb, persistHistoricalAuditRun, scopeToOrganization } from '@platform/db';
+import { db as defaultDb, persistHistoricalAuditRun, scopeToOrganization } from '@platform/db';
 import {
   buildStorageKey,
   headObject as defaultHeadObject,
@@ -154,7 +154,7 @@ async function defaultCheckProductionMigrations(database: typeof defaultDb) {
     SELECT migration_name
     FROM "_prisma_migrations"
     WHERE finished_at IS NOT NULL
-      AND migration_name IN (${Prisma.join(REQUIRED_PRODUCTION_MIGRATIONS)})
+      AND migration_name IN ('9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls')
   `;
   const applied = new Set(rows.map(row => row.migration_name));
   return REQUIRED_PRODUCTION_MIGRATIONS.filter(migration => !applied.has(migration));
