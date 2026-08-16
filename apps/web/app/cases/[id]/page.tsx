@@ -5,6 +5,7 @@ import { RequeueCaseButton, SubmitCaseButton } from './submit-case-button';
 import { ReviewActions } from './review-actions';
 import { CostCalculator, type CostScenario, type OfficialDutyRate } from './cost-calculator';
 import { DossierDownloadButton } from './dossier-download-button';
+import { OriginAssessmentForm } from './origin-assessment-form';
 
 type Rationale = {
   summary?: string;
@@ -731,6 +732,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             <p className="mt-2 text-sm font-medium text-neutral-800 dark:text-neutral-200">{treaty.status}</p>
             <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{treaty.detail}</p>
             <p className="mt-2 text-xs text-neutral-500">No se debe aplicar preferencia sin evidencia documental y fuente vigente.</p>
+            {topCandidate ? <OriginAssessmentForm caseId={classificationCase.id} tariffCode={`${topCandidate.tariffCode.code}${topCandidate.tariffCode.nico ? `/${topCandidate.tariffCode.nico}` : ''}`} /> : null}
           </section>
 
           <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
@@ -760,6 +762,14 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             )}
           </section>
         </aside>
+      </section>
+
+      <section className="mt-8 rounded-lg border border-blue-200 bg-blue-50/50 p-4 dark:border-blue-900 dark:bg-blue-950/15">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><h2 className="font-semibold">Colaboración y revisión</h2><p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">El expediente conserva decisiones humanas y trazabilidad para que otro integrante pueda continuar sin perder contexto.</p></div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-blue-900 dark:bg-black/20 dark:text-blue-100">{canReview ? 'Puedes revisar' : 'Revisor requerido'}</span>
+        </div>
+        <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Decisiones</span><p className="mt-1 font-semibold">{classificationCase.reviews.length}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Evidencias</span><p className="mt-1 font-semibold">{classificationCase.evidence?.length ?? 0}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Trazas</span><p className="mt-1 font-semibold">{auditEvents.length}</p></div></div>
       </section>
 
       {classificationCase.reviews.length > 0 ? (

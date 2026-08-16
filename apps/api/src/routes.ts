@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
-import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, parseClassificationIntakeCsv, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
+import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, evaluateOrigin, parseClassificationIntakeCsv, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
 import { db as defaultDb, persistHistoricalAuditRun, scopeToOrganization, type Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -76,6 +76,20 @@ const bulkClassificationBody = z.object({
   source_filename: z.string().min(1).max(255),
   source_sha256: z.string().regex(/^[a-f0-9]{64}$/i),
   csv: z.string().min(1).max(5_000_000),
+});
+
+const originAssessmentBody = z.object({
+  tariff_code: z.string().min(1).max(30),
+  type: z.enum(['CTC', 'RVC', 'PROCESS']),
+  threshold_percent: z.number().min(0).max(100).optional(),
+  required_process: z.string().max(500).optional(),
+  finished_good_value: z.number().positive(),
+  non_originating_value: z.number().nonnegative().optional(),
+  tariff_shift_satisfied: z.boolean().optional(),
+  process_satisfied: z.boolean().optional(),
+  evidence_count: z.number().int().nonnegative(),
+  source_url: z.string().url().default('https://www.snice.gob.mx/cs/avi/snice/hce.calc.origen2020.html'),
+  source_version: z.string().min(1).max(100).default('SNICE-TMEC-Origen-2026'),
 });
 
 const paramsWithId = z.object({ id: z.string().uuid() });
@@ -750,6 +764,20 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       },
     }, scopedDb);
     return reply.code(202).send(response);
+  });
+
+  app.post('/api/v1/classification-cases/:caseId/origin-assessment', async (request, reply) => {
+    const { user, organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const body = originAssessmentBody.parse(request.body);
+    const existingCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id } });
+    if (!existingCase) return reply.notFound('Classification case not found');
+    const result = evaluateOrigin({ rule: { id: `tmec-${params.caseId}`, tariffCode: body.tariff_code, agreement: 'T-MEC', type: body.type, thresholdPercent: body.threshold_percent, requiredProcess: body.required_process, sourceUrl: body.source_url, sourceVersion: body.source_version, validFrom: new Date().toISOString() }, finishedGoodValue: body.finished_good_value, nonOriginatingValue: body.non_originating_value, tariffShiftSatisfied: body.tariff_shift_satisfied, processSatisfied: body.process_satisfied, evidenceCount: body.evidence_count });
+    const assumptions = existingCase.assumptions && typeof existingCase.assumptions === 'object' && !Array.isArray(existingCase.assumptions) ? existingCase.assumptions as Record<string, unknown> : {};
+    await scopedDb.classificationCase.update({ where: { id: existingCase.id }, data: { assumptions: { ...assumptions, originAssessment: { ...body, result, assessedAt: new Date().toISOString() } } } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.origin_assessed', entityType: 'ClassificationCase', entityId: existingCase.id, after: { status: result.status, sourceVersion: body.source_version, agreement: 'T-MEC' }, traceId: randomUUID() } });
+    return reply.send({ agreement: 'T-MEC', ...result });
   });
   app.get('/api/v1/classification-cases/:caseId', async (request, reply) => {
     const { organization } = await resolveContext(request, db);
