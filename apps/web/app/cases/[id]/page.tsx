@@ -8,6 +8,7 @@ import { DossierDownloadButton } from './dossier-download-button';
 import { OriginAssessmentForm } from './origin-assessment-form';
 import { RequestReviewButton } from './request-review-button';
 import { AssignmentsPanel } from './assignments-panel';
+import { ReviewRequestsPanel } from './review-requests-panel';
 
 type Rationale = {
   summary?: string;
@@ -789,6 +790,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Decisiones</span><p className="mt-1 font-semibold">{classificationCase.reviews.length}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Evidencias</span><p className="mt-1 font-semibold">{classificationCase.evidence?.length ?? 0}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Trazas</span><p className="mt-1 font-semibold">{auditEvents.length}</p></div></div>
         {!canReview && !['APPROVED', 'REJECTED', 'ARCHIVED', 'SUPERSEDED'].includes(classificationCase.status) ? <RequestReviewButton caseId={classificationCase.id} /> : null}
         <AssignmentsPanel caseId={classificationCase.id} members={organizationMembers} canAssign={canReview} />
+        <ReviewRequestsPanel caseId={classificationCase.id} />
       </section>
 
       {classificationCase.reviews.length > 0 ? (
