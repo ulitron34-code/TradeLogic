@@ -21,7 +21,9 @@ const schema = z.object({
   API_BASE_URL: z.string().url(),
   DATABASE_URL: z.string().min(1),
   DIRECT_URL: z.preprocess((value) => (value === '' ? undefined : value), z.string().min(1).optional()),
-  REDIS_URL: z.string().min(1),
+  // The production queues use PostgreSQL row locking. Redis remains an
+  // optional compatibility setting for legacy local integrations only.
+  REDIS_URL: optionalUrl,
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   DEV_AUTH_BYPASS: z.preprocess((value) => value === 'true', z.boolean()).default(false),

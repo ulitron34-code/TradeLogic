@@ -18,8 +18,6 @@ services:
         sync: false
       - key: DIRECT_URL
         sync: false
-      - key: REDIS_URL
-        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: S3_ENDPOINT
@@ -65,8 +63,6 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: DIRECT_URL
-        sync: false
-      - key: REDIS_URL
         sync: false
       - key: SUPABASE_URL
         sync: false

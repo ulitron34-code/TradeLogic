@@ -4,6 +4,13 @@ Fecha de corte: 16 de agosto de 2026.
 
 ## Actualizacion de esta sesion
 
+- `78e7d14b`: la pantalla de solicitudes de revisión permite a un revisor
+  asignar o retirar responsable; la API valida que pertenezca a la
+  organización y deja auditoría del cambio.
+- La validación de `78e7d14b` terminó verde. El ajuste actual elimina
+  `REDIS_URL` como requisito de producción: las colas activas son PostgreSQL y
+  Render ya no lo declara como variable.
+
 - `8de59521`: el worker de clasificacion rankea contra todo el catalogo MX
   vigente y conserva solo los cinco mejores candidatos para el flujo posterior.
 - `d4289485` y `d89271ac`: los fallos del worker ya recuperan el expediente,
