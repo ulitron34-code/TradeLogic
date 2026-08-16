@@ -117,8 +117,7 @@ async function createImpactsForProvision(
   source: { title: string; canonicalUrl: string },
 ) {
   const tariffCodes = await db.tariffCode.findMany({
-    where: { countryCode: 'MX', validTo: null },
-    take: 250,
+    where: { countryCode: 'MX', validTo: null, code: { in: mentions } },
   });
 
   const matchedCodes = tariffCodes.filter((code) =>
