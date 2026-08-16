@@ -1,37 +1,36 @@
-# Cola de clasificación en PostgreSQL
+# Colas PostgreSQL de TradeLogic
 
 ## Motivo
 
-Upstash Redis alcanzó el límite mensual de solicitudes. Para no detener el flujo principal, la clasificación ya no depende de Redis.
+La clasificacion, DOF y jurisprudencia no deben detenerse por el costo o los limites de Redis. Las tres capacidades usan ahora PostgreSQL como transporte durable y el worker de Render como ejecutor.
 
-## Flujo nuevo
+## Flujos
 
 ```text
-API -> ClassificationJob en Supabase/PostgreSQL -> worker Render -> análisis -> candidatos/auditoría -> UI
+API -> ClassificationJob en Supabase/PostgreSQL -> worker Render -> analisis -> candidatos/auditoria -> UI
+worker -> IngestionJob REGULATORY -> ingesta DOF -> fuentes/provisiones/alertas
+worker -> IngestionJob JURISPRUDENCE -> tesis -> embeddings/referencias arancelarias
 ```
 
-La API registra el evento de clasificación con `eventId` único. El worker consulta cada dos segundos, reclama un trabajo con `FOR UPDATE SKIP LOCKED`, lo marca `ACTIVE`, ejecuta el clasificador existente y lo marca `COMPLETED` o `FAILED`.
+La API registra cada evento de clasificacion con `eventId` unico. El worker consulta cada dos segundos y reclama trabajos con `FOR UPDATE SKIP LOCKED`. Los trabajos activos abandonados se recuperan despues de cinco minutos para clasificacion y diez minutos para ingestas.
 
-## Reintentos y recuperación
+## Programacion
 
-- Los trabajos fallidos se reintentan hasta tres veces.
-- Un trabajo `ACTIVE` con más de cinco minutos puede volver a ser reclamado.
-- Los diagnósticos de operaciones leen ahora `ClassificationJob` y se filtran por organización.
-- `/ready` valida PostgreSQL, no Redis.
-
-## Alcance temporal
-
-Este cambio mantiene operativo el flujo de clasificación. Las ingestas programadas de DOF y jurisprudencia que dependían de BullMQ quedan pausadas hasta crear un scheduler alternativo respaldado por PostgreSQL. No se pierde el código de esas ingestas; únicamente se separan del camino crítico.
+- DOF: cada hora.
+- Jurisprudencia: cada siete dias.
+- Fallos transitorios: hasta tres reintentos con espera incremental.
+- Cada tipo de ingesta tiene una sola fila global en `IngestionJob`, evitando duplicados si se ejecuta mas de una instancia.
 
 ## Despliegue
 
-La migración `7_add_postgres_classification_queue` debe aplicarse antes de que el worker procese trabajos nuevos. Render ya ejecuta `prisma migrate deploy` antes de iniciar los servicios según el runbook existente.
+La migracion `7_add_postgres_classification_queue` y la migracion `8_add_postgres_ingestion_scheduler` deben aplicarse antes de procesar trabajos nuevos. Render ejecuta `prisma migrate deploy` antes de iniciar los servicios segun el runbook existente.
 
-## Verificación
+## Verificacion
 
 1. Confirmar `/health` y `/ready` en Render.
-2. Crear o reencolar un caso de prueba.
-3. Revisar `/api/v1/ops/classification-queue` con sesión autenticada.
-4. Confirmar estados `waiting -> active -> completed`.
-5. Confirmar candidatos y auditoría en el caso.
-6. Guardar evidencia en `artifacts/` y generar respaldo en `E:\ADUANA\TradeLogic\backups`.
+2. Confirmar en logs `transport: postgresql` y las colas `regulatory-postgres` y `jurisprudence-postgres`.
+3. Confirmar `postgres ingestion job received` y `postgres ingestion job completed`.
+4. Para clasificacion, revisar estados `waiting -> active -> completed`, candidatos y auditoria.
+5. Para DOF y jurisprudencia, confirmar una respuesta real de la fuente externa y el registro persistido.
+
+Redis queda opcional para estos tres caminos; no se elimina de la configuracion heredada hasta hacer una limpieza separada de variables y servicios.

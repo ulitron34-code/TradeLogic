@@ -15,6 +15,15 @@ export {
   type ClassificationQueueEvent,
   type ClassificationQueueSnapshot,
 } from './classificationQueue.js';
+export {
+  ensureIngestionJobs,
+  claimNextIngestionJob,
+  completeIngestionJob,
+  failIngestionJob,
+  getIngestionSchedulerSnapshot,
+  type IngestionJobClaim,
+  type IngestionJobType,
+} from './ingestionQueue.js';
 
 // Document.sizeBytes es BigInt en Postgres; JSON.stringify no sabe serializar
 // BigInt de forma nativa y Fastify tira TypeError al responder cualquier ruta

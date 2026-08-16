@@ -65,6 +65,18 @@ enum ClassificationJobStatus {
   FAILED
 }
 
+enum IngestionJobType {
+  REGULATORY
+  JURISPRUDENCE
+}
+
+enum IngestionJobStatus {
+  WAITING
+  ACTIVE
+  COMPLETED
+  FAILED
+}
+
 enum SourceAuthority {
   DOF
   SAT
@@ -197,6 +209,24 @@ model ClassificationJob {
   classificationCase ClassificationCase @relation(fields:[caseId], references:[id])
   @@index([status, availableAt, createdAt])
   @@index([organizationId, caseId, createdAt])
+}
+
+// Programador global para ingestas oficiales. Vive en Postgres para que el
+// worker no dependa de Redis ni de un servicio de cola adicional.
+model IngestionJob {
+  id String @id @default(uuid()) @db.Uuid
+  jobType IngestionJobType @unique
+  status IngestionJobStatus @default(WAITING)
+  attempts Int @default(0)
+  availableAt DateTime @default(now())
+  lockedAt DateTime?
+  completedAt DateTime?
+  failedAt DateTime?
+  lastRunAt DateTime?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([status, availableAt])
 }
 model TariffCode {
   id String @id @default(uuid()) @db.Uuid

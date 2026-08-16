@@ -1,5 +1,18 @@
 # Estado de Implementacion
 
+## Verificacion mas reciente (2026-08-16)
+
+- `main` y la copia de `E:\ADUANA\MVP_Tecnico` estan en `31311cc` antes de esta iteracion; la cola de clasificacion ya esta respaldada por PostgreSQL.
+- Se agrego `IngestionJob` y la migracion `8_add_postgres_ingestion_scheduler` para que DOF y jurisprudencia tengan agenda, reintentos y recuperacion de bloqueos sin depender de Redis.
+- El worker ahora declara `classification-postgres`, `regulatory-postgres` y `jurisprudence-postgres`; DOF corre cada hora y jurisprudencia cada siete dias.
+- La validacion automatica anterior de monorepo estaba verde; esta iteracion requiere que CI vuelva a confirmar Prisma generado, typecheck y build con la nueva migracion.
+
+## Pendiente despues de esta correccion
+
+1. Confirmar en logs de `Trade logic worker` una ejecucion real completada de DOF y otra de jurisprudencia.
+2. Completar smoke autenticado y el recorrido UI/PDF con un caso real.
+3. Calibrar catalogos oficiales, relevancia, deduplicacion y escenarios de tratados con datos piloto.
+
 Actualizado: 2026-08-14
 
 ## Verificacion actual (2026-08-14)

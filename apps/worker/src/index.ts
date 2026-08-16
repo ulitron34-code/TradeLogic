@@ -3,11 +3,19 @@ import {
   completeClassificationJob,
   failClassificationJob,
   type ClassificationQueueEvent,
+  claimNextIngestionJob,
+  completeIngestionJob,
+  ensureIngestionJobs,
+  failIngestionJob,
 } from '@platform/db';
 import { runClassificationAnalysis } from './classificationAnalysis.js';
+import { runRegulatoryIngestion } from './regulatoryIngestion.js';
+import { runJurisprudenceIngestion } from './jurisprudenceIngestion.js';
 
 const POLL_INTERVAL_MS = 2_000;
 const STALE_LOCK_MINUTES = 5;
+const REGULATORY_INTERVAL_MS = 60 * 60 * 1000;
+const JURISPRUDENCE_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 let stopping = false;
 
 async function processOneClassificationJob() {
@@ -44,13 +52,43 @@ async function processOneClassificationJob() {
   return true;
 }
 
-async function pollClassificationQueue() {
+function nextRegulatoryRun() { return new Date(Date.now() + REGULATORY_INTERVAL_MS); }
+function nextJurisprudenceRun() { return new Date(Date.now() + JURISPRUDENCE_INTERVAL_MS); }
+
+async function processOneIngestionJob() {
+  const job = await claimNextIngestionJob();
+  if (!job) return false;
+
+  console.log('postgres ingestion job received', { jobId: job.id, jobType: job.jobType, attempts: job.attempts });
+  try {
+    let result: unknown;
+    let nextRunAt: Date;
+    if (job.jobType === 'REGULATORY') {
+      const now = new Date();
+      result = await runRegulatoryIngestion({ year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, day: now.getUTCDate() });
+      nextRunAt = nextRegulatoryRun();
+    } else {
+      result = await runJurisprudenceIngestion();
+      nextRunAt = nextJurisprudenceRun();
+    }
+    await completeIngestionJob(job.id, nextRunAt);
+    console.log('postgres ingestion job completed', { jobId: job.id, jobType: job.jobType, nextRunAt, result });
+  } catch (error) {
+    const nextRunAt = job.jobType === 'REGULATORY' ? nextRegulatoryRun() : nextJurisprudenceRun();
+    await failIngestionJob(job.id, error, job.attempts, nextRunAt);
+    console.error('postgres ingestion job failed', { jobId: job.id, jobType: job.jobType, message: error instanceof Error ? error.message : String(error) });
+  }
+  return true;
+}
+
+async function pollQueues() {
+  await ensureIngestionJobs();
   while (!stopping) {
     try {
-      const processed = await processOneClassificationJob();
+      const processed = (await processOneClassificationJob()) || (await processOneIngestionJob());
       if (!processed) await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     } catch (error) {
-      console.error('classification postgres queue error', { message: error instanceof Error ? error.message : String(error) });
+      console.error('postgres queue error', { message: error instanceof Error ? error.message : String(error) });
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }
   }
@@ -58,13 +96,14 @@ async function pollClassificationQueue() {
 
 console.log('worker started', {
   transport: 'postgresql',
-  queue: 'classification-postgres',
+  queues: ['classification-postgres', 'regulatory-postgres', 'jurisprudence-postgres'],
   pollIntervalMs: POLL_INTERVAL_MS,
   staleLockMinutes: STALE_LOCK_MINUTES,
-  note: 'Redis is optional; regulatory and jurisprudence scheduled ingestion remains paused until a non-Redis scheduler is added.',
+  schedule: { regulatory: 'hourly', jurisprudence: 'weekly' },
+  note: 'Classification, DOF and jurisprudence are scheduled through PostgreSQL; Redis is not required by the worker.',
 });
 
-void pollClassificationQueue();
+void pollQueues();
 
 async function shutdown(signal: string) {
   stopping = true;

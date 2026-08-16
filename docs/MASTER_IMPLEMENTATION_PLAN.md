@@ -1,6 +1,6 @@
 # TradeLogic - Plan maestro de implementacion y validacion
 
-Actualizado: 2026-08-14
+Actualizado: 2026-08-16
 
 Este documento separa lo que existe en el codigo de lo que esta visible, desplegado y probado con datos reales. Una capacidad no se considera completa hasta que tenga codigo, persistencia, UI o API cuando corresponda, pruebas y evidencia de ejecucion.
 
@@ -30,7 +30,7 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 | Expediente PDF | Snapshot, fundamento, evidencia y auditoria implementados localmente | Verificar endpoint y migraciones en produccion | PDF renderizado y revisado |
 | Auditoria historica | Importacion, comparacion y hallazgos implementados localmente | Piloto con declaraciones y tasas oficiales | Dataset de prueba y reporte |
 | UX/onboarding | Dashboard, navegacion, productos, casos, alertas y auditorias implementados | Flujo guiado, estados vacios, roles y ayuda contextual | Prueba manual por rol |
-| Produccion | API desplegada en Render; web publica en Vercel; migraciones, RLS y catalogo FA/NICO verificados en Supabase; Redis Upstash conectado; Background Worker de Render activo con colas `regulatory-ingestion`, `jurisprudence-ingestion` y `classification-analysis`; diagnostico de cola por caso agregado en API/UI | Confirmar que Render API publique el ultimo commit, ejecutar smoke autenticado con JWT real, observar un caso real pasando de cola a resultado/PDF y guardar evidencia de piloto | Smoke publico/autenticado, catalogo poblado, worker observado con job real, UI/PDF recorridos y piloto documentado |
+| Produccion | API desplegada en Render; web publica en Vercel; migraciones, RLS y catalogo FA/NICO verificados en Supabase; worker con colas PostgreSQL para clasificacion, DOF y jurisprudencia; diagnostico de cola por caso agregado en API/UI | Confirmar migracion 8 y ejecuciones reales de DOF/jurisprudencia, ejecutar smoke autenticado con JWT real, observar un caso real pasando de cola a resultado/PDF y guardar evidencia de piloto | Smoke publico/autenticado, catalogo poblado, worker observado con jobs reales, UI/PDF recorridos y piloto documentado |
 
 ## Reglas de implementacion
 
@@ -44,7 +44,7 @@ Este documento separa lo que existe en el codigo de lo que esta visible, despleg
 
 ## Primer entregable tecnico
 
-El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial FA/NICO con IGI/IGE, las modificaciones con vigencia y las pruebas de cobertura ya estan implementados. El catalogo oficial ya fue importado y verificado en Supabase; el worker de Render ya esta provisionado y conectado a Redis. El siguiente cierre operativo es observar un caso real en `classification-analysis`, ejecutar smoke autenticado y conectar el calculo al regimen/preferencia aplicable.
+El contrato versionado de `TariffCode`, la carga idempotente, el catalogo oficial FA/NICO con IGI/IGE, las modificaciones con vigencia y las pruebas de cobertura ya estan implementados. El catalogo oficial ya fue importado y verificado en Supabase; el worker de Render ya tiene un scheduler PostgreSQL para clasificacion, DOF y jurisprudencia. El siguiente cierre operativo es observar ejecuciones reales, ejecutar smoke autenticado y conectar el calculo al regimen/preferencia aplicable.
 
 ## Criterio de finalizacion del proyecto
 
