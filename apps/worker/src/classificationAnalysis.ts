@@ -43,7 +43,10 @@ export async function runClassificationAnalysis(
   const now = new Date();
   const tariffCodes = await database.tariffCode.findMany({
     where: { countryCode: 'MX', validFrom: { lte: now }, OR: [{ validTo: null }, { validTo: { gt: now } }] },
-    orderBy: [{ code: 'asc' }, { nico: 'asc' }], take: 250,
+    // El ranking determinista ya limita la salida a los cinco mejores candidatos.
+    // No limitar la lectura aquí: el catálogo oficial completo puede contener la
+    // fracción correcta después de las primeras 250 filas alfabéticas.
+    orderBy: [{ code: 'asc' }, { nico: 'asc' }],
   });
   if (tariffCodes.length === 0) {
     await markNeedsInformation(database, event, classificationCase.id, 'No tariff codes are seeded for MX.');
