@@ -63,6 +63,9 @@ const costScenarioBody = z.object({
   duty_rate_source: z.string().trim().min(1).max(500).optional(),
   iva_rate_percent: z.number().nonnegative().optional(),
   other_fees: z.number().nonnegative().optional(),
+  use_preferential_rate: z.boolean().default(false),
+  preferential_duty_rate_percent: z.number().nonnegative().optional(),
+  preferential_duty_source: z.string().trim().min(1).max(500).optional(),
 });
 
 const historicalAuditBody = z.object({
@@ -1128,7 +1131,16 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     if (body.duty_rate_percent !== undefined && !body.duty_rate_source) {
       return reply.code(422).send({ code: 'MANUAL_RATE_SOURCE_REQUIRED', message: 'Captura la fuente o fundamento de la tasa manual.' });
     }
-    if (dutyRatePercent === undefined && classificationCase.selectedCodeId) {
+    const assumptions = classificationCase.assumptions && typeof classificationCase.assumptions === 'object' && !Array.isArray(classificationCase.assumptions) ? classificationCase.assumptions as Record<string, unknown> : {};
+    const originAssessment = assumptions.originAssessment && typeof assumptions.originAssessment === 'object' && !Array.isArray(assumptions.originAssessment) ? assumptions.originAssessment as Record<string, unknown> : null;
+    const originResult = originAssessment?.result && typeof originAssessment.result === 'object' && !Array.isArray(originAssessment.result) ? originAssessment.result as Record<string, unknown> : null;
+    if (body.use_preferential_rate) {
+      if (originResult?.status !== 'ELIGIBLE') return reply.code(422).send({ code: 'PREFERENTIAL_ORIGIN_NOT_CONFIRMED', message: 'La preferencia requiere una evaluación de origen elegible y evidencia documentada.' });
+      if (body.preferential_duty_rate_percent === undefined || !body.preferential_duty_source) return reply.code(422).send({ code: 'PREFERENTIAL_RATE_SOURCE_REQUIRED', message: 'Captura la tasa preferencial y su fundamento oficial.' });
+      dutyRatePercent = body.preferential_duty_rate_percent;
+      dutyRateSource = body.preferential_duty_source;
+    }
+    if (dutyRatePercent === undefined && !body.use_preferential_rate && classificationCase.selectedCodeId) {
       const now = new Date();
       const selectedTariffCode = await scopedDb.tariffCode.findFirst({
         where: {
@@ -1163,7 +1175,7 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
         organizationId: organization.id,
         caseId: classificationCase.id,
         currency: body.currency,
-        inputs: { ...body, duty_rate_percent: dutyRatePercent, duty_rate_source: dutyRateSource } as Prisma.InputJsonValue,
+        inputs: { ...body, duty_rate_percent: dutyRatePercent, duty_rate_source: dutyRateSource, ...(body.use_preferential_rate ? { preference_basis: originAssessment } : {}) } as Prisma.InputJsonValue,
         outputs: breakdown as unknown as Prisma.InputJsonValue,
         rulesetVersion: breakdown.rulesetVersion,
         fxSnapshot: {},

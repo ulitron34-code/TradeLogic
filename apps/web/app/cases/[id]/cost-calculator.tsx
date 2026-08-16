@@ -72,11 +72,17 @@ export function CostCalculator({
     const form = new FormData(event.currentTarget);
     try {
       const dutyRate = String(form.get('duty_rate_percent') ?? '').trim();
-      const payload: Record<string, number | string> = {
+      const payload: Record<string, number | string | boolean> = {
         customs_value: Number(form.get('customs_value')),
         freight: Number(form.get('freight') || 0),
         insurance: Number(form.get('insurance') || 0),
       };
+      const usePreference = form.get('use_preferential_rate') === 'on';
+      payload.use_preferential_rate = usePreference;
+      if (usePreference) {
+        payload.preferential_duty_rate_percent = Number(form.get('preferential_duty_rate_percent'));
+        payload.preferential_duty_source = String(form.get('preferential_duty_source') ?? '').trim();
+      }
       if (dutyRate) {
         payload.duty_rate_percent = Number(dutyRate);
         const dutyRateSource = String(form.get('duty_rate_source') ?? '').trim();
@@ -179,6 +185,18 @@ export function CostCalculator({
                 placeholder="Ej. TIGIE/SNICE, tratado preferencial, criterio interno revisado"
                 className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900"
               />
+            </label>
+            <label className="col-span-2 flex items-center gap-2 text-sm">
+              <input name="use_preferential_rate" type="checkbox" />
+              Aplicar tasa preferencial solo con origen elegible y fundamento oficial
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Tasa preferencial (%)
+              <input name="preferential_duty_rate_percent" type="number" step="0.01" min="0" className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              Fuente de preferencia
+              <input name="preferential_duty_source" type="text" placeholder="Tratado, regla y fuente oficial" className="rounded border border-neutral-300 px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900" />
             </label>
             <label className="flex flex-col gap-1 text-sm">
               Flete (opcional)
