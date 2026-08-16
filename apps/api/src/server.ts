@@ -8,7 +8,10 @@ function applyProductionMigrations() {
   execFileSync(packageManager, ['--filter', '@platform/db', 'prisma:deploy'], {
     cwd: process.cwd(),
     stdio: 'inherit',
-    env: { ...process.env, DIRECT_URL: process.env.DIRECT_URL ?? process.env.DATABASE_URL },
+    // Render/Supabase may expose an old direct connection in DIRECT_URL that
+    // is not reachable from the hosting network. Production migrations must
+    // use the verified DATABASE_URL pooler endpoint instead.
+    env: { ...process.env, DIRECT_URL: process.env.DATABASE_URL },
   });
 }
 
