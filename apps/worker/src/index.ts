@@ -8,7 +8,7 @@ import {
   ensureIngestionJobs,
   failIngestionJob,
 } from '@platform/db';
-import { runClassificationAnalysis } from './classificationAnalysis.js';
+import { recoverClassificationAnalysisFailure, runClassificationAnalysis } from './classificationAnalysis.js';
 import { runRegulatoryIngestion } from './regulatoryIngestion.js';
 import { runJurisprudenceIngestion } from './jurisprudenceIngestion.js';
 
@@ -41,6 +41,15 @@ async function processOneClassificationJob() {
       result,
     });
   } catch (error) {
+    try {
+      await recoverClassificationAnalysisFailure(event, error, job.attempts);
+    } catch (recoveryError) {
+      console.error('classification case recovery failed', {
+        jobId: job.id,
+        caseId: event.payload.case_id,
+        message: recoveryError instanceof Error ? recoveryError.message : String(recoveryError),
+      });
+    }
     await failClassificationJob(job.id, error, job.attempts);
     console.error('classification postgres job failed', {
       jobId: job.id,

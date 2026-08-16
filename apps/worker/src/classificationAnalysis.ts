@@ -96,6 +96,45 @@ export async function runClassificationAnalysis(
   return { status: finalStatus as 'APPROVED' | 'NEEDS_REVIEW', candidateCount: rankedCandidates.length };
 }
 
+/**
+ * Evita que un fallo posterior al cambio a IN_ANALYSIS deje el expediente
+ * bloqueado. Los primeros fallos regresan a INTAKE para permitir el reintento
+ * de la cola; el ultimo intento deja una razon visible para intervencion.
+ */
+export async function recoverClassificationAnalysisFailure(
+  event: ClassificationAnalysisEvent,
+  error: unknown,
+  attempts: number,
+  dependencies: { db: typeof db } = { db },
+) {
+  const database = scopeToOrganization(dependencies.db, event.organization_id);
+  const retryable = attempts < 3;
+  const reason = error instanceof Error ? error.message : String(error);
+  const status = retryable ? 'INTAKE' : 'NEEDS_INFORMATION';
+  const current = await database.classificationCase.findFirst({
+    where: { id: event.payload.case_id, organizationId: event.organization_id, status: 'IN_ANALYSIS' },
+  });
+  if (!current) return { status: 'IGNORED' as const };
+
+  await database.classificationCase.update({
+    where: { id: current.id },
+    data: { status, assumptions: { analysis_blocker: reason.slice(0, 1000), retryable, attempts } },
+  });
+  await database.auditEvent.create({
+    data: {
+      organizationId: event.organization_id,
+      actorId: event.actor_id,
+      action: 'classification.analysis.failed',
+      entityType: 'ClassificationCase',
+      entityId: current.id,
+      before: { status: 'IN_ANALYSIS' },
+      after: { status, retryable, attempts, reason: reason.slice(0, 1000), sourceEventId: event.event_id },
+      traceId: event.trace_id,
+    },
+  });
+  return { status, retryable } as const;
+}
+
 function selectProductVersion(versions: Array<{ id: string; description: string; attributes: unknown }>, requestedId?: string) {
   if (requestedId) return versions.find((version) => version.id === requestedId);
   return versions[0];

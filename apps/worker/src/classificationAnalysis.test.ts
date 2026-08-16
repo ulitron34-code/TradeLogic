@@ -7,7 +7,7 @@ vi.hoisted(() => {
   for (const [key, value] of Object.entries(values)) process.env[key] ??= value;
 });
 
-import { runClassificationAnalysis } from './classificationAnalysis.js';
+import { recoverClassificationAnalysisFailure, runClassificationAnalysis } from './classificationAnalysis.js';
 
 const event = { event_id: 'evt-1', organization_id: 'org-1', actor_id: 'user-1', trace_id: 'trace-1', payload: { case_id: 'case-1', product_id: 'product-1' } };
 
@@ -53,5 +53,20 @@ describe('classification analysis worker', () => {
     expect(result).toEqual({ status: 'NEEDS_INFORMATION' });
     expect(state.updates.at(-1)).toMatchObject({ status: 'NEEDS_INFORMATION', assumptions: { analysis_blocker: expect.stringContaining('No product version') } });
     expect(state.audits.at(-1).action).toBe('classification.analysis.needs_information');
+  });
+
+  it('returns a failed analysis to intake while retries remain', async () => {
+    const state = makeDb();
+    const result = await recoverClassificationAnalysisFailure(event, new Error('temporary AI outage'), 1, { db: state.db });
+    expect(result).toEqual({ status: 'INTAKE', retryable: true });
+    expect(state.updates.at(-1)).toMatchObject({ status: 'INTAKE', assumptions: { retryable: true, attempts: 1 } });
+    expect(state.audits.at(-1)).toMatchObject({ action: 'classification.analysis.failed', after: { status: 'INTAKE', retryable: true } });
+  });
+
+  it('leaves a visible blocker after the final failed attempt', async () => {
+    const state = makeDb();
+    const result = await recoverClassificationAnalysisFailure(event, 'permanent failure', 3, { db: state.db });
+    expect(result).toEqual({ status: 'NEEDS_INFORMATION', retryable: false });
+    expect(state.updates.at(-1)).toMatchObject({ status: 'NEEDS_INFORMATION', assumptions: { retryable: false, attempts: 3 } });
   });
 });
