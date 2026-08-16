@@ -76,16 +76,16 @@ export async function failClassificationJob(id: string, error: unknown, attempts
 }
 
 export async function getClassificationDatabaseSnapshot(eventIds?: string[], organizationId?: string, client: QueueClient = db) {
-  const where = {
-    ...(organizationId ? { organizationId } : {}),
-    ...(eventIds?.length ? { eventId: { in: eventIds.slice(0, 10) } } : {}),
-  };
-  const scopedWhere = Object.keys(where).length > 0 ? where : undefined;
+  const eventWhere = eventIds?.length ? { eventId: { in: eventIds.slice(0, 10) } } : {};
   const [groups, jobs] = await Promise.all([
-    client.classificationJob.groupBy({ by: ['status'], where: organizationId ? { organizationId } : undefined, _count: { _all: true } }),
-    client.classificationJob.findMany({ where: scopedWhere, orderBy: { createdAt: 'desc' }, take: 10 }),
+    organizationId
+      ? client.classificationJob.groupBy({ by: ['status'], where: { organizationId }, _count: { _all: true } })
+      : client.classificationJob.groupBy({ by: ['status'], _count: { _all: true } }),
+    organizationId
+      ? client.classificationJob.findMany({ where: { organizationId, ...eventWhere }, orderBy: { createdAt: 'desc' }, take: 10 })
+      : client.classificationJob.findMany({ where: eventWhere, orderBy: { createdAt: 'desc' }, take: 10 }),
   ]);
-  const counts = Object.fromEntries(groups.map((group) => [group.status.toLowerCase(), group._count._all]));
+  const counts = Object.fromEntries(groups.map((group) => [group.status.toLowerCase(), typeof group._count === 'object' && group._count ? group._count._all ?? 0 : 0]));
   return {
     name: 'classification-postgres',
     isPaused: false,
