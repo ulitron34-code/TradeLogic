@@ -13,6 +13,9 @@ Fecha de corte: 16 de agosto de 2026.
   autoridades mapeadas.
 - `79820d61`: locks huérfanos agotados de clasificacion e ingesta pasan a un
   estado visible de fallo en lugar de quedar activos indefinidamente.
+- `584f7af3`: las reglas de origen admiten tasa preferencial versionada y
+  unidad (`PERCENT`, `EXEMPT`, `QUOTA`, `CONDITIONAL`); el costo usa la tasa
+  catalogada sólo con origen elegible y mantiene fuente y versión.
 - CI verde mas reciente: `31977327952`.
 - Vercel responde HTTP 200. Render aun sirve `0fe51e0`; `/ready` devuelve
   HTTP 503 por migraciones pendientes, por lo que la promocion externa sigue
