@@ -4,7 +4,7 @@ export type OfficialSourceDefinition = { authority: OfficialSourceAuthority; key
 /** Entry points only. Records still require a source version and effective dates. */
 export const OFFICIAL_SOURCE_DEFINITIONS: readonly OfficialSourceDefinition[] = [
   { authority: 'SNICE', key: 'tigie-compendium', title: 'Compendio de Regulaciones de la TIGIE', url: 'https://www.snice.gob.mx/cs/avi/snice/mca.html', scope: 'REGULATORY_CATALOG' },
-  { authority: 'SNICE', key: 'nom-catalog', title: 'NOM y Anexo 2.4.1', url: 'https://www.snice.gob.mx/cs/avi/snice/drrnas.noms.acercade.html', scope: 'REGULATORY_CATALOG' },
+  { authority: 'SNICE', key: 'nom-catalog', title: 'NOM y Anexo 2.4.1', url: 'https://www.snice.gob.mx/cs/avi/snice/seguridad.normatividad.html', scope: 'REGULATORY_CATALOG' },
   { authority: 'SNICE', key: 'origin-calculator', title: 'Calculadora de Origen T-MEC', url: 'https://www.snice.gob.mx/cs/avi/snice/hce.calc.origen2020.html', scope: 'ORIGIN_RULES' },
   { authority: 'SNICE', key: 'origin-agreements', title: 'Tratados y reglas de origen', url: 'https://www.snice.gob.mx/cs/avi/snice/drrnas.origen.acercade.html', scope: 'ORIGIN_RULES' },
   { authority: 'COFEPRIS', key: 'sanitary-import-permit', title: 'Permiso sanitario de importación', url: 'https://www.gob.mx/cofepris/acciones-y-programas/permiso-sanitario-de-importacion-de-productos-y-servicios-tramites', scope: 'PROCEDURE' },
