@@ -115,10 +115,13 @@ export async function recoverClassificationAnalysisFailure(
     where: { id: event.payload.case_id, organizationId: event.organization_id, status: 'IN_ANALYSIS' },
   });
   if (!current) return { status: 'IGNORED' as const };
+  const assumptions = current.assumptions && typeof current.assumptions === 'object' && !Array.isArray(current.assumptions)
+    ? current.assumptions as Record<string, unknown>
+    : {};
 
   await database.classificationCase.update({
     where: { id: current.id },
-    data: { status, assumptions: { analysis_blocker: reason.slice(0, 1000), retryable, attempts } },
+    data: { status, assumptions: { ...assumptions, analysis_blocker: reason.slice(0, 1000), retryable, attempts } },
   });
   await database.auditEvent.create({
     data: {
