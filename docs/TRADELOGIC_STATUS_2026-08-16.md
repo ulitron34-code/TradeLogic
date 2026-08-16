@@ -39,6 +39,7 @@ La API considera listo el servicio solo cuando están aplicadas:
 2. `10_add_origin_rule_catalog`
 3. `11_add_new_table_rls`
 4. `12_add_case_review_requests`
+5. `13_add_preferential_origin_rate`
 
 ## Comandos de carga controlada
 

@@ -128,7 +128,7 @@ const classificationQueueQuery = z.object({ caseId: z.string().uuid().optional()
 const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
 const TARIFF_CATALOG_EXPECTED_ROWS = 20227;
 const TARIFF_CATALOG_SOURCE_VERSIONS = ['SNICE-LIGIE-BASE-2021-11-19', 'SNICE-TIGIE-MOD-ABRIL-2026'];
-const REQUIRED_PRODUCTION_MIGRATIONS = ['9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls', '12_add_case_review_requests'] as const;
+const REQUIRED_PRODUCTION_MIGRATIONS = ['9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls', '12_add_case_review_requests', '13_add_preferential_origin_rate'] as const;
 
 
 const presignDocumentBody = z.object({
@@ -161,7 +161,7 @@ async function defaultCheckProductionMigrations(database: typeof defaultDb) {
     SELECT migration_name
     FROM "_prisma_migrations"
     WHERE finished_at IS NOT NULL
-      AND migration_name IN ('9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls', '12_add_case_review_requests')
+      AND migration_name IN ('9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls', '12_add_case_review_requests', '13_add_preferential_origin_rate')
   `;
   const applied = new Set(rows.map(row => row.migration_name));
   return REQUIRED_PRODUCTION_MIGRATIONS.filter(migration => !applied.has(migration));
