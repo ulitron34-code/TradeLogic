@@ -264,18 +264,33 @@ function intakeRows(intake: Intake | undefined): Array<{ label: string; value: s
   ].filter((row) => row.value.trim().length > 0);
 }
 
+function treatyRoute(origin: string | null | undefined) {
+  const normalized = origin?.trim().toLowerCase() ?? '';
+  if (!normalized) return { status: 'Falta origen', detail: 'Captura el país de origen para revisar el tratado, la regla de origen y la prueba documental aplicable.' };
+  if (['estados unidos', 'united states', 'usa', 'us', 'canada', 'canadá'].includes(normalized)) {
+    return { status: 'Ruta preliminar: T-MEC', detail: `El origen ${origin} permite iniciar la revisión T-MEC; todavía deben validarse fracción, regla de origen y certificación.` };
+  }
+  const europeanUnion = ['alemania', 'austria', 'bélgica', 'belgica', 'españa', 'espana', 'francia', 'italia', 'países bajos', 'paises bajos', 'polonia', 'portugal', 'irlanda'];
+  if (europeanUnion.includes(normalized)) {
+    return { status: 'Ruta preliminar: TLCUEM', detail: `El origen ${origin} permite iniciar la revisión TLCUEM; todavía deben validarse fracción, regla de origen y prueba documental.` };
+  }
+  return { status: 'Tratado por consultar', detail: `Origen capturado: ${origin}. El expediente debe consultar el acuerdo aplicable y su regla de origen antes de aplicar preferencia.` };
+}
+
 function buildResultBlocks({
   classificationCase,
   costScenarios,
   pendingQuestions,
+  jurisprudenceCount,
 }: {
   classificationCase: ClassificationCaseDetail;
   costScenarios: CostScenario[];
   pendingQuestions: string[];
+  jurisprudenceCount: number;
 }): ResultBlock[] {
   const topCandidate = classificationCase.candidates[0];
   const requirements = classificationCase.candidates.flatMap((candidate) => candidate.tariffCode.regulatoryRequirements);
-  const treatyPending = classificationCase.assumptions?.intake?.originCountry ? 'Origen capturado; falta evaluar tratado y prueba documental.' : 'Falta país de origen para evaluar tratado o preferencia.';
+  const treatyPending = treatyRoute(classificationCase.assumptions?.intake?.originCountry);
   return [
     {
       title: 'Clasificación',
@@ -288,14 +303,19 @@ function buildResultBlocks({
       detail: topCandidate ? 'Fuente, vigencia, notas legales y jurisprudencia se muestran en esta misma página.' : 'Se integrará con LIGIE/TIGIE, notas y fuentes cuando haya candidato.',
     },
     {
+      title: 'Jurisprudencia',
+      status: jurisprudenceCount > 0 ? `${jurisprudenceCount} antecedente(s)` : 'Sin coincidencias',
+      detail: jurisprudenceCount > 0 ? 'Antecedentes del SJF ligados al expediente, con IUS, rubro, relevancia y fuente verificable.' : 'La búsqueda no encontró antecedentes ligados todavía; no se presenta como ausencia definitiva de criterio judicial.',
+    },
+    {
       title: 'Regulaciones',
       status: requirements.length > 0 ? `${requirements.length} requisito(s)` : 'Sin confirmar',
       detail: requirements.length > 0 ? 'Hay requisitos ligados a los candidatos; revisar autoridad, vigencia y fuente.' : 'No se encontraron requisitos cargados para los candidatos o aún falta análisis.',
     },
     {
       title: 'Tratados y origen',
-      status: classificationCase.assumptions?.intake?.originCountry ? 'Por evaluar' : 'Falta origen',
-      detail: treatyPending,
+      status: treatyPending.status,
+      detail: treatyPending.detail,
     },
     {
       title: 'Costo',
@@ -421,7 +441,8 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
   const intake = classificationCase.assumptions?.intake;
   const pendingQuestions = classificationCase.assumptions?.pendingQuestions ?? [];
   const topCandidate = classificationCase.candidates[0];
-  const resultBlocks = buildResultBlocks({ classificationCase, costScenarios, pendingQuestions });
+  const treaty = treatyRoute(intake?.originCountry);
+  const resultBlocks = buildResultBlocks({ classificationCase, costScenarios, pendingQuestions, jurisprudenceCount: classificationCase.jurisprudence.length });
   const preShipmentChecks = buildPreShipmentChecks({ classificationCase, intake, topCandidate, costScenarios, pendingQuestions });
   const readyChecks = preShipmentChecks.filter((check) => check.state === 'ready').length;
   const regulatorySources = Array.from(
@@ -493,7 +514,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
               <p className="text-xs font-semibold uppercase tracking-wide opacity-70">Diagnóstico de cola</p>
               <h2 className="mt-1 text-lg font-semibold">{queueSnapshot.name}</h2>
               <p className="mt-1 text-sm opacity-80">
-                Úsalo si el caso permanece en cola: confirma si Redis recibió el job, si el worker lo tomó o si falló.
+                Úsalo si el caso permanece en cola: confirma si la cola PostgreSQL recibió el trabajo, si el worker lo tomó o si falló.
               </p>
             </div>
             <span className="rounded bg-white/70 px-3 py-1 text-sm font-medium dark:bg-black/20">
@@ -707,11 +728,8 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
           <section className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
             <h2 className="font-semibold">Tratados y origen</h2>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-              {intake?.originCountry
-                ? `Origen capturado: ${intake.originCountry}. Falta validar regla de origen, certificado o prueba aplicable.`
-                : 'Falta capturar país de origen para evaluar T-MEC u otra preferencia.'}
-            </p>
+            <p className="mt-2 text-sm font-medium text-neutral-800 dark:text-neutral-200">{treaty.status}</p>
+            <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{treaty.detail}</p>
             <p className="mt-2 text-xs text-neutral-500">No se debe aplicar preferencia sin evidencia documental y fuente vigente.</p>
           </section>
 
@@ -795,7 +813,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
             <h2 className="font-semibold">Preparación para piloto y auditoría</h2>
             <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">El expediente conserva evidencia, decisiones y trazas. El piloto debe validar exactitud contra expedientes históricos reales.</p>
           </div>
-          <Link href="/audits" className="text-sm font-medium text-blue-700 underline dark:text-blue-300">Abrir auditorÃ­a histÃ³rica</Link>
+          <Link href="/audits" className="text-sm font-medium text-blue-700 underline dark:text-blue-300">Abrir auditoría histórica</Link>
         </div>
         <div className="mt-4 grid gap-2 text-sm md:grid-cols-3">
           <div className="rounded bg-neutral-50 p-3 dark:bg-neutral-900"><span className="font-medium">Evidencia</span><p className="mt-1 text-xs text-neutral-500">{classificationCase.evidence?.length ?? 0} documento(s) ligado(s).</p></div>

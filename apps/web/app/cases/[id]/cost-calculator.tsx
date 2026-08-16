@@ -59,6 +59,9 @@ export function CostCalculator({
   const [open, setOpen] = useState(initialScenarios.length === 0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const totals = scenarios.map((scenario) => scenario.outputs.totalLandedCost);
+  const lowestTotal = totals.length > 1 ? Math.min(...totals) : null;
+  const highestTotal = totals.length > 1 ? Math.max(...totals) : null;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,6 +99,16 @@ export function CostCalculator({
 
   return (
     <div className="flex flex-col gap-4">
+      {lowestTotal !== null && highestTotal !== null ? (
+        <div className="rounded border border-blue-200 bg-blue-50 p-3 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/25 dark:text-blue-100">
+          <p className="font-medium">Comparación de escenarios</p>
+          <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+            <div><span className="block opacity-70">Menor costo total</span><span className="font-semibold">{formatCurrency(lowestTotal, scenarios[0].currency)}</span></div>
+            <div><span className="block opacity-70">Diferencia máxima</span><span className="font-semibold">{formatCurrency(highestTotal - lowestTotal, scenarios[0].currency)}</span></div>
+          </div>
+          <p className="mt-2 text-xs opacity-75">La diferencia es orientativa y depende de los supuestos capturados, la tasa documentada y los gastos incluidos.</p>
+        </div>
+      ) : null}
       {scenarios.length > 0 ? (
         <ul className="flex flex-col gap-2">
           {scenarios.map((scenario) => (
