@@ -26,6 +26,7 @@ export type RegulatoryCatalogValidation = {
   records: NormalizedRegulatoryCatalogRecord[];
   errors: string[];
 };
+export type RegulatoryCatalogValidationOptions = { requireOfficialSource?: boolean };
 
 export type RegulatoryCatalogCsvOptions = { sourceVersion: string; sourceUrl?: string; defaultValidFrom?: string | Date };
 
@@ -62,13 +63,13 @@ export function parseRegulatoryCatalogCsv(csv: string, options: RegulatoryCatalo
  * source URL, version and effective window are mandatory so a catalog can
  * be audited and expired without silently replacing a prior rule.
  */
-export function validateRegulatoryCatalog(input: unknown): RegulatoryCatalogValidation {
+export function validateRegulatoryCatalog(input: unknown, options: RegulatoryCatalogValidationOptions = {}): RegulatoryCatalogValidation {
   if (!Array.isArray(input)) return { records: [], errors: ['Catalog must be an array.'] };
   const records: NormalizedRegulatoryCatalogRecord[] = [];
   const errors: string[] = [];
   const seen = new Set<string>();
   input.forEach((raw, index) => {
-    const result = normalizeRecord(raw);
+    const result = normalizeRecord(raw, options);
     if ('error' in result) {
       errors.push(`Record ${index + 1}: ${result.error}`);
       return;
@@ -106,7 +107,7 @@ export function regulatoryCatalogKey(record: Pick<NormalizedRegulatoryCatalogRec
   return [record.tariffCode, record.authority, record.requirementType, record.title, record.validFrom.toISOString()].join('|');
 }
 
-function normalizeRecord(raw: unknown): { record: NormalizedRegulatoryCatalogRecord } | { error: string } {
+function normalizeRecord(raw: unknown, options: RegulatoryCatalogValidationOptions = {}): { record: NormalizedRegulatoryCatalogRecord } | { error: string } {
   if (!raw || typeof raw !== 'object') return { error: 'record must be an object.' };
   const value = raw as Record<string, unknown>;
   const tariffCode = String(value.tariffCode ?? '').trim();
@@ -125,6 +126,7 @@ function normalizeRecord(raw: unknown): { record: NormalizedRegulatoryCatalogRec
   if (!requirementType) return { error: 'requirementType is required.' };
   if (!title) return { error: 'title is required.' };
   if (!isHttpUrl(sourceUrl)) return { error: 'sourceUrl must be an http(s) URL.' };
+  if (options.requireOfficialSource && !isOfficialMexicanSourceUrl(sourceUrl)) return { error: 'sourceUrl must belong to an official Mexican government domain (*.gob.mx).' };
   if (!sourceVersion) return { error: 'sourceVersion is required.' };
   if (!validFrom) return { error: 'validFrom must be a valid date.' };
   if (value.validTo !== undefined && value.validTo !== null && value.validTo !== '' && !validTo) return { error: 'validTo must be a valid date.' };
@@ -146,6 +148,15 @@ function isHttpUrl(value: string): boolean {
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export function isOfficialMexicanSourceUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return hostname === 'gob.mx' || hostname.endsWith('.gob.mx');
   } catch {
     return false;
   }

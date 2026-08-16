@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseRegulatoryCatalogCsv, regulatoryCatalogKey, validateRegulatoryCatalog } from './regulatoryCatalog.js';
+import { isOfficialMexicanSourceUrl, parseRegulatoryCatalogCsv, regulatoryCatalogKey, validateRegulatoryCatalog } from './regulatoryCatalog.js';
 
 const base = {
   tariffCode: '3926.90.99', authority: 'COFEPRIS', requirementType: 'PERMIT', title: 'Aviso sanitario',
@@ -26,6 +26,11 @@ describe('regulatory catalog validation', () => {
     const result = validateRegulatoryCatalog([{ ...base, mandatory: 'yes' }]);
     expect(result.records).toHaveLength(0);
     expect(result.errors[0]).toContain('mandatory must be boolean');
+  });
+  it('supports strict official-source validation for production imports', () => {
+    expect(isOfficialMexicanSourceUrl('https://www.snice.gob.mx/catalogo.xlsx')).toBe(true);
+    expect(isOfficialMexicanSourceUrl('https://example.test/catalogo.csv')).toBe(false);
+    expect(validateRegulatoryCatalog([{ ...base, sourceUrl: 'https://example.test/catalogo.csv' }], { requireOfficialSource: true }).errors[0]).toContain('official Mexican government domain');
   });
   it('parses official-style Spanish CSV columns without inventing source metadata', () => {
     const parsed = parseRegulatoryCatalogCsv('Fracción arancelaria,Autoridad,Tipo,Requisito,Fuente,Versión,Vigencia desde,Obligatorio\n3926.90.99,COFEPRIS,PERMIT,Aviso sanitario,https://www.gob.mx/cofepris,2026.1,2026-01-01,Si', { sourceVersion: 'fallback', sourceUrl: 'https://example.test' });

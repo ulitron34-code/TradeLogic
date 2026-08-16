@@ -36,7 +36,7 @@ if (!['http:', 'https:'].includes(sourceUrl.protocol)) throw new Error('--source
 const inputPath = path.resolve(options.input);
 const csv = await readFile(inputPath, 'utf8');
 const rawRecords = parseRegulatoryCatalogCsv(csv, { sourceVersion: options.sourceVersion, sourceUrl: options.sourceUrl });
-const validation = validateRegulatoryCatalog(rawRecords);
+const validation = validateRegulatoryCatalog(rawRecords, { requireOfficialSource: true });
 const result: Record<string, unknown> = {
   status: validation.errors.length === 0 ? 'valid' : 'invalid',
   mode: options.apply ? 'apply' : 'dry-run',
