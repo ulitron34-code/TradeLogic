@@ -299,6 +299,8 @@ model OriginRuleCatalog {
   type String
   thresholdPercent Decimal? @db.Decimal(8,4)
   requiredProcess String?
+  preferentialRatePercent Decimal? @db.Decimal(8,4)
+  preferentialRateUnit String?
   sourceUrl String
   sourceVersion String
   validFrom DateTime

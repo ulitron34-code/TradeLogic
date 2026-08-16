@@ -1224,6 +1224,12 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const originAssessment = assumptions.originAssessment && typeof assumptions.originAssessment === 'object' && !Array.isArray(assumptions.originAssessment) ? assumptions.originAssessment as Record<string, unknown> : null;
     const originResult = originAssessment?.result && typeof originAssessment.result === 'object' && !Array.isArray(originAssessment.result) ? originAssessment.result as Record<string, unknown> : null;
     if (body.use_preferential_rate) {
+      const catalogRuleId = typeof originAssessment?.catalogRuleId === 'string' ? originAssessment.catalogRuleId : null;
+      const originRule = catalogRuleId ? await scopedDb.originRuleCatalog.findFirst({ where: { id: catalogRuleId } }) : null;
+      if (originRule?.preferentialRateUnit === 'PERCENT' && originRule.preferentialRatePercent !== null) {
+        body.preferential_duty_rate_percent = Number(originRule.preferentialRatePercent);
+        body.preferential_duty_source = `${originRule.agreement}:${originRule.sourceVersion}:${originRule.sourceUrl}`;
+      }
       if (originResult?.status !== 'ELIGIBLE') return reply.code(422).send({ code: 'PREFERENTIAL_ORIGIN_NOT_CONFIRMED', message: 'La preferencia requiere una evaluación de origen elegible y evidencia documentada.' });
       if (body.preferential_duty_rate_percent === undefined || !body.preferential_duty_source) return reply.code(422).send({ code: 'PREFERENTIAL_RATE_SOURCE_REQUIRED', message: 'Captura la tasa preferencial y su fundamento oficial.' });
       dutyRatePercent = body.preferential_duty_rate_percent;

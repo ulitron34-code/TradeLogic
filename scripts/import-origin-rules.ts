@@ -65,7 +65,12 @@ const records: OriginRuleCatalogPersistenceRecord[] = csvRows.map((row, index) =
   const threshold = row.thresholdpercent || row.umbral || '';
   const thresholdPercent = threshold === '' ? null : Number(threshold);
   if (thresholdPercent !== null && (!Number.isFinite(thresholdPercent) || thresholdPercent < 0 || thresholdPercent > 100)) throw new Error(`Fila ${line}: thresholdPercent debe estar entre 0 y 100.`);
-  return { agreement, tariffCode, type, thresholdPercent, requiredProcess: row.requiredprocess || row.proceso || null, sourceUrl: source, sourceVersion, validFrom: date(row.validfrom || row.vigenciadesde, 'validFrom', line), validTo: row.validto || row.vigenciahasta ? date(row.validto || row.vigenciahasta, 'validTo', line) : null };
+  const preferentialRate = row.preferentialratepercent || row.tasapreferencial || row.tasapreferencialporcentaje || '';
+  const preferentialRatePercent = preferentialRate === '' ? null : Number(preferentialRate);
+  if (preferentialRatePercent !== null && (!Number.isFinite(preferentialRatePercent) || preferentialRatePercent < 0 || preferentialRatePercent > 100)) throw new Error(`Fila ${line}: preferentialRatePercent debe estar entre 0 y 100.`);
+  const preferentialRateUnit = (row.preferentialrateunit || row.unidadtasapreferencial || '').toUpperCase() || null;
+  if (preferentialRateUnit !== null && !['PERCENT', 'EXEMPT', 'QUOTA', 'CONDITIONAL'].includes(preferentialRateUnit)) throw new Error(`Fila ${line}: preferentialRateUnit debe ser PERCENT, EXEMPT, QUOTA o CONDITIONAL.`);
+  return { agreement, tariffCode, type, thresholdPercent, requiredProcess: row.requiredprocess || row.proceso || null, preferentialRatePercent, preferentialRateUnit: preferentialRateUnit as 'PERCENT' | 'EXEMPT' | 'QUOTA' | 'CONDITIONAL' | null, sourceUrl: source, sourceVersion, validFrom: date(row.validfrom || row.vigenciadesde, 'validFrom', line), validTo: row.validto || row.vigenciahasta ? date(row.validto || row.vigenciahasta, 'validTo', line) : null };
 });
 const result: Record<string, unknown> = { status: 'valid', mode: options.apply ? 'apply' : 'dry-run', input: inputPath, records: records.length, sourceVersion: options.sourceVersion, sourceUrl: options.sourceUrl };
 if (!options.apply) { console.log(JSON.stringify(result, null, 2)); process.exit(0); }

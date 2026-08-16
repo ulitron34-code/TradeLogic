@@ -6,6 +6,8 @@ export type OriginRuleCatalogPersistenceRecord = {
   type: 'CTC' | 'RVC' | 'PROCESS';
   thresholdPercent?: number | null;
   requiredProcess?: string | null;
+  preferentialRatePercent?: number | null;
+  preferentialRateUnit?: 'PERCENT' | 'EXEMPT' | 'QUOTA' | 'CONDITIONAL' | null;
   sourceUrl: string;
   sourceVersion: string;
   validFrom: Date;
@@ -18,7 +20,7 @@ export async function upsertOriginRuleCatalog(client: PrismaClient, records: Ori
     let updated = 0;
     for (const record of records) {
       const where = { agreement_tariffCode_type_sourceVersion_validFrom: { agreement: record.agreement, tariffCode: record.tariffCode, type: record.type, sourceVersion: record.sourceVersion, validFrom: record.validFrom } };
-      const data = { ...record, thresholdPercent: record.thresholdPercent ?? null, requiredProcess: record.requiredProcess ?? null, validTo: record.validTo ?? null };
+      const data = { ...record, thresholdPercent: record.thresholdPercent ?? null, requiredProcess: record.requiredProcess ?? null, preferentialRatePercent: record.preferentialRatePercent ?? null, preferentialRateUnit: record.preferentialRateUnit ?? null, validTo: record.validTo ?? null };
       const existing = await transaction.originRuleCatalog.findUnique({ where, select: { id: true } });
       if (existing) {
         await transaction.originRuleCatalog.update({ where: { id: existing.id }, data });
