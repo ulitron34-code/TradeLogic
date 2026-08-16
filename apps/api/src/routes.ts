@@ -107,6 +107,10 @@ const originAssessmentBody = z.object({
   source_url: z.string().url().default('https://www.snice.gob.mx/cs/avi/snice/hce.calc.origen2020.html'),
   source_version: z.string().min(1).max(100).default('SNICE-TMEC-Origen-2026'),
 });
+const originRulesQuery = z.object({
+  agreement: z.string().trim().min(1).max(80),
+  tariff_code: z.string().trim().regex(/^\d{4}\.\d{2}\.\d{2}$/),
+});
 
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
@@ -833,6 +837,18 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       },
     }, scopedDb);
     return reply.code(202).send(response);
+  });
+
+  app.get('/api/v1/origin-rules', async (request) => {
+    const { organization } = await resolveContext(request, db);
+    const query = originRulesQuery.parse(request.query);
+    const now = new Date();
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const rules = await scopedDb.originRuleCatalog.findMany({
+      where: { agreement: query.agreement, tariffCode: query.tariff_code, validFrom: { lte: now }, OR: [{ validTo: null }, { validTo: { gt: now } }] },
+      orderBy: [{ sourceVersion: 'desc' }, { type: 'asc' }],
+    });
+    return { data: rules, disclaimer: 'Las reglas deben validarse contra la fuente oficial y la documentación del caso antes de aplicar una preferencia.' };
   });
 
   app.post('/api/v1/classification-cases/:caseId/origin-assessment', async (request, reply) => {

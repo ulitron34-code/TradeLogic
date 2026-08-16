@@ -280,6 +280,23 @@ model RegulatoryRequirement {
   @@unique([tariffCodeId, requirementType, title, validFrom])
   @@index([authority, requirementType, validFrom])
 }
+
+model OriginRuleCatalog {
+  id String @id @default(uuid()) @db.Uuid
+  agreement String
+  tariffCode String
+  type String
+  thresholdPercent Decimal? @db.Decimal(8,4)
+  requiredProcess String?
+  sourceUrl String
+  sourceVersion String
+  validFrom DateTime
+  validTo DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([agreement, tariffCode, type, sourceVersion, validFrom])
+  @@index([agreement, tariffCode, validFrom])
+}
 model ClassificationCandidate {
   id String @id @default(uuid()) @db.Uuid
   caseId String @db.Uuid
