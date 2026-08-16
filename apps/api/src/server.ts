@@ -8,7 +8,7 @@ function applyProductionMigrations() {
   execFileSync(packageManager, ['--filter', '@platform/db', 'prisma:deploy'], {
     cwd: process.cwd(),
     stdio: 'inherit',
-    env: process.env,
+    env: { ...process.env, DIRECT_URL: process.env.DIRECT_URL ?? process.env.DATABASE_URL },
   });
 }
 

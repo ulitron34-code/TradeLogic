@@ -10,8 +10,8 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_RENDER_DASHBOARD = 'https://dashboard.render.com/web/srv-d9rvfk8n74is73fl9bt0';
 const EXPECTED_RENDER_WEB_SETTINGS = {
   buildCommand: 'pnpm install --frozen-lockfile --prod=false && pnpm --filter @platform/api... build',
-  preDeployCommand: 'pnpm --filter @platform/db prisma:deploy',
-  startCommand: 'pnpm --filter @platform/db prisma:deploy && node apps/api/dist/server.js',
+  preDeployCommand: 'DIRECT_URL="$DATABASE_URL" pnpm --filter @platform/db prisma:deploy',
+  startCommand: 'DIRECT_URL="$DATABASE_URL" pnpm --filter @platform/db prisma:deploy && node apps/api/dist/server.js',
   healthCheckPath: '/health',
 };
 
@@ -182,7 +182,7 @@ function summarize({ checks, expectedCommit, renderDashboardUrl, renderBlueprint
       nextActions: [
         `Open Render deploy logs: ${renderDashboardUrl}`,
         'Check runtime logs for the latest deploy, not only build logs.',
-        'In Settings -> Build & Deploy, ensure the web service Start Command is exactly: pnpm --filter @platform/db prisma:deploy && node apps/api/dist/server.js',
+        'In Settings -> Build & Deploy, ensure the web service Start Command is exactly: DIRECT_URL="$DATABASE_URL" pnpm --filter @platform/db prisma:deploy && node apps/api/dist/server.js',
         'Keep tariff:import out of the web service start command; run the catalog import as a controlled post-deploy operation.',
         'Run Manual Deploy -> Deploy latest commit, then rerun this diagnosis with --expected-commit.',
       ],
