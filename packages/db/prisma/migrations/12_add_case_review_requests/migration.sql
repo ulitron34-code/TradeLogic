@@ -24,9 +24,6 @@ ALTER TABLE "CaseReviewRequest" ADD CONSTRAINT "CaseReviewRequest_caseId_fkey" F
 ALTER TABLE "CaseReviewRequest" ADD CONSTRAINT "CaseReviewRequest_requestedById_fkey" FOREIGN KEY ("requestedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "CaseReviewRequest" ADD CONSTRAINT "CaseReviewRequest_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
-CREATE OR REPLACE FUNCTION app_current_org_id() RETURNS uuid AS $$
-  SELECT NULLIF(current_setting('app.current_org_id', true), '')::uuid
-$$ LANGUAGE sql STABLE;
 ALTER TABLE "CaseReviewRequest" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "CaseReviewRequest" FORCE ROW LEVEL SECURITY;
 CREATE POLICY "CaseReviewRequest_org_isolation" ON "CaseReviewRequest"
