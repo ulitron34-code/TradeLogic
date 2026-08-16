@@ -23,3 +23,5 @@ Mantener activas las ingestas oficiales de DOF y jurisprudencia sin pagar ni dep
 ## Alcance y limite actual
 
 Esto corrige la disponibilidad operativa del programador. La validacion de contenido oficial todavia requiere observar una ejecucion real y confirmar que el DOF y el buscador de jurisprudencia responden, que el registro se persiste y que las alertas o referencias muestran la fuente correcta.
+
+El portal web oficial del SJF responde y permite consultar tesis, pero la API JSON publica rechaza actualmente las llamadas servidor-a-servidor de TradeLogic con `Formato invalido`. El cliente ahora conserva los encabezados oficiales y expone un error identificable (`SjfContractUnavailableError`) para que el worker reintente y no guarde datos incompletos. La automatizacion de jurisprudencia no se considera cerrada hasta que la SCJN permita el contrato de consulta o publique una interfaz de integracion estable.

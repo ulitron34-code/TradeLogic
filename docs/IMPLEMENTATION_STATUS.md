@@ -9,9 +9,10 @@
 
 ## Pendiente despues de esta correccion
 
-1. Confirmar en logs de `Trade logic worker` una ejecucion real completada de DOF y otra de jurisprudencia.
-2. Completar smoke autenticado y el recorrido UI/PDF con un caso real.
-3. Calibrar catalogos oficiales, relevancia, deduplicacion y escenarios de tratados con datos piloto.
+1. Confirmar en logs de `Trade logic worker` una ejecucion real completada de DOF.
+2. Resolver con SCJN el contrato de consulta servidor-a-servidor: el portal web funciona, pero la API JSON responde `Formato invalido` a las llamadas de TradeLogic; mientras tanto el worker reintenta y no persiste datos incompletos.
+3. Completar smoke autenticado y el recorrido UI/PDF con un caso real.
+4. Calibrar catalogos oficiales, relevancia, deduplicacion y escenarios de tratados con datos piloto.
 
 Actualizado: 2026-08-14
 

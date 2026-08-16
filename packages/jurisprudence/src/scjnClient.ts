@@ -20,10 +20,22 @@ export type FetchJson = (url: string, init?: { method?: string; body?: string })
 export const defaultFetchJson: FetchJson = async (url, init) => {
   const response = await fetch(url, {
     method: init?.method ?? 'GET',
-    headers: { 'Content-Type': 'application/json', 'User-Agent': 'TradeLogic-jurisprudence-ingestion/1.0' },
+    headers: {
+      Accept: 'application/json, text/plain, */*',
+      'Content-Type': 'application/json',
+      'Accept-Language': 'es-MX,es;q=0.9,en;q=0.8',
+      Origin: SJF_BASE_URL,
+      Referer: `${SJF_BASE_URL}/busqueda-principal-tesis`,
+      'User-Agent': 'TradeLogic-jurisprudence-ingestion/1.1',
+    },
     ...(init?.body ? { body: init.body } : {}),
   });
-  if (!response.ok) throw new Error(`SJF request failed with status ${response.status}`);
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    const error = new Error(`SJF request failed with status ${response.status}: ${body.slice(0, 300)}`);
+    error.name = response.status === 400 || response.status === 403 ? 'SjfContractUnavailableError' : 'SjfRequestError';
+    throw error;
+  }
   return response.json();
 };
 

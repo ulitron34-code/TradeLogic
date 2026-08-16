@@ -8,15 +8,23 @@ import {
   type DofNoteListing,
 } from '@platform/regulatory';
 
-// Alcance del filtro (T-042 acotado, plan de bloque 6): solo secretarias
-// relevantes a aranceles en esta primera vuelta. Ampliable despues a
-// ANAM/SAT/COFEPRIS/SENASICA/SEMARNAT, que ya existen en SourceAuthority.
-const RELEVANT_SECRETARIAS: Array<{ match: string; authority: 'SHCP' | 'SE' }> = [
+// Autoridades relevantes para inteligencia aduanera y restricciones no
+// arancelarias. El DOF publica encabezados con nombres variables, por eso
+// se normalizan y se buscan por fragmentos estables.
+const RELEVANT_SECRETARIAS: Array<{ match: string; authority: 'SHCP' | 'SE' | 'ANAM' | 'COFEPRIS' | 'SENASICA' | 'SEMARNAT' }> = [
   { match: 'HACIENDA', authority: 'SHCP' },
   { match: 'ECONOMIA', authority: 'SE' },
+  { match: 'AGENCIA NACIONAL DE ADUANAS', authority: 'ANAM' },
+  { match: 'ANAM', authority: 'ANAM' },
+  { match: 'COFEPRIS', authority: 'COFEPRIS' },
+  { match: 'SALUD', authority: 'COFEPRIS' },
+  { match: 'SENASICA', authority: 'SENASICA' },
+  { match: 'AGRICULTURA', authority: 'SENASICA' },
+  { match: 'SEMARNAT', authority: 'SEMARNAT' },
+  { match: 'MEDIO AMBIENTE', authority: 'SEMARNAT' },
 ];
 
-function authorityFor(secretaria: string): 'SHCP' | 'SE' | null {
+function authorityFor(secretaria: string): 'SHCP' | 'SE' | 'ANAM' | 'COFEPRIS' | 'SENASICA' | 'SEMARNAT' | null {
   const normalizedSecretaria = secretaria.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
   return RELEVANT_SECRETARIAS.find((entry) => normalizedSecretaria.includes(entry.match))?.authority ?? null;
 }
@@ -46,7 +54,7 @@ export async function runRegulatoryIngestion(
   const listings = await fetchDailyEditions(date);
   const relevant = listings
     .map((listing) => ({ listing, authority: authorityFor(listing.secretaria) }))
-    .filter((entry): entry is { listing: DofNoteListing; authority: 'SHCP' | 'SE' } => entry.authority !== null);
+    .filter((entry): entry is { listing: DofNoteListing; authority: 'SHCP' | 'SE' | 'ANAM' | 'COFEPRIS' | 'SENASICA' | 'SEMARNAT' } => entry.authority !== null);
 
   let ingested = 0;
 

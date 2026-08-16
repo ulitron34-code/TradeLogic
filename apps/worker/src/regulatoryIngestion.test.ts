@@ -73,12 +73,12 @@ describe('regulatory ingestion worker', () => {
       putRawObject: async (object) => { rawObjects.push(object); return { storageKey: object.storageKey }; },
     });
 
-    expect(result).toEqual({ editionsFound: 3, relevantNotes: 2, ingested: 2 });
-    expect(sources).toHaveLength(2);
-    expect(provisions).toHaveLength(2);
-    expect(rawObjects).toHaveLength(2);
-    expect(impacts).toHaveLength(2);
-    expect(alerts).toHaveLength(2);
+    expect(result).toEqual({ editionsFound: 3, relevantNotes: 3, ingested: 3 });
+    expect(sources).toHaveLength(3);
+    expect(provisions).toHaveLength(3);
+    expect(rawObjects).toHaveLength(3);
+    expect(impacts).toHaveLength(3);
+    expect(alerts).toHaveLength(3);
     expect(alerts[0].impact.tariffCode).toBe('8501.10.01');
   });
 

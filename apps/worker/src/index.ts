@@ -55,6 +55,14 @@ async function processOneClassificationJob() {
 function nextRegulatoryRun() { return new Date(Date.now() + REGULATORY_INTERVAL_MS); }
 function nextJurisprudenceRun() { return new Date(Date.now() + JURISPRUDENCE_INTERVAL_MS); }
 
+function todayInMexicoCity() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { year: Number(value.year), month: Number(value.month), day: Number(value.day) };
+}
+
 async function processOneIngestionJob() {
   const job = await claimNextIngestionJob();
   if (!job) return false;
@@ -64,8 +72,7 @@ async function processOneIngestionJob() {
     let result: unknown;
     let nextRunAt: Date;
     if (job.jobType === 'REGULATORY') {
-      const now = new Date();
-      result = await runRegulatoryIngestion({ year: now.getUTCFullYear(), month: now.getUTCMonth() + 1, day: now.getUTCDate() });
+      result = await runRegulatoryIngestion(todayInMexicoCity());
       nextRunAt = nextRegulatoryRun();
     } else {
       result = await runJurisprudenceIngestion();
