@@ -2,6 +2,22 @@
 
 Fecha de corte: 16 de agosto de 2026.
 
+## Actualizacion de esta sesion
+
+- `8de59521`: el worker de clasificacion rankea contra todo el catalogo MX
+  vigente y conserva solo los cinco mejores candidatos para el flujo posterior.
+- `d4289485` y `d89271ac`: los fallos del worker ya recuperan el expediente,
+  permiten reintento desde `INTAKE`, conservan el contexto previo y dejan
+  `NEEDS_INFORMATION` con auditoria al agotar intentos.
+- `278ac831`: la documentacion de DOF refleja el worker PostgreSQL y las seis
+  autoridades mapeadas.
+- `79820d61`: locks huérfanos agotados de clasificacion e ingesta pasan a un
+  estado visible de fallo en lugar de quedar activos indefinidamente.
+- CI verde mas reciente: `31977327952`.
+- Vercel responde HTTP 200. Render aun sirve `0fe51e0`; `/ready` devuelve
+  HTTP 503 por migraciones pendientes, por lo que la promocion externa sigue
+  siendo un paso operativo pendiente.
+
 ## Publicado en `main`
 
 - `33e8510`: importador seguro de reglas de origen versionadas por tratado y fracción.
