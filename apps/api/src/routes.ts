@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
-import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
+import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, parseClassificationIntakeCsv, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
 import { db as defaultDb, persistHistoricalAuditRun, scopeToOrganization, type Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -70,6 +70,12 @@ const historicalAuditBody = z.object({
   source_sha256: z.string().regex(/^[a-f0-9]{64}$/i),
   source_version: z.string().min(1).max(100),
   csv: z.string().min(1).max(10_000_000),
+});
+
+const bulkClassificationBody = z.object({
+  source_filename: z.string().min(1).max(255),
+  source_sha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  csv: z.string().min(1).max(5_000_000),
 });
 
 const paramsWithId = z.object({ id: z.string().uuid() });
@@ -689,6 +695,60 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       },
     }, scopedDb);
 
+    return reply.code(202).send(response);
+  });
+
+  app.post('/api/v1/classification-cases/bulk', async (request, reply) => {
+    const { user, organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const idempotencyKey = requireIdempotencyKey(request.headers['idempotency-key']);
+    const body = bulkClassificationBody.parse(request.body);
+    const requestHash = hashPayload({ source_filename: body.source_filename, source_sha256: body.source_sha256 });
+    const sourceSha256 = createHash('sha256').update(body.csv, 'utf8').digest('hex');
+    if (sourceSha256.toLowerCase() !== body.source_sha256.toLowerCase()) return reply.code(400).send({ code: 'SOURCE_SHA256_MISMATCH', message: 'source_sha256 does not match the uploaded CSV' });
+    const rows = parseClassificationIntakeCsv(body.csv);
+    if (rows.length === 0) return reply.code(400).send({ code: 'EMPTY_BULK_FILE', message: 'The bulk CSV contains no data rows' });
+    if (rows.length > 200) return reply.code(413).send({ code: 'BULK_LIMIT_EXCEEDED', message: 'Bulk classification is limited to 200 rows per file' });
+    const response = await replayOrStore({
+      organizationId: organization.id,
+      key: idempotencyKey,
+      scope: 'classification-cases:bulk',
+      requestHash,
+      build: async () => {
+        const created: Array<{ rowNumber: number; productId: string; caseId: string }> = [];
+        for (const row of rows) {
+          const product = await scopedDb.product.create({
+            data: {
+              organizationId: organization.id,
+              name: row.name,
+              ...(row.sku ? { sku: row.sku } : {}),
+              versions: {
+                create: {
+                  version: 1,
+                  description: row.description,
+                  attributes: { intakeVersion: 'bulk-classify-v1', sourceFilename: body.source_filename, sourceRow: row.rowNumber, originCountry: row.originCountry ?? null, destinationCountry: row.destinationCountry ?? null, material: row.material ?? null, mainFunction: row.mainFunction ?? null, presentation: row.presentation ?? null },
+                },
+              },
+            },
+            include: { versions: true },
+          });
+          const version = product.versions[0];
+          if (!version) throw new Error(`Could not create product version for row ${row.rowNumber}`);
+          const classificationCase = await scopedDb.classificationCase.create({
+            data: {
+              organizationId: organization.id,
+              productId: product.id,
+              createdById: user.id,
+              status: 'DRAFT',
+              assumptions: { createdFrom: 'bulk-classify-v1', productVersionId: version.id, intake: { originCountry: row.originCountry ?? null, destinationCountry: row.destinationCountry ?? null, material: row.material ?? null, mainFunction: row.mainFunction ?? null, presentation: row.presentation ?? null }, pendingQuestions: ['Revisar descripción, evidencia y datos faltantes antes de enviar a análisis.'] },
+            },
+          });
+          await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.bulk_created', entityType: 'ClassificationCase', entityId: classificationCase.id, after: { sourceFilename: body.source_filename, sourceRow: row.rowNumber, eventId: idempotencyKey }, traceId: randomUUID() } });
+          created.push({ rowNumber: row.rowNumber, productId: product.id, caseId: classificationCase.id });
+        }
+        return { source_filename: body.source_filename, source_sha256: sourceSha256, created };
+      },
+    }, scopedDb);
     return reply.code(202).send(response);
   });
   app.get('/api/v1/classification-cases/:caseId', async (request, reply) => {

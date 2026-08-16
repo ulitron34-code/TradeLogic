@@ -39,6 +39,10 @@ export default function ClassifyPage() {
           <p className="mt-1 text-neutral-600 dark:text-neutral-400">Si falta material, origen o evidencia, el sistema lo marcará como pendiente para no inventar una conclusión.</p>
         </div>
       </section>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 px-4 py-3 text-sm dark:border-neutral-800">
+        <span className="text-neutral-600 dark:text-neutral-400">¿Tienes muchas mercancías? Puedes crear expedientes en borrador desde un CSV.</span>
+        <Link href="/classify/bulk" className="font-medium text-blue-700 underline dark:text-blue-300">Abrir carga masiva</Link>
+      </div>
       <section className="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
         <ClassifyStartForm />
       </section>

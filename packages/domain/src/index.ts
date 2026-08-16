@@ -247,3 +247,4 @@ export {
   type HistoricalAuditResult,
   type HistoricalDeclaration,
 } from './historicalAudit.js';
+export { parseClassificationIntakeCsv, type ClassificationIntakeRow } from './classificationIntake.js';
