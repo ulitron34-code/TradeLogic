@@ -224,6 +224,9 @@ async function main() {
     const assignments = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/classification-cases/${encodeURIComponent(options.caseId)}/assignments`, requestOptions), options.retries);
     assertArrayEnvelope(assignments);
     checks.push(summarizeArray(assignments, 'case-assignments'));
+    const reviewRequests = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/classification-cases/${encodeURIComponent(options.caseId)}/review-requests`, requestOptions), options.retries);
+    assertArrayEnvelope(reviewRequests);
+    checks.push(summarizeArray(reviewRequests, 'case-review-requests'));
   }
 
   if (options.requireTariffCatalog) {
