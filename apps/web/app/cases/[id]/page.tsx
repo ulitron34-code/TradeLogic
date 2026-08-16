@@ -7,6 +7,7 @@ import { CostCalculator, type CostScenario, type OfficialDutyRate } from './cost
 import { DossierDownloadButton } from './dossier-download-button';
 import { OriginAssessmentForm } from './origin-assessment-form';
 import { RequestReviewButton } from './request-review-button';
+import { AssignmentsPanel } from './assignments-panel';
 
 type Rationale = {
   summary?: string;
@@ -85,6 +86,7 @@ type Review = { id: string; decision: string; notes: string | null; createdAt: s
 type Jurisprudence = { ius: number; claveTesis: string; rubro: string; fuente: string | null; sourceUrl: string; relevance: string };
 type AuditEvent = { id: string; action: string; entityType: string; entityId: string; traceId: string; occurredAt: string; after: unknown };
 type EvidenceItem = { id: string; claimType: string; document?: { filename?: string | null } | null };
+type OrganizationMember = { id: string; email: string; displayName: string; role: string };
 type QueueSnapshot = {
   name: string;
   isPaused: boolean;
@@ -418,6 +420,10 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
 
   const me = await apiFetch<{ roles: string[] }>('/api/v1/me');
   const canReview = me.roles.some((role) => REVIEW_ROLES.has(role));
+  let organizationMembers: OrganizationMember[] = [];
+  if (canReview) {
+    try { organizationMembers = (await apiFetch<{ data: OrganizationMember[] }>('/api/v1/organization/members')).data; } catch { organizationMembers = []; }
+  }
   const { data: costScenarios } = await apiFetch<{ data: CostScenario[] }>(
     `/api/v1/classification-cases/${classificationCase.id}/cost-scenarios`,
   );
@@ -782,6 +788,7 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
         </div>
         <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Decisiones</span><p className="mt-1 font-semibold">{classificationCase.reviews.length}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Evidencias</span><p className="mt-1 font-semibold">{classificationCase.evidence?.length ?? 0}</p></div><div className="rounded bg-white/80 p-3 dark:bg-black/20"><span className="text-xs text-neutral-500">Trazas</span><p className="mt-1 font-semibold">{auditEvents.length}</p></div></div>
         {!canReview && !['APPROVED', 'REJECTED', 'ARCHIVED', 'SUPERSEDED'].includes(classificationCase.status) ? <RequestReviewButton caseId={classificationCase.id} /> : null}
+        <AssignmentsPanel caseId={classificationCase.id} members={organizationMembers} canAssign={canReview} />
       </section>
 
       {classificationCase.reviews.length > 0 ? (

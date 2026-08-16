@@ -331,6 +331,16 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     };
   });
 
+  app.get('/api/v1/organization/members', async (request) => {
+    const { organization } = await resolveContext(request, db);
+    const members = await db.membership.findMany({
+      where: { organizationId: organization.id },
+      include: { user: { select: { id: true, email: true, displayName: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return { data: members.map(member => ({ ...member.user, role: member.role })) };
+  });
+
   app.get('/api/v1/ops/classification-queue', async (request) => {
     const context = await resolveContext(request, db);
     if (!context.roles.some((role) => OPS_ROLES.has(role))) {
