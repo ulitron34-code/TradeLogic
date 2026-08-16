@@ -36,7 +36,7 @@ declare
 begin
   foreach tbl in array array[
     'Product', 'ClassificationCase', 'Document', 'Alert', 'CostScenario',
-    'AuditEvent', 'IdempotencyRecord'
+    'AuditEvent', 'IdempotencyRecord', 'CaseAssignment'
   ]
   loop
     execute format('alter table %I enable row level security', tbl);
@@ -80,6 +80,7 @@ create policy "HumanReview_org_isolation" on "HumanReview"
   using (exists (select 1 from "ClassificationCase" where "ClassificationCase".id = "HumanReview"."caseId" and "ClassificationCase"."organizationId" = app_current_org_id()))
   with check (exists (select 1 from "ClassificationCase" where "ClassificationCase".id = "HumanReview"."caseId" and "ClassificationCase"."organizationId" = app_current_org_id()));
 
+
 -- Auditorias historicas: la corrida pertenece a una organizacion y las
 -- declaraciones heredan ese aislamiento por runId.
 alter table "HistoricalAuditRun" enable row level security;
@@ -116,6 +117,7 @@ alter table "Organization" disable row level security;
 alter table "Membership" disable row level security;
 alter table "TariffCode" disable row level security;
 alter table "RegulatoryRequirement" disable row level security;
+alter table "OriginRuleCatalog" disable row level security;
 alter table "JurisprudenceCase" disable row level security;
 alter table "RegulatorySource" disable row level security;
 alter table "RegulatoryProvision" disable row level security;
