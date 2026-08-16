@@ -21,6 +21,23 @@ Fecha de corte: 16 de agosto de 2026.
   HTTP 503 por migraciones pendientes, por lo que la promocion externa sigue
   siendo un paso operativo pendiente.
 
+## Fuentes oficiales verificadas
+
+- SNICE: la pagina de NOM identifica el Capitulo 2.4 y el Anexo 2.4.1 como
+  referencia de fracciones sujetas a NOM.
+- COFEPRIS: el portal vigente lista el Permiso Sanitario de Importacion de
+  Productos y Servicios y sus modalidades.
+- SENASICA: los portales de Importacion Comercial e Importacion publican los
+  requisitos y certificados fitosanitarios, zoosanitarios y acuicolas.
+- SEMARNAT: el portal de tramites de vida silvestre mantiene la referencia
+  SEMARNAT-08-053/CITES.
+- ANAM: la pagina de Importacion Temporal explica obligaciones y fundamento
+  legal de los articulos 104 a 112 de la Ley Aduanera.
+
+Las fuentes se conservan como URLs en `packages/regulatory/src/officialSources.ts`;
+la carga de datos por fraccion requiere ademas version, vigencia y archivo
+oficial concreto. No se generan requisitos por coincidencia textual.
+
 ## Publicado en `main`
 
 - `33e8510`: importador seguro de reglas de origen versionadas por tratado y fracción.
