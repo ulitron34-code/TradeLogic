@@ -109,7 +109,7 @@ Pre-Deploy Command:
 pnpm --filter @platform/db prisma:deploy
 
 Start Command:
-node apps/api/dist/server.js
+pnpm --filter @platform/db prisma:deploy && node apps/api/dist/server.js
 ```
 
 5. Si el dashboard conserva un comando largo que ejecuta `tariff:import` o arranca worker y API juntos, reemplazarlo. La importacion FA/NICO es una operacion controlada posterior al deploy; no debe ejecutarse en cada arranque del servicio web.
