@@ -17,7 +17,8 @@
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "prisma:seed": "tsx prisma/seed.ts",
-    "tariff:import": "tsx ../../scripts/import-tariff-catalog.ts"
+    "tariff:import": "tsx ../../scripts/import-tariff-catalog.ts",
+    "regulatory:import": "tsx ../../scripts/import-regulatory-catalog.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0"

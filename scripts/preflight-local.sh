@@ -29,6 +29,7 @@ scripts/diagnose-deployment.cjs
 scripts/operational-scripts.test.cjs
 scripts/verify-tariff-source.cjs
 scripts/verify-tariff-import-input.cjs
+scripts/import-regulatory-catalog.ts
 scripts/generate-supabase-tariff-import-sql.cjs
 scripts/write-supabase-tariff-import-guide.cjs
 scripts/write-pilot-manual-evidence-template.cjs
