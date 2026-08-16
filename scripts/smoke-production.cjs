@@ -138,10 +138,10 @@ function validateHealth(result) {
 
 function validateReady(result) {
   if (!result.ok) throw new Error(`${result.url} returned HTTP ${result.status}`);
-  if (result.body?.status !== 'ready' || result.body?.database !== 'ok') {
+  if (result.body?.status !== 'ready' || result.body?.database !== 'ok' || result.body?.migrations !== 'ok' || result.body?.queue !== 'postgresql' || result.body?.redis !== 'not_required') {
     throw new Error(`${result.url} returned unexpected readiness: ${JSON.stringify(result.body)}`);
   }
-  return { database: result.body.database };
+  return { database: result.body.database, migrations: result.body.migrations, queue: result.body.queue, redis: result.body.redis };
 }
 
 function validateVersion(result, expectedCommit) {

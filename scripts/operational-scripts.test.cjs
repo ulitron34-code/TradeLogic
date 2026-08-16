@@ -54,7 +54,7 @@ test('smoke-production writes failed evidence with partial checks', async (t) =>
     }
     if (request.url === '/ready') {
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok' }));
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok', migrations: 'ok', queue: 'postgresql', redis: 'not_required' }));
       return;
     }
     if (request.url === '/version') {
@@ -97,7 +97,7 @@ test('diagnose-deployment explains healthy API with missing version route', asyn
     }
     if (request.url === '/ready') {
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok' }));
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok', migrations: 'ok', queue: 'postgresql', redis: 'not_required' }));
       return;
     }
     if (request.url === '/version') {
@@ -237,7 +237,7 @@ test('smoke-production fails when web root is Vercel access protection', async (
     }
     if (request.url === '/ready') {
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok' }));
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok', migrations: 'ok', queue: 'postgresql', redis: 'not_required' }));
       return;
     }
     if (request.url === '/version') {
@@ -278,7 +278,7 @@ test('diagnose-deployment reports protected Vercel web root', async (t) => {
     }
     if (request.url === '/ready') {
       response.writeHead(200, { 'content-type': 'application/json' });
-      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok' }));
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok', migrations: 'ok', queue: 'postgresql', redis: 'not_required' }));
       return;
     }
     if (request.url === '/version') {
