@@ -18,7 +18,7 @@ for (const file of ['package.json', 'MANIFEST.json']) {
   JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 const renderBlueprint = fs.readFileSync('render.yaml', 'utf8');
-for (const marker of ['name: tradelogic-api', 'name: tradelogic-worker', 'healthCheckPath: /health', 'preDeployCommand: pnpm --filter @platform/db prisma:deploy', 'startCommand: node apps/api/dist/server.js', 'startCommand: pnpm --filter @platform/worker start']) {
+for (const marker of ['name: tradelogic-api', 'name: tradelogic-worker', 'healthCheckPath: /health', 'preDeployCommand: pnpm --filter @platform/db prisma:deploy', 'startCommand: pnpm --filter @platform/db prisma:deploy && node apps/api/dist/server.js', 'startCommand: pnpm --filter @platform/worker start']) {
   if (!renderBlueprint.includes(marker)) throw new Error(`Render blueprint missing ${marker}`);
 }
 console.log('Structure OK');
