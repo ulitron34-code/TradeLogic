@@ -27,6 +27,36 @@ export type RegulatoryCatalogValidation = {
   errors: string[];
 };
 
+export type RegulatoryCatalogCsvOptions = { sourceVersion: string; sourceUrl?: string; defaultValidFrom?: string | Date };
+
+/** Parses the normalized export format used by official catalogs/compendia. */
+export function parseRegulatoryCatalogCsv(csv: string, options: RegulatoryCatalogCsvOptions): unknown[] {
+  const rows = parseCsvRows(csv);
+  if (rows.length < 2) return [];
+  const headers = rows[0]!.map(normalizeHeader);
+  const indexOf = (...names: string[]) => names.map(normalizeHeader).map(name => headers.indexOf(name)).find(index => index >= 0) ?? -1;
+  const cellAt = (row: string[], index: number) => index >= 0 ? (row[index] ?? '').trim() : '';
+  const index = {
+    tariffCode: indexOf('tariffcode', 'code', 'fraccion', 'fraccion arancelaria', 'fraccion_arancelaria'),
+    authority: indexOf('authority', 'autoridad', 'dependencia'),
+    requirementType: indexOf('requirementtype', 'tipo', 'tipo requisito', 'regulacion'),
+    title: indexOf('title', 'titulo', 'requisito', 'nom'),
+    description: indexOf('description', 'descripcion'),
+    sourceUrl: indexOf('sourceurl', 'fuente', 'url fuente'),
+    sourceVersion: indexOf('sourceversion', 'version'),
+    validFrom: indexOf('validfrom', 'vigencia desde', 'vigencia_desde'),
+    validTo: indexOf('validto', 'vigencia hasta', 'vigencia_hasta'),
+    mandatory: indexOf('mandatory', 'obligatorio'),
+    notes: indexOf('notes', 'notas', 'condiciones'),
+  };
+  return rows.slice(1).filter(row => row.some(cell => cell.trim())).map(row => ({
+    tariffCode: cellAt(row, index.tariffCode), authority: cellAt(row, index.authority), requirementType: cellAt(row, index.requirementType), title: cellAt(row, index.title),
+    description: cellAt(row, index.description) || null, sourceUrl: cellAt(row, index.sourceUrl) || options.sourceUrl || '', sourceVersion: cellAt(row, index.sourceVersion) || options.sourceVersion,
+    validFrom: cellAt(row, index.validFrom) || options.defaultValidFrom || new Date().toISOString(), validTo: cellAt(row, index.validTo) || null,
+    mandatory: ['false', 'no', '0'].includes(cellAt(row, index.mandatory).toLowerCase()) ? false : true, notes: cellAt(row, index.notes) || null,
+  }));
+}
+
 /**
  * Validates source-backed regulatory requirements before persistence. A
  * source URL, version and effective window are mandatory so a catalog can
@@ -120,3 +150,20 @@ function isHttpUrl(value: string): boolean {
     return false;
   }
 }
+
+function parseCsvRows(csv: string): string[][] {
+  const text = csv.replace(/^\uFEFF/, '');
+  const rows: string[][] = [];
+  let row: string[] = []; let value = ''; let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const character = text[i]!; const next = text[i + 1];
+    if (character === '"' && quoted && next === '"') { value += '"'; i += 1; }
+    else if (character === '"') quoted = !quoted;
+    else if (character === ',' && !quoted) { row.push(value); value = ''; }
+    else if ((character === '\n' || character === '\r') && !quoted) { if (character === '\r' && next === '\n') i += 1; row.push(value); rows.push(row); row = []; value = ''; }
+    else value += character;
+  }
+  if (value.length || row.length) { row.push(value); rows.push(row); }
+  return rows;
+}
+function normalizeHeader(value: string): string { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/ /g, ''); }

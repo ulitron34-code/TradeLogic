@@ -224,10 +224,12 @@ export {
 } from './regulatoryRequirement.js';
 export {
   regulatoryCatalogKey,
+  parseRegulatoryCatalogCsv,
   validateRegulatoryCatalog,
   type NormalizedRegulatoryCatalogRecord,
   type RegulatoryCatalogRecord,
   type RegulatoryCatalogValidation,
+  type RegulatoryCatalogCsvOptions,
 } from './regulatoryCatalog.js';
 export {
   assessLegalRisk,
