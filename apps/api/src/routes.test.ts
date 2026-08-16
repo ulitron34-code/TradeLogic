@@ -34,6 +34,7 @@ type FakeState = {
   alerts: RecordMap<any>;
   costScenarios: RecordMap<any>;
   tariffCodes: RecordMap<any>;
+  originRules: RecordMap<any>;
   auditEvents: any[];
   queuedEvents: any[];
   nextProduct: number;
@@ -63,6 +64,7 @@ function createHarness() {
     alerts: new Map(),
     costScenarios: new Map(),
     tariffCodes: new Map(),
+    originRules: new Map(),
     auditEvents: [],
     queuedEvents: [],
     nextProduct: 1,
@@ -268,6 +270,15 @@ function createHarness() {
         if (where?.rateUnit && record.rateUnit !== where.rateUnit) return false;
         return true;
       }),
+    },
+    originRuleCatalog: {
+      findFirst: async ({ where }: any) => Array.from(state.originRules.values()).find((rule: any) => {
+        if (where?.id && rule.id !== where.id) return false;
+        if (where?.agreement && rule.agreement !== where.agreement) return false;
+        if (where?.tariffCode && rule.tariffCode !== where.tariffCode) return false;
+        if (where?.type && rule.type !== where.type) return false;
+        return true;
+      }) ?? null,
     },
     idempotencyRecord: {
       findUnique: async ({ where }: any) => {
@@ -1266,6 +1277,41 @@ describe('cost scenarios', () => {
     expect(body.currency).toBe('MXN');
     expect(body.outputs.totalLandedCost).toBe(14238.77);
     expect(body.rulesetVersion).toBe(body.outputs.rulesetVersion);
+  });
+
+  it('uses a cataloged preferential rate only after eligible origin evidence', async () => {
+    const { makeApp, state } = createHarness();
+    const app = await makeApp();
+    const product = await createProduct(app);
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/v1/classification-cases',
+      headers: { 'Idempotency-Key': 'cost-scenario-preferential-catalog' },
+      payload: { product_id: product.id },
+    });
+    const caseId = created.json().id;
+    const ruleId = makeUuid('89000', 1);
+    state.originRules.set(ruleId, {
+      id: ruleId,
+      agreement: 'T-MEC',
+      tariffCode: '8501.10.01',
+      type: 'RVC',
+      preferentialRatePercent: 0,
+      preferentialRateUnit: 'PERCENT',
+      sourceVersion: 'TMEC-2026.1',
+      sourceUrl: 'https://www.snice.gob.mx/tmec',
+    });
+    state.cases.get(caseId).assumptions = { originAssessment: { catalogRuleId: ruleId, result: { status: 'ELIGIBLE' } } };
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/api/v1/classification-cases/${caseId}/cost-scenarios`,
+      payload: { customs_value: 1000, use_preferential_rate: true },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().inputs.duty_rate_percent).toBe(0);
+    expect(response.json().inputs.duty_rate_source).toContain('TMEC-2026.1');
   });
 
   it('returns 404 for a cost scenario request against a case in another organization', async () => {
