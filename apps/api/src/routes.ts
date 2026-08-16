@@ -81,6 +81,7 @@ const reviewRequestUpdateBody = z.object({
   status: z.enum(['REQUESTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
   response: z.string().trim().max(4000).optional(),
   note: z.string().trim().max(2000).optional(),
+  assignee_id: z.string().uuid().nullable().optional(),
 });
 const caseAssignmentBody = z.object({
   assignee_id: z.string().uuid(),
@@ -811,9 +812,16 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const reviewRequest = await scopedDb.caseReviewRequest.findFirst({ where: { id: params.reviewRequestId, organizationId: organization.id } });
     if (!reviewRequest) return reply.notFound('Review request not found');
     if (!roles.some(role => REVIEW_ROLES.has(role)) && reviewRequest.assigneeId !== user.id && reviewRequest.requestedById !== user.id) return reply.code(403).send({ code: 'FORBIDDEN', message: 'Only the requester, assignee or a reviewer can update this request' });
+    if (body.assignee_id !== undefined) {
+      if (!roles.some(role => REVIEW_ROLES.has(role))) return reply.code(403).send({ code: 'FORBIDDEN', message: 'Only reviewers can assign a review request' });
+      if (body.assignee_id !== null) {
+        const assignee = await db.membership.findFirst({ where: { organizationId: organization.id, userId: body.assignee_id }, select: { userId: true } });
+        if (!assignee) return reply.code(400).send({ code: 'ASSIGNEE_OUTSIDE_ORGANIZATION', message: 'The assignee is not a member of this organization' });
+      }
+    }
     const terminal = ['COMPLETED', 'CANCELLED'].includes(body.status);
-    const updated = await scopedDb.caseReviewRequest.update({ where: { id: reviewRequest.id }, data: { status: body.status, ...(body.note !== undefined ? { note: body.note ?? null } : {}), ...(body.response !== undefined ? { response: body.response ?? null } : {}), ...(terminal ? { resolvedAt: new Date() } : { resolvedAt: null }) } });
-    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_request_updated', entityType: 'CaseReviewRequest', entityId: updated.id, before: { status: reviewRequest.status }, after: { status: updated.status, response: updated.response }, traceId: randomUUID() } });
+    const updated = await scopedDb.caseReviewRequest.update({ where: { id: reviewRequest.id }, data: { status: body.status, ...(body.note !== undefined ? { note: body.note ?? null } : {}), ...(body.response !== undefined ? { response: body.response ?? null } : {}), ...(body.assignee_id !== undefined ? { assigneeId: body.assignee_id } : {}), ...(terminal ? { resolvedAt: new Date() } : { resolvedAt: null }) } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_request_updated', entityType: 'CaseReviewRequest', entityId: updated.id, before: { status: reviewRequest.status, assigneeId: reviewRequest.assigneeId }, after: { status: updated.status, assigneeId: updated.assigneeId, response: updated.response }, traceId: randomUUID() } });
     return reply.send(updated);
   });
 

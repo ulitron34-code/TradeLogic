@@ -31,6 +31,7 @@ type FakeState = {
   candidates: RecordMap<any>;
   evidence: RecordMap<any>;
   reviews: RecordMap<any>;
+  reviewRequests: RecordMap<any>;
   alerts: RecordMap<any>;
   costScenarios: RecordMap<any>;
   tariffCodes: RecordMap<any>;
@@ -43,6 +44,7 @@ type FakeState = {
   nextDocument: number;
   nextCandidate: number;
   nextReview: number;
+  nextReviewRequest: number;
   nextAlert: number;
   nextCostScenario: number;
 };
@@ -61,6 +63,7 @@ function createHarness() {
     candidates: new Map(),
     evidence: new Map(),
     reviews: new Map(),
+    reviewRequests: new Map(),
     alerts: new Map(),
     costScenarios: new Map(),
     tariffCodes: new Map(),
@@ -73,6 +76,7 @@ function createHarness() {
     nextDocument: 1,
     nextCandidate: 1,
     nextReview: 1,
+    nextReviewRequest: 1,
     nextAlert: 1,
     nextCostScenario: 1,
   };
@@ -222,6 +226,28 @@ function createHarness() {
         state.reviews.set(review.id, review);
         return review;
       },
+    },
+    membership: {
+      findFirst: async ({ where }: any) => where.organizationId === DEV_ORG_ID && where.userId === DEV_USER_ID ? { userId: DEV_USER_ID } : null,
+    },
+    caseReviewRequest: {
+      create: async ({ data }: any) => {
+        const request = { id: makeUuid('71000', state.nextReviewRequest++), requestedAt: now, createdAt: now, updatedAt: now, status: 'REQUESTED', ...data };
+        state.reviewRequests.set(request.id, request);
+        return request;
+      },
+      findFirst: async ({ where }: any) => {
+        const request = state.reviewRequests.get(where.id);
+        return request && request.organizationId === where.organizationId ? request : null;
+      },
+      update: async ({ where, data }: any) => {
+        const request = state.reviewRequests.get(where.id);
+        if (!request) throw new Error('review request not found');
+        const updated = { ...request, ...data, updatedAt: new Date() };
+        state.reviewRequests.set(request.id, updated);
+        return updated;
+      },
+      findMany: async ({ where }: any) => Array.from(state.reviewRequests.values()).filter((request: any) => request.caseId === where.caseId && request.organizationId === where.organizationId),
     },
     alert: {
       findMany: async ({ where }: any) => {
@@ -1427,5 +1453,36 @@ describe('historical audit import', () => {
     });
     expect(response.statusCode).toBe(400);
     expect(response.json().code).toBe('SOURCE_SHA256_MISMATCH');
+  });
+});
+
+describe('review request assignment', () => {
+  it('allows a reviewer to assign a request to an organization member and audits it', async () => {
+    const { makeApp, state } = createHarness();
+    const app = await makeApp();
+    const requestId = makeUuid('71000', 1);
+    state.reviewRequests.set(requestId, {
+      id: requestId,
+      organizationId: DEV_ORG_ID,
+      caseId: makeUuid('30000', 1),
+      requestedById: DEV_USER_ID,
+      assigneeId: null,
+      status: 'REQUESTED',
+      note: 'Validar fundamento',
+      response: null,
+    });
+
+    const response = await app.inject({
+      method: 'PATCH',
+      url: `/api/v1/classification-case-review-requests/${requestId}`,
+      payload: { status: 'IN_PROGRESS', assignee_id: DEV_USER_ID },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'IN_PROGRESS', assigneeId: DEV_USER_ID });
+    expect(state.auditEvents.at(-1)).toMatchObject({
+      action: 'classification_case.review_request_updated',
+      after: { status: 'IN_PROGRESS', assigneeId: DEV_USER_ID },
+    });
   });
 });
