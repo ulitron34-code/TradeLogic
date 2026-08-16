@@ -14,7 +14,9 @@ export type ClassificationIntakeRow = {
 export function parseClassificationIntakeCsv(csv: string): ClassificationIntakeRow[] {
   const rows = parseRows(csv.replace(/^\uFEFF/, ''));
   if (rows.length < 2) return [];
-  const headers = rows[0].map(normalizeHeader);
+  const headerRow = rows[0];
+  if (!headerRow) return [];
+  const headers = headerRow.map(normalizeHeader);
   const nameHeader = findHeader(headers, ['name', 'product_name', 'nombre', 'mercancia']);
   const descriptionHeader = findHeader(headers, ['description', 'descripcion', 'description_free']);
   if (nameHeader < 0 || descriptionHeader < 0) throw new Error('Bulk classification CSV requires name and description columns');
