@@ -9,12 +9,12 @@ Los documentos históricos de este archivo conservan el contexto de cada iteraci
 - `4d018df`: el fixture de embeddings quedó alineado con `text-embedding-3-small` (1,536 dimensiones).
 - `6126b2d`: se añadió `OriginRuleCatalog`, su migración 10, persistencia idempotente y `GET /api/v1/origin-rules` para reglas vigentes por tratado y fracción. La carga de datos oficiales todavía debe hacerse con archivos/fuentes verificadas; no se inventan reglas.
 - `18f5990`: la ingesta SJF deduplica IUS por consulta, exige fuente HTTPS y contenido no vacío, y no persiste embeddings con dimensiones incorrectas.
-- `supabase/rls.sql`: las asignaciones quedan aisladas por organización y el catálogo global de reglas de origen se declara compartido.
+- `supabase/rls.sql` y la migración 11: las asignaciones quedan aisladas por organización y el catálogo global de reglas de origen se declara compartido; la función RLS queda autocontenida para instalaciones nuevas.
 
 ### Pendiente real, en orden
 
 1. Cargar y verificar registros oficiales de NOM, permisos y reglas de origen, conservando URL, versión y vigencia; el código de importación ya rechaza registros sin trazabilidad.
-2. Ejecutar migraciones 9 y 10 en Supabase y aplicar/validar RLS en producción.
+2. Confirmar en Supabase que las migraciones 9, 10 y 11 quedaron aplicadas y validar RLS con el rol `app_user`.
 3. Completar UI de asignaciones (lista, responsable, estado y fecha límite) y enlazarla con la bandeja de casos.
 4. Verificar ejecución real del worker DOF/SJF, smoke autenticado y descarga PDF con un caso de prueba real.
 5. Actualizar la evidencia de piloto y cerrar documentación solo después de esas verificaciones.
