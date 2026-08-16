@@ -35,7 +35,7 @@ describe('jurisprudence ingestion', () => {
 
   it('persists a vector when the embedding provider returns one', async () => {
     const db = { jurisprudenceCase: { findUnique: async () => null, create: async ({ data }: any) => ({ id: 'row-2', ...data }) }, $executeRaw: async (...args: unknown[]) => args } as any;
-    const result = await runJurisprudenceIngestion(['query'], { db, searchTesis: async () => ({ results: [summary], total: 1 }), fetchTesisDetail: async () => detail, generateEmbedding: async () => [0.1, 0.2] } as any);
+    const result = await runJurisprudenceIngestion(['query'], { db, searchTesis: async () => ({ results: [summary], total: 1 }), fetchTesisDetail: async () => detail, generateEmbedding: async () => Array.from({ length: 1536 }, (_, index) => index === 0 ? 0.1 : 0) } as any);
     expect(result.embedded).toBe(1);
   });
 });
