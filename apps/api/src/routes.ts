@@ -77,6 +77,11 @@ const historicalAuditBody = z.object({
 });
 
 const reviewRequestBody = z.object({ note: z.string().trim().max(2000).optional() });
+const reviewRequestUpdateBody = z.object({
+  status: z.enum(['REQUESTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+  response: z.string().trim().max(4000).optional(),
+  note: z.string().trim().max(2000).optional(),
+});
 const caseAssignmentBody = z.object({
   assignee_id: z.string().uuid(),
   note: z.string().trim().max(2000).optional(),
@@ -116,13 +121,14 @@ const originRulesQuery = z.object({
 const paramsWithId = z.object({ id: z.string().uuid() });
 const paramsWithCaseId = z.object({ caseId: z.string().uuid() });
 const paramsWithAssignmentId = z.object({ assignmentId: z.string().uuid() });
+const paramsWithReviewRequestId = z.object({ reviewRequestId: z.string().uuid() });
 const paramsWithAlertId = z.object({ alertId: z.string().uuid() });
 const classificationQueueQuery = z.object({ caseId: z.string().uuid().optional() });
 
 const MAX_DOCUMENT_SIZE_BYTES = 50 * 1024 * 1024;
 const TARIFF_CATALOG_EXPECTED_ROWS = 20227;
 const TARIFF_CATALOG_SOURCE_VERSIONS = ['SNICE-LIGIE-BASE-2021-11-19', 'SNICE-TIGIE-MOD-ABRIL-2026'];
-const REQUIRED_PRODUCTION_MIGRATIONS = ['9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls'] as const;
+const REQUIRED_PRODUCTION_MIGRATIONS = ['9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls', '12_add_case_review_requests'] as const;
 
 
 const presignDocumentBody = z.object({
@@ -155,7 +161,7 @@ async function defaultCheckProductionMigrations(database: typeof defaultDb) {
     SELECT migration_name
     FROM "_prisma_migrations"
     WHERE finished_at IS NOT NULL
-      AND migration_name IN ('9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls')
+      AND migration_name IN ('9_add_case_assignments', '10_add_origin_rule_catalog', '11_add_new_table_rls', '12_add_case_review_requests')
   `;
   const applied = new Set(rows.map(row => row.migration_name));
   return REQUIRED_PRODUCTION_MIGRATIONS.filter(migration => !applied.has(migration));
@@ -775,8 +781,33 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     if (['APPROVED', 'REJECTED', 'ARCHIVED', 'SUPERSEDED'].includes(existingCase.status)) return reply.code(409).send({ code: 'CASE_TERMINAL', message: 'A terminal case cannot request another review' });
     const assumptions = existingCase.assumptions && typeof existingCase.assumptions === 'object' && !Array.isArray(existingCase.assumptions) ? existingCase.assumptions as Record<string, unknown> : {};
     const updated = await scopedDb.classificationCase.update({ where: { id: existingCase.id }, data: { status: 'NEEDS_REVIEW', assumptions: { ...assumptions, reviewRequest: { requestedBy: user.id, requestedAt: new Date().toISOString(), note: body.note ?? null } } } });
-    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_requested', entityType: 'ClassificationCase', entityId: updated.id, after: { status: updated.status, note: body.note ?? null }, traceId: randomUUID() } });
-    return reply.send({ id: updated.id, status: updated.status, requestedBy: user.id });
+    const reviewRequest = await scopedDb.caseReviewRequest.create({ data: { organizationId: organization.id, caseId: updated.id, requestedById: user.id, note: body.note ?? null } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_requested', entityType: 'CaseReviewRequest', entityId: reviewRequest.id, after: { caseId: updated.id, status: updated.status, note: body.note ?? null }, traceId: randomUUID() } });
+    return reply.send({ id: reviewRequest.id, case_id: updated.id, status: reviewRequest.status, requestedBy: user.id });
+  });
+
+  app.get('/api/v1/classification-cases/:caseId/review-requests', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithCaseId.parse(request.params);
+    const existingCase = await scopedDb.classificationCase.findFirst({ where: { id: params.caseId, organizationId: organization.id }, select: { id: true } });
+    if (!existingCase) return reply.notFound('Classification case not found');
+    const requests = await scopedDb.caseReviewRequest.findMany({ where: { caseId: params.caseId, organizationId: organization.id }, include: { requestedBy: { select: { id: true, email: true, displayName: true } }, assignee: { select: { id: true, email: true, displayName: true } } }, orderBy: { requestedAt: 'desc' } });
+    return reply.send({ data: requests });
+  });
+
+  app.patch('/api/v1/classification-case-review-requests/:reviewRequestId', async (request, reply) => {
+    const { user, organization, roles } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithReviewRequestId.parse(request.params);
+    const body = reviewRequestUpdateBody.parse(request.body);
+    const reviewRequest = await scopedDb.caseReviewRequest.findFirst({ where: { id: params.reviewRequestId, organizationId: organization.id } });
+    if (!reviewRequest) return reply.notFound('Review request not found');
+    if (!roles.some(role => REVIEW_ROLES.has(role)) && reviewRequest.assigneeId !== user.id && reviewRequest.requestedById !== user.id) return reply.code(403).send({ code: 'FORBIDDEN', message: 'Only the requester, assignee or a reviewer can update this request' });
+    const terminal = ['COMPLETED', 'CANCELLED'].includes(body.status);
+    const updated = await scopedDb.caseReviewRequest.update({ where: { id: reviewRequest.id }, data: { status: body.status, ...(body.note !== undefined ? { note: body.note ?? null } : {}), ...(body.response !== undefined ? { response: body.response ?? null } : {}), ...(terminal ? { resolvedAt: new Date() } : { resolvedAt: null }) } });
+    await scopedDb.auditEvent.create({ data: { organizationId: organization.id, actorId: user.id, action: 'classification_case.review_request_updated', entityType: 'CaseReviewRequest', entityId: updated.id, before: { status: reviewRequest.status }, after: { status: updated.status, response: updated.response }, traceId: randomUUID() } });
+    return reply.send(updated);
   });
 
   app.get('/api/v1/classification-cases/:caseId/assignments', async (request, reply) => {

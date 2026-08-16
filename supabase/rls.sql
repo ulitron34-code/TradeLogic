@@ -36,7 +36,7 @@ declare
 begin
   foreach tbl in array array[
     'Product', 'ClassificationCase', 'Document', 'Alert', 'CostScenario',
-    'AuditEvent', 'IdempotencyRecord', 'CaseAssignment'
+    'AuditEvent', 'IdempotencyRecord', 'CaseAssignment', 'CaseReviewRequest'
   ]
   loop
     execute format('alter table %I enable row level security', tbl);

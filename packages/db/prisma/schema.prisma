@@ -50,6 +50,13 @@ enum CaseAssignmentStatus {
   CANCELLED
 }
 
+enum CaseReviewRequestStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 enum AlertSeverity {
   INFO
   WARNING
@@ -115,6 +122,7 @@ model Organization {
   historicalAuditRuns HistoricalAuditRun[]
   classificationJobs ClassificationJob[]
   caseAssignments CaseAssignment[]
+  reviewRequests CaseReviewRequest[]
 }
 model User {
   id String @id @default(uuid()) @db.Uuid
@@ -126,6 +134,8 @@ model User {
   reviews HumanReview[]
   assignedCases CaseAssignment[] @relation("CaseAssignmentAssignee")
   createdAssignments CaseAssignment[] @relation("CaseAssignmentAuthor")
+  createdReviewRequests CaseReviewRequest[] @relation("CaseReviewRequestAuthor")
+  assignedReviewRequests CaseReviewRequest[] @relation("CaseReviewRequestAssignee")
 }
 model Membership {
   id String @id @default(uuid()) @db.Uuid
@@ -196,6 +206,7 @@ model ClassificationCase {
   candidates ClassificationCandidate[]
   reviews HumanReview[]
   assignments CaseAssignment[]
+  reviewRequests CaseReviewRequest[]
   evidence EvidenceLink[]
   classificationJobs ClassificationJob[]
   @@index([organizationId, status, createdAt])
@@ -338,6 +349,28 @@ model CaseAssignment {
   assignedBy User @relation("CaseAssignmentAuthor", fields: [assignedById], references: [id])
   @@index([organizationId, status, dueAt])
   @@index([caseId, createdAt])
+  @@index([assigneeId, status])
+}
+
+model CaseReviewRequest {
+  id String @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  caseId String @db.Uuid
+  requestedById String @db.Uuid
+  assigneeId String? @db.Uuid
+  status CaseReviewRequestStatus @default(REQUESTED)
+  note String?
+  response String?
+  requestedAt DateTime @default(now())
+  resolvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id])
+  classificationCase ClassificationCase @relation(fields: [caseId], references: [id])
+  requestedBy User @relation("CaseReviewRequestAuthor", fields: [requestedById], references: [id])
+  assignee User? @relation("CaseReviewRequestAssignee", fields: [assigneeId], references: [id])
+  @@index([organizationId, status, requestedAt])
+  @@index([caseId, requestedAt])
   @@index([assigneeId, status])
 }
 
