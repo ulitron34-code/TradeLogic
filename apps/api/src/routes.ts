@@ -3,7 +3,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
 import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, evaluateOrigin, parseClassificationIntakeCsv, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
-import { db as defaultDb, persistHistoricalAuditRun, scopeToOrganization } from '@platform/db';
+import { db as defaultDb, getIngestionSchedulerSnapshot, persistHistoricalAuditRun, scopeToOrganization } from '@platform/db';
 import type { Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -411,6 +411,13 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       ...(query.caseId ? { caseId: query.caseId } : {}),
       ...snapshot,
     };
+  });
+
+  app.get('/api/v1/ops/ingestion-scheduler', async (request, reply) => {
+    const { roles } = await resolveContext(request, db);
+    if (!roles.some(role => OPS_ROLES.has(role))) return reply.code(403).send({ code: 'FORBIDDEN', message: 'Only operational reviewers can inspect the ingestion scheduler' });
+    const jobs = await getIngestionSchedulerSnapshot(db);
+    return { data: jobs.map(job => ({ id: job.id, jobType: job.jobType, status: job.status, attempts: job.attempts, availableAt: job.availableAt, lockedAt: job.lockedAt, lastRunAt: job.lastRunAt, completedAt: job.completedAt, failedAt: job.failedAt, lastError: job.lastError })) };
   });
 
   app.get('/api/v1/products', async (request) => {

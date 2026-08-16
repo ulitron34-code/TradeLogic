@@ -9,7 +9,7 @@ const MIN_DOSSIER_BYTES = 500;
 
 function usage() {
   return `Usage:
-  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--require-tariff-catalog] [--dossier-case-id uuid] [--output smoke-authenticated.json]
+  node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... [--targets artifacts/deployment-targets.json] [--timeout-ms 30000] [--retries 2] [--require-tariff-catalog] [--check-scheduler] [--dossier-case-id uuid] [--output smoke-authenticated.json]
   node scripts/smoke-authenticated.cjs --api-base-url https://api.example.com --token eyJ... --case-id uuid --dossier-case-id uuid
 
 Environment fallback:
@@ -28,6 +28,10 @@ function parseArgs(argv) {
     }
     if (arg === '--require-tariff-catalog') {
       options.requireTariffCatalog = true;
+      continue;
+    }
+    if (arg === '--check-scheduler') {
+      options.checkScheduler = true;
       continue;
     }
     const value = argv[index + 1];
@@ -241,6 +245,12 @@ async function main() {
       expectedRows: tariffCatalog.body.expectedRows,
       sourceVersions: tariffCatalog.body.sourceVersions,
     });
+  }
+
+  if (options.checkScheduler) {
+    const scheduler = await withRetries(() => fetchJson(`${apiBaseUrl}/api/v1/ops/ingestion-scheduler`, requestOptions), options.retries);
+    assertArrayEnvelope(scheduler);
+    checks.push(summarizeArray(scheduler, 'ingestion-scheduler'));
   }
 
   if (options.dossierCaseId) {
