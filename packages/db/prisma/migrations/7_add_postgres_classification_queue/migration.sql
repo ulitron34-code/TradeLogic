@@ -1,8 +1,12 @@
 -- Cola de clasificacion respaldada por PostgreSQL.
 -- Redis queda fuera del camino critico del flujo API -> worker -> UI.
-CREATE TYPE "ClassificationJobStatus" AS ENUM ('WAITING', 'ACTIVE', 'COMPLETED', 'FAILED');
+DO $$
+BEGIN
+  CREATE TYPE "ClassificationJobStatus" AS ENUM ('WAITING', 'ACTIVE', 'COMPLETED', 'FAILED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE "ClassificationJob" (
+CREATE TABLE IF NOT EXISTS "ClassificationJob" (
   "id" UUID NOT NULL,
   "eventId" TEXT NOT NULL,
   "organizationId" UUID NOT NULL,
@@ -20,11 +24,6 @@ CREATE TABLE "ClassificationJob" (
   CONSTRAINT "ClassificationJob_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX "ClassificationJob_eventId_key" ON "ClassificationJob"("eventId");
-CREATE INDEX "ClassificationJob_status_availableAt_createdAt_idx" ON "ClassificationJob"("status", "availableAt", "createdAt");
-CREATE INDEX "ClassificationJob_organizationId_caseId_createdAt_idx" ON "ClassificationJob"("organizationId", "caseId", "createdAt");
-
-ALTER TABLE "ClassificationJob" ADD CONSTRAINT "ClassificationJob_organizationId_fkey"
-  FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "ClassificationJob" ADD CONSTRAINT "ClassificationJob_caseId_fkey"
-  FOREIGN KEY ("caseId") REFERENCES "ClassificationCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE UNIQUE INDEX IF NOT EXISTS "ClassificationJob_eventId_key" ON "ClassificationJob"("eventId");
+CREATE INDEX IF NOT EXISTS "ClassificationJob_status_availableAt_createdAt_idx" ON "ClassificationJob"("status", "availableAt", "createdAt");
+CREATE INDEX IF NOT EXISTS "ClassificationJob_organizationId_caseId_createdAt_idx" ON "ClassificationJob"("organizationId", "caseId", "createdAt");
