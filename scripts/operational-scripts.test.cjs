@@ -350,3 +350,10 @@ test('diagnose-deployment reports protected Vercel web root', async (t) => {
   assert.equal(web.ok, false);
   assert.match(web.error, /Vercel access protection/);
 });
+
+test('pilot flow requires an explicit real case and human decision', async () => {
+  const result = runNode(['scripts/smoke-pilot-flow.cjs', '--api-base-url', 'https://example.com', '--token', 'not-a-real-token']);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /--case-id is required/);
+  assert.doesNotMatch(result.stderr, /not-a-real-token/);
+});
