@@ -52,6 +52,17 @@ Las fuentes se conservan como URLs en `packages/regulatory/src/officialSources.t
 la carga de datos por fraccion requiere ademas version, vigencia y archivo
 oficial concreto. No se generan requisitos por coincidencia textual.
 
+## Corrección de publicación visual — 16 de agosto de 2026
+
+- La URL canónica verificada de la aplicación aduanera es
+  `https://tradelogic-delta.vercel.app`.
+- `https://tradelogic.vercel.app` responde HTTP 200, pero actualmente sirve
+  otra plantilla de trading. No debe usarse como evidencia de TradeLogic
+  Aduana hasta reasignar el alias desde el panel autenticado de Vercel.
+- El smoke público fue endurecido en `54645273`: ahora exige el shell
+  `lang=es-MX` y la ruta `/login`, y rechaza una página ajena aunque su título
+  diga “TradeLogic”.
+
 ## Publicado en `main`
 
 - `33e8510`: importador seguro de reglas de origen versionadas por tratado y fracción.
