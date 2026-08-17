@@ -1,5 +1,14 @@
 # Estado de Implementacion
 
+> **Fuente de verdad — 16 de agosto de 2026.** Las secciones fechadas más
+> abajo conservan el historial de sesiones y no describen necesariamente el
+> despliegue actual. El estado vigente es: `main` en `5c90ce3d`, Render API y
+> Vercel responden 200, `/ready` confirma `database: ok`, `migrations: ok`,
+> `queue: postgresql` y `redis: not_required`. El smoke autenticado y el
+> recorrido manual UI → worker → resultado → revisión → PDF requieren todavía
+> una cuenta piloto y un caso real; no se deben simular con credenciales o
+> datos inventados.
+
 ## Verificacion mas reciente (2026-08-16)
 
 - `main` y la copia de `E:\ADUANA\MVP_Tecnico` estan en `31311cc` antes de esta iteracion; la cola de clasificacion ya esta respaldada por PostgreSQL.

@@ -1,19 +1,26 @@
 # Checklist de siguiente sesion
 
-Actualizado: 2026-08-14
+> **Estado vigente — 16 de agosto de 2026.** Este archivo conserva pasos
+> históricos para referencia, pero Render ya no depende de Redis: la cola
+> productiva es PostgreSQL. La API pública confirma `migrations: ok` y
+> `redis: not_required`; no reinstalar Redis ni tratar el worker como requisito
+> para la cola de clasificación.
 
-## Estado confirmado
+Actualizado: 2026-08-16
 
-- GitHub, Supabase, Vercel, Render API, Render Worker y Redis ya existen.
+## Estado confirmado vigente
+
+- GitHub, Supabase, Vercel, Render API y el recurso `Trade logic worker` existen.
 - API publica: `https://tradelogic-api.onrender.com`
 - Web publica: `https://tradelogic-delta.vercel.app`
-- Render API publico correctamente `62ea1cfee4961fd3d7cce5bb4e1ea68b8c4fbc7c`.
-- `/ready` confirma `database: ok` y `redis: ok`.
-- El worker `tradelogic-worker` arranca con Redis y las colas:
-  - `regulatory-ingestion`
-  - `jurisprudence-ingestion`
-  - `classification-analysis`
-- El flujo API -> Redis -> worker -> UI ya fue verificado con el caso `ec4936b6-f57b-437e-a3c8-19ec240436ed`.
+- Render API publica el commit reportado por `/version` (verificarlo antes de
+  cada piloto).
+- `/ready` confirma `database: ok`, `migrations: ok`, `queue: postgresql` y
+  `redis: not_required`.
+- Las colas de producción son PostgreSQL: `classification`, `regulatory` y
+  `jurisprudence`. El recurso `Trade logic worker` ejecuta los jobs, pero no
+  requiere Redis.
+- El flujo API -> cola PostgreSQL -> worker -> UI ya fue verificado con el caso `ec4936b6-f57b-437e-a3c8-19ec240436ed`.
 - El worker registro `classification job received` y `classification job completed`.
 - Resultado del caso verificado: `NEEDS_REVIEW`, `candidateCount: 5`.
 - El fix clave fue `e2e7fe3 Scope classification worker to organization`, para que el worker respete RLS con `scopeToOrganization`.
