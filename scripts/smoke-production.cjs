@@ -165,6 +165,8 @@ function validateWeb(result) {
   if (vercelProtected) throw new Error(`${result.url} is showing Vercel access protection instead of the TradeLogic app`);
   const tradeLogicMarker = /tradelogic|trade logic|inteligencia aduanera|clasificaci[oó]n/i.test(`${title} ${preview}`);
   if (!tradeLogicMarker) throw new Error(`${result.url} did not include a TradeLogic application marker`);
+  const aduanaShellMarker = /<html[^>]+lang=["']es-MX["']/i.test(preview) && /href=["']\/login["']/i.test(preview);
+  if (!aduanaShellMarker) throw new Error(`${result.url} did not include the TradeLogic aduana application shell (expected lang=es-MX and /login)`);
   return { bytes: result.bytes, title: result.title };
 }
 

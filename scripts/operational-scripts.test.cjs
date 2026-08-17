@@ -63,7 +63,7 @@ test('smoke-production writes failed evidence with partial checks', async (t) =>
       return;
     }
     response.writeHead(200, { 'content-type': 'text/html' });
-    response.end('<!doctype html><title>TradeLogic</title>');
+    response.end('<!doctype html><html lang="es-MX"><title>TradeLogic</title><a href="/login">Entrar</a></html>');
   });
   t.after(() => server.close());
 
@@ -267,6 +267,47 @@ test('smoke-production fails when web root is Vercel access protection', async (
   assert.equal(summary.status, 'failed');
   assert.deepEqual(summary.failedChecks, ['web-root']);
   assert.match(summary.error, /Vercel access protection/);
+});
+
+test('smoke-production rejects a different Vercel project with a TradeLogic title', async (t) => {
+  const { server, baseUrl } = await createServer((request, response) => {
+    if (request.url === '/health') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ok', service: 'api' }));
+      return;
+    }
+    if (request.url === '/ready') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ready', service: 'api', database: 'ok', migrations: 'ok', queue: 'postgresql', redis: 'not_required' }));
+      return;
+    }
+    if (request.url === '/version') {
+      response.writeHead(200, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ status: 'ok', service: 'api', commitSha: 'abc123' }));
+      return;
+    }
+    response.writeHead(200, { 'content-type': 'text/html' });
+    response.end('<!doctype html><html lang="en"><title>TradeLogic</title><a href="/course">Get the course</a></html>');
+  });
+  t.after(() => server.close());
+
+  const dir = mkdtempSync(path.join(tmpdir(), 'tradelogic-wrong-vercel-project-'));
+  const output = path.join(dir, 'smoke-production.json');
+  const result = await runNodeAsync([
+    'scripts/smoke-production.cjs',
+    '--api-base-url', baseUrl,
+    '--web-base-url', baseUrl,
+    '--expected-commit', 'abc123',
+    '--timeout-ms', '1000',
+    '--retries', '0',
+    '--output', output,
+  ]);
+
+  assert.equal(result.status, 1, result.stdout || result.stderr);
+  const summary = readJson(output);
+  assert.equal(summary.status, 'failed');
+  assert.deepEqual(summary.failedChecks, ['web-root']);
+  assert.match(summary.error, /application shell/);
 });
 
 test('diagnose-deployment reports protected Vercel web root', async (t) => {
