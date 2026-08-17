@@ -22,6 +22,7 @@
     "smoke:production": "node scripts/smoke-production.cjs",
     "record:deployment-targets": "node scripts/record-deployment-targets.cjs",
     "smoke:authenticated": "node scripts/smoke-authenticated.cjs",
+    "smoke:pilot-flow": "node scripts/smoke-pilot-flow.cjs",
     "verify:tariff-source": "node scripts/verify-tariff-source.cjs",
     "verify:tariff-import-input": "node scripts/verify-tariff-import-input.cjs",
     "generate:supabase-tariff-import-sql": "node scripts/generate-supabase-tariff-import-sql.cjs",
