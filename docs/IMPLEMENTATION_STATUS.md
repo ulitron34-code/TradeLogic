@@ -2,9 +2,11 @@
 
 > **Fuente de verdad — 16 de agosto de 2026.** Las secciones fechadas más
 > abajo conservan el historial de sesiones y no describen necesariamente el
-> despliegue actual. El estado vigente es: `main` en `5c90ce3d`, Render API y
-> Vercel responden 200, `/ready` confirma `database: ok`, `migrations: ok`,
-> `queue: postgresql` y `redis: not_required`. El smoke autenticado y el
+> despliegue actual. El último commit de `main` en GitHub es `2650b8e`; Render
+> sirve el código `54645273`, con `/ready` en `database: ok`, `migrations: ok`,
+> `queue: postgresql` y `redis: not_required`. La URL canónica verificada de
+> la web es `https://tradelogic-delta.vercel.app`; el alias
+> `tradelogic.vercel.app` apunta a otra plantilla. El smoke autenticado y el
 > recorrido manual UI → worker → resultado → revisión → PDF requieren todavía
 > una cuenta piloto y un caso real; no se deben simular con credenciales o
 > datos inventados.
