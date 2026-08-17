@@ -5,9 +5,9 @@ import { buildApp } from './app.js';
 function applyProductionMigrations() {
   if (process.env.NODE_ENV !== 'production') return;
   const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-  // Previous Render releases recorded migrations 9 and 11 as failed. Resolve
+  // Previous Render releases recorded migrations 9, 11 and 12 as failed. Resolve
   // only those known markers so Prisma can retry the corrected migrations.
-  for (const migration of ['9_add_case_assignments', '11_add_new_table_rls']) {
+  for (const migration of ['9_add_case_assignments', '11_add_new_table_rls', '12_add_case_review_requests']) {
     try {
       execFileSync(packageManager, ['--filter', '@platform/db', 'exec', 'prisma', 'migrate', 'resolve', '--rolled-back', migration], {
         cwd: process.cwd(),
