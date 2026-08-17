@@ -1,6 +1,10 @@
-CREATE TYPE "CaseAssignmentStatus" AS ENUM ('ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
+DO $$
+BEGIN
+  CREATE TYPE "CaseAssignmentStatus" AS ENUM ('ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE "CaseAssignment" (
+CREATE TABLE IF NOT EXISTS "CaseAssignment" (
   "id" UUID NOT NULL,
   "organizationId" UUID NOT NULL,
   "caseId" UUID NOT NULL,
@@ -14,10 +18,6 @@ CREATE TABLE "CaseAssignment" (
   CONSTRAINT "CaseAssignment_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "CaseAssignment_organizationId_status_dueAt_idx" ON "CaseAssignment"("organizationId", "status", "dueAt");
-CREATE INDEX "CaseAssignment_caseId_createdAt_idx" ON "CaseAssignment"("caseId", "createdAt");
-CREATE INDEX "CaseAssignment_assigneeId_status_idx" ON "CaseAssignment"("assigneeId", "status");
-ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "Organization"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_caseId_fkey" FOREIGN KEY ("caseId") REFERENCES "ClassificationCase"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_assigneeId_fkey" FOREIGN KEY ("assigneeId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "CaseAssignment" ADD CONSTRAINT "CaseAssignment_assignedById_fkey" FOREIGN KEY ("assignedById") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+CREATE INDEX IF NOT EXISTS "CaseAssignment_organizationId_status_dueAt_idx" ON "CaseAssignment"("organizationId", "status", "dueAt");
+CREATE INDEX IF NOT EXISTS "CaseAssignment_caseId_createdAt_idx" ON "CaseAssignment"("caseId", "createdAt");
+CREATE INDEX IF NOT EXISTS "CaseAssignment_assigneeId_status_idx" ON "CaseAssignment"("assigneeId", "status");
