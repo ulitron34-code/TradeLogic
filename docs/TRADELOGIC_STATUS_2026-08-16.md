@@ -10,6 +10,13 @@ Fecha de corte: 16 de agosto de 2026.
 - La validación de `78e7d14b` terminó verde. El ajuste actual elimina
   `REDIS_URL` como requisito de producción: las colas activas son PostgreSQL y
   Render ya no lo declara como variable.
+- `00f62e46` fuerza el uso del pooler de Supabase para migraciones en Render.
+- `dcb03515`, `b389b2c2`, `0d17e0d6`, `7e04510b` y `01c24ae7` hacen idempotentes
+  las migraciones históricas 7, 9, 11 y 12 frente al rol administrado de
+  Supabase y reparan estados parciales sin borrar datos.
+- Smoke público verde el 17 de agosto de 2026: Render sirve `01c24ae7`,
+  `/ready` reporta `migrations: ok`, `queue: postgresql`, `redis: not_required`,
+  y Vercel responde HTTP 200 con título `TradeLogic`.
 
 - `8de59521`: el worker de clasificacion rankea contra todo el catalogo MX
   vigente y conserva solo los cinco mejores candidatos para el flujo posterior.
