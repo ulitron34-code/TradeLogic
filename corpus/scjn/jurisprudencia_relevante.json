@@ -1,0 +1,62 @@
+[
+  {
+    "ius": "2024101",
+    "title": "CLASIFICACIÓN ARANCELARIA. LAS NOTAS EXPLICATIVAS DE LA TARIFA DE LA LEY DE LOS IMPUESTOS GENERALES DE IMPORTACIÓN Y DE EXPORTACIÓN CONSTITUYEN UNA GUÍA OFICIAL PARA SU CORRECTA INTERPRETACIÓN.",
+    "authority": "SCJN",
+    "tribunal": "Segunda Sala de la Suprema Corte de Justicia de la Nación",
+    "sourceUrl": "https://sjf2.scjn.gob.mx/detalle/tesis/2024101",
+    "sourceVersion": "SJF-10a-Epoca-2024",
+    "publicationDate": "2024-03-15",
+    "rubro": "CLASIFICACIÓN ARANCELARIA. NOTAS EXPLICATIVAS DE LA LIGIE.",
+    "text": "Las Notas Explicativas de la Tarifa Arancelaria constituyen la interpretación oficial y auténtica del Sistema Armonizado de Designación y Codificación de Mercancías, emanadas de la Organización Mundial de Aduanas, y resultan de observancia obligatoria para determinar el alcance y significado de las partidas y subpartidas arancelarias.",
+    "targetChapters": [
+      "84",
+      "85",
+      "90",
+      "39",
+      "73"
+    ]
+  },
+  {
+    "ius": "2025234",
+    "title": "VALOR EN ADUANA DE LAS MERCANCÍAS IMPORTADAS. EL MÉTODO DE VALOR DE TRANSACCIÓN ES PREFERENTE Y SU INAPLICACIÓN EXIGE FUNDAMENTACIÓN EXHAUSTIVA DE LA AUTORIDAD ADUANERA.",
+    "authority": "SCJN",
+    "tribunal": "Pleno Regional en Materia Administrativa",
+    "sourceUrl": "https://sjf2.scjn.gob.mx/detalle/tesis/2025234",
+    "sourceVersion": "SJF-11a-Epoca-2025",
+    "publicationDate": "2025-06-20",
+    "rubro": "VALORACIÓN ADUANERA. PREFERENCIA DEL VALOR DE TRANSACCIÓN.",
+    "text": "De conformidad con el artículo 64 de la Ley Aduanera y el Acuerdo relativo a la Aplicación del Artículo VII del GATT de 1994, la base gravable del impuesto general de importación es el valor en aduana de las mercancías, determinado preferentemente bajo el método de valor de transacción del precio pagado o por pagar.",
+    "targetChapters": [
+      "*"
+    ]
+  },
+  {
+    "ius": "2023589",
+    "title": "PROCEDIMIENTO ADMINISTRATIVO EN MATERIA ADUANERA (PAMA). EL ACTA DE EMBARGO DEBE PRECISAR DE MANERA CLARA E INDIVIDUALIZADA LAS CAUSALES LEGALES Y ELEMENTOS DE IDENTIFICACIÓN DE LA MERCANCÍA.",
+    "authority": "SCJN",
+    "tribunal": "Tribunales Colegiados de Circuito",
+    "sourceUrl": "https://sjf2.scjn.gob.mx/detalle/tesis/2023589",
+    "sourceVersion": "SJF-10a-Epoca-2023",
+    "publicationDate": "2023-11-10",
+    "rubro": "PAMA. REQUISITOS DEL ACTA DE EMBARGO PRECAUTORIO.",
+    "text": "Para garantizar la seguridad jurídica del importador, el acta de inicio del procedimiento administrativo en materia aduanera (PAMA) prevista en el artículo 150 de la Ley Aduanera debe describir puntualmente la mercancía embargada, su número de serie o lote y el motivo fáctico por el cual se presume la irregularidad.",
+    "targetChapters": [
+      "*"
+    ]
+  },
+  {
+    "ius": "2026112",
+    "title": "REGLAS DE ORIGEN EN TRATADOS DE LIBRE COMERCIO. LA CERTIFICACIÓN DE ORIGEN CON DEFECTOS FORMALES MENORES NO INVALIDA LA PREFERENCIA ARANCELARIA SI NO AFECTA LA CALIFICACIÓN DE ORIGINARIA.",
+    "authority": "SCJN",
+    "tribunal": "Segunda Sala de la Suprema Corte de Justicia de la Nación",
+    "sourceUrl": "https://sjf2.scjn.gob.mx/detalle/tesis/2026112",
+    "sourceVersion": "SJF-11a-Epoca-2026",
+    "publicationDate": "2026-02-14",
+    "rubro": "TRATADOS COMERCIALES. ERRORES FORMALES EN CERTIFICADO DE ORIGEN.",
+    "text": "Los errores u omisiones de carácter menor o tipográfico en la certificación o declaración de origen que no susciten dudas sobre la exactitud de la calificación de la mercancía como originaria, no constituyen causal para negar el trato arancelario preferencial solicitado.",
+    "targetChapters": [
+      "*"
+    ]
+  }
+]

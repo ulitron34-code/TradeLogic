@@ -47,33 +47,40 @@ function parseCsv(csv: string): RawRow[] {
 function date(value: string, field: string, row: number) { const parsed = new Date(value); if (!value || Number.isNaN(parsed.getTime())) throw new Error(`Fila ${row}: ${field} debe ser fecha ISO.`); return parsed; }
 function url(value: string, field: string, row: number) { const parsed = new URL(value); if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error(`Fila ${row}: ${field} debe ser HTTP(S).`); return value; }
 
-const options = parseArgs(process.argv.slice(2));
-if (options.help) { console.log(usage()); process.exit(0); }
-if (!options.input || !options.sourceVersion || !options.sourceUrl) throw new Error(`${usage()}Se requieren --input, --source-version y --source-url.`);
-const inputPath = path.resolve(options.input);
-const csvRows = parseCsv(await readFile(inputPath, 'utf8'));
-const records: OriginRuleCatalogPersistenceRecord[] = csvRows.map((row, index) => {
-  const line = index + 2;
-  const agreement = row.agreement ?? row.tratado ?? row.acuerdo ?? '';
-  const tariffCode = row.tariffcode ?? row.fraccion ?? row.fraccionarancelaria ?? '';
-  const type = (row.type ?? row.tipo ?? '').toUpperCase() as OriginRuleCatalogPersistenceRecord['type'];
-  if (!agreement || !tariffCode.match(/^\d{4}\.\d{2}\.\d{2}$/)) throw new Error(`Fila ${line}: tratado y fracción 0000.00.00 son obligatorios.`);
-  if (!['CTC', 'RVC', 'PROCESS'].includes(type)) throw new Error(`Fila ${line}: type debe ser CTC, RVC o PROCESS.`);
-  const source = url(row.sourceurl || options.sourceUrl, 'sourceUrl', line);
-  const sourceVersion = row.sourceversion || options.sourceVersion;
-  if (!sourceVersion) throw new Error(`Fila ${line}: sourceVersion es obligatorio.`);
-  const threshold = row.thresholdpercent || row.umbral || '';
-  const thresholdPercent = threshold === '' ? null : Number(threshold);
-  if (thresholdPercent !== null && (!Number.isFinite(thresholdPercent) || thresholdPercent < 0 || thresholdPercent > 100)) throw new Error(`Fila ${line}: thresholdPercent debe estar entre 0 y 100.`);
-  const preferentialRate = row.preferentialratepercent || row.tasapreferencial || row.tasapreferencialporcentaje || '';
-  const preferentialRatePercent = preferentialRate === '' ? null : Number(preferentialRate);
-  if (preferentialRatePercent !== null && (!Number.isFinite(preferentialRatePercent) || preferentialRatePercent < 0 || preferentialRatePercent > 100)) throw new Error(`Fila ${line}: preferentialRatePercent debe estar entre 0 y 100.`);
-  const preferentialRateUnit = (row.preferentialrateunit || row.unidadtasapreferencial || '').toUpperCase() || null;
-  if (preferentialRateUnit !== null && !['PERCENT', 'EXEMPT', 'QUOTA', 'CONDITIONAL'].includes(preferentialRateUnit)) throw new Error(`Fila ${line}: preferentialRateUnit debe ser PERCENT, EXEMPT, QUOTA o CONDITIONAL.`);
-  return { agreement, tariffCode, type, thresholdPercent, requiredProcess: row.requiredprocess || row.proceso || null, preferentialRatePercent, preferentialRateUnit: preferentialRateUnit as 'PERCENT' | 'EXEMPT' | 'QUOTA' | 'CONDITIONAL' | null, sourceUrl: source, sourceVersion, validFrom: date(row.validfrom || row.vigenciadesde, 'validFrom', line), validTo: row.validto || row.vigenciahasta ? date(row.validto || row.vigenciahasta, 'validTo', line) : null };
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  if (options.help) { console.log(usage()); process.exit(0); }
+  if (!options.input || !options.sourceVersion || !options.sourceUrl) throw new Error(`${usage()}Se requieren --input, --source-version y --source-url.`);
+  const inputPath = path.resolve(options.input);
+  const csvRows = parseCsv(await readFile(inputPath, 'utf8'));
+  const records: OriginRuleCatalogPersistenceRecord[] = csvRows.map((row, index) => {
+    const line = index + 2;
+    const agreement = row.agreement ?? row.tratado ?? row.acuerdo ?? '';
+    const tariffCode = row.tariffcode ?? row.fraccion ?? row.fraccionarancelaria ?? '';
+    const type = (row.type ?? row.tipo ?? '').toUpperCase() as OriginRuleCatalogPersistenceRecord['type'];
+    if (!agreement || !tariffCode.match(/^\d{4}\.\d{2}\.\d{2}$/)) throw new Error(`Fila ${line}: tratado y fracción 0000.00.00 son obligatorios.`);
+    if (!['CTC', 'RVC', 'PROCESS'].includes(type)) throw new Error(`Fila ${line}: type debe ser CTC, RVC o PROCESS.`);
+    const source = url(row.sourceurl || options.sourceUrl, 'sourceUrl', line);
+    const sourceVersion = row.sourceversion || options.sourceVersion;
+    if (!sourceVersion) throw new Error(`Fila ${line}: sourceVersion es obligatorio.`);
+    const threshold = row.thresholdpercent || row.umbral || '';
+    const thresholdPercent = threshold === '' ? null : Number(threshold);
+    if (thresholdPercent !== null && (!Number.isFinite(thresholdPercent) || thresholdPercent < 0 || thresholdPercent > 100)) throw new Error(`Fila ${line}: thresholdPercent debe estar entre 0 y 100.`);
+    const preferentialRate = row.preferentialratepercent || row.tasapreferencial || row.tasapreferencialporcentaje || '';
+    const preferentialRatePercent = preferentialRate === '' ? null : Number(preferentialRate);
+    if (preferentialRatePercent !== null && (!Number.isFinite(preferentialRatePercent) || preferentialRatePercent < 0 || preferentialRatePercent > 100)) throw new Error(`Fila ${line}: preferentialRatePercent debe estar entre 0 y 100.`);
+    const preferentialRateUnit = (row.preferentialrateunit || row.unidadtasapreferencial || '').toUpperCase() || null;
+    if (preferentialRateUnit !== null && !['PERCENT', 'EXEMPT', 'QUOTA', 'CONDITIONAL'].includes(preferentialRateUnit)) throw new Error(`Fila ${line}: preferentialRateUnit debe ser PERCENT, EXEMPT, QUOTA o CONDITIONAL.`);
+    return { agreement, tariffCode, type, thresholdPercent, requiredProcess: row.requiredprocess || row.proceso || null, preferentialRatePercent, preferentialRateUnit: preferentialRateUnit as 'PERCENT' | 'EXEMPT' | 'QUOTA' | 'CONDITIONAL' | null, sourceUrl: source, sourceVersion, validFrom: date(row.validfrom || row.vigenciadesde, 'validFrom', line), validTo: row.validto || row.vigenciahasta ? date(row.validto || row.vigenciahasta, 'validTo', line) : null };
+  });
+  const result: Record<string, unknown> = { status: 'valid', mode: options.apply ? 'apply' : 'dry-run', input: inputPath, records: records.length, sourceVersion: options.sourceVersion, sourceUrl: options.sourceUrl };
+  if (!options.apply) { console.log(JSON.stringify(result, null, 2)); return; }
+  const persisted = await upsertOriginRuleCatalog(db, records);
+  console.log(JSON.stringify({ ...result, status: 'applied', ...persisted }, null, 2));
+  await db.$disconnect();
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
 });
-const result: Record<string, unknown> = { status: 'valid', mode: options.apply ? 'apply' : 'dry-run', input: inputPath, records: records.length, sourceVersion: options.sourceVersion, sourceUrl: options.sourceUrl };
-if (!options.apply) { console.log(JSON.stringify(result, null, 2)); process.exit(0); }
-const persisted = await upsertOriginRuleCatalog(db, records);
-console.log(JSON.stringify({ ...result, status: 'applied', ...persisted }, null, 2));
-await db.$disconnect();

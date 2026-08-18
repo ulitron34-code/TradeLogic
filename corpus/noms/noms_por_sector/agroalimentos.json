@@ -1,0 +1,35 @@
+[
+  {
+    "code": "NOM-030-ZOO-1995",
+    "title": "Especificaciones y procedimientos para la verificación de carne, canales, vísceras y despojos de importación en puntos de verificación zoosanitaria",
+    "authority": "SAGARPA",
+    "type": "PERMIT",
+    "sector": "agroalimentos",
+    "dofDate": "1996-04-17",
+    "validFrom": "1996-06-16",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=4876610&fecha=17/04/1996",
+    "mandatory": true,
+    "sampleChapters": [
+      "02",
+      "05",
+      "16"
+    ],
+    "condition": "Inspección y verificación en puntos de ingreso fronterizo y marítimo para productos cárnicos"
+  },
+  {
+    "code": "NOM-057-FITO-1997",
+    "title": "Por la que se establecen los requisitos y especificaciones fitosanitarias para la emisión del certificado fitosanitario para la importación de frutos y vegetales frescos",
+    "authority": "SAGARPA",
+    "type": "PERMIT",
+    "sector": "agroalimentos",
+    "dofDate": "1998-07-28",
+    "validFrom": "1998-09-26",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=4890250&fecha=28/07/1998",
+    "mandatory": true,
+    "sampleChapters": [
+      "07",
+      "08"
+    ],
+    "condition": "Certificado Fitosanitario Internacional emitido por la autoridad competente del país exportador"
+  }
+]

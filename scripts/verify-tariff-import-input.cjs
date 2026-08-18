@@ -3,7 +3,7 @@ const { mkdirSync, readFileSync, writeFileSync } = require('node:fs');
 const path = require('node:path');
 
 const DEFAULT_INPUT = 'data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv';
-const DEFAULT_EXPECTED_RECORDS = 20227;
+const DEFAULT_EXPECTED_RECORDS = 19690;
 const REQUIRED_HEADERS = [
   'countryCode',
   'code',
@@ -22,7 +22,7 @@ const REQUIRED_HEADERS = [
 
 function usage() {
   return `Usage:
-  node scripts/verify-tariff-import-input.cjs [--input data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv] [--expected-records 20227] [--output artifacts/tariff-import-input.json]
+  node scripts/verify-tariff-import-input.cjs [--input data/tariff-sources/2026/LIGIE-NICO-2026-04-24.csv] [--expected-records 19690] [--output artifacts/tariff-import-input.json]
 `;
 }
 

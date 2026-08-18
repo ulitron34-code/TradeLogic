@@ -19,7 +19,10 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "tariff:import": "tsx ../../scripts/import-tariff-catalog.ts",
     "regulatory:import": "tsx ../../scripts/import-regulatory-catalog.ts",
-    "origin-rules:import": "tsx ../../scripts/import-origin-rules.ts"
+    "origin-rules:import": "tsx ../../scripts/import-origin-rules.ts",
+    "senasica:import": "tsx ../../corpus/scripts/import-senasica-catalog.ts",
+    "corpus:extract-ligie": "pwsh -File ../../corpus/scripts/extract-ligie-corpus.ps1",
+    "corpus:transform-senasica": "python ../../corpus/scripts/transform-senasica.py"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0"

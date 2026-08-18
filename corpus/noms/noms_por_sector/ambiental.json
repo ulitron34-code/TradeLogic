@@ -1,0 +1,35 @@
+[
+  {
+    "code": "NOM-059-SEMARNAT-2010",
+    "title": "Protección ambiental-Especies nativas de México de flora y fauna silvestres-Categorías de riesgo y especificaciones para su inclusión, exclusión o cambio-Lista de especies en riesgo",
+    "authority": "SEMARNAT",
+    "type": "CERTIFICATE",
+    "sector": "ambiental",
+    "dofDate": "2010-12-30",
+    "validFrom": "2011-03-01",
+    "dofUrl": "https://dof.gob.mx/normasOficiales.php?codnom=2458&dof=true",
+    "mandatory": true,
+    "sampleChapters": [
+      "01",
+      "06",
+      "14",
+      "44"
+    ],
+    "condition": "Importación de ejemplares, partes o derivados de vida silvestre listados en CITES o categorías de riesgo"
+  },
+  {
+    "code": "NOM-144-SEMARNAT-2017",
+    "title": "Establece las medidas fitosanitarias y los requisitos de la marca reconocidas internacionalmente para el embalaje de madera que se utiliza en el comercio internacional de bienes y mercancías",
+    "authority": "SEMARNAT",
+    "type": "CERTIFICATE",
+    "sector": "ambiental",
+    "dofDate": "2017-11-27",
+    "validFrom": "2018-01-26",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=5505707&fecha=27/11/2017",
+    "mandatory": true,
+    "sampleChapters": [
+      "44"
+    ],
+    "condition": "Embalajes de madera (tarimas, cajas, carretes, duelas) utilizados en el transporte de mercancías importadas"
+  }
+]

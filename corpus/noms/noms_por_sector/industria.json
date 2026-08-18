@@ -1,0 +1,121 @@
+[
+  {
+    "code": "NOM-001-SCFI-2018",
+    "title": "Aparatos electrónicos-Requisitos de seguridad y métodos de prueba (cancela a la NOM-001-SCFI-1993)",
+    "authority": "SE",
+    "type": "NOM",
+    "sector": "industria",
+    "dofDate": "2019-09-17",
+    "validFrom": "2020-05-14",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=5572444&fecha=17/09/2019",
+    "mandatory": true,
+    "sampleChapters": [
+      "85"
+    ],
+    "condition": "Aparatos electrónicos para uso doméstico, comercial y de oficina alimentados por la red pública o baterías"
+  },
+  {
+    "code": "NOM-019-SCFI-1998",
+    "title": "Seguridad de equipo de procesamiento de datos",
+    "authority": "SE",
+    "type": "NOM",
+    "sector": "industria",
+    "dofDate": "1998-12-11",
+    "validFrom": "1999-06-09",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=4940250&fecha=11/12/1998",
+    "mandatory": true,
+    "sampleChapters": [
+      "84"
+    ],
+    "condition": "Equipos de procesamiento de datos, computadoras, servidores, impresoras y periféricos"
+  },
+  {
+    "code": "NOM-024-SCFI-2013",
+    "title": "Información comercial para empaques, instructivos y garantías de los productos electrónicos, eléctricos y electrodomésticos",
+    "authority": "SE",
+    "type": "NOM",
+    "sector": "industria",
+    "dofDate": "2013-08-12",
+    "validFrom": "2014-02-08",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=5310065&fecha=12/08/2013",
+    "mandatory": true,
+    "sampleChapters": [
+      "84",
+      "85",
+      "90"
+    ],
+    "condition": "Instructivos, garantías y empaque en idioma español para bienes electrónicos y electrodomésticos"
+  },
+  {
+    "code": "NOM-050-SCFI-2004",
+    "title": "Información comercial-Etiquetado general de productos",
+    "authority": "SE",
+    "type": "NOM",
+    "sector": "industria",
+    "dofDate": "2004-06-01",
+    "validFrom": "2004-08-01",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=676100&fecha=01/06/2004",
+    "mandatory": true,
+    "sampleChapters": [
+      "39",
+      "40",
+      "42",
+      "48",
+      "68",
+      "69",
+      "70",
+      "73",
+      "82",
+      "83",
+      "94",
+      "95",
+      "96"
+    ],
+    "condition": "Productos manufacturados nacionales o importados destinados al consumidor cuando no exista NOM específica"
+  },
+  {
+    "code": "NOM-004-SE-2021",
+    "title": "Información comercial-Etiquetado de productos textiles, prendas de vestir, sus accesorios y ropa de casa",
+    "authority": "SE",
+    "type": "NOM",
+    "sector": "industria",
+    "dofDate": "2022-01-14",
+    "validFrom": "2023-01-15",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=5640698&fecha=14/01/2022",
+    "mandatory": true,
+    "sampleChapters": [
+      "50",
+      "51",
+      "52",
+      "53",
+      "54",
+      "55",
+      "56",
+      "57",
+      "58",
+      "59",
+      "60",
+      "61",
+      "62",
+      "63"
+    ],
+    "condition": "Prendas de vestir y confecciones textiles importadas"
+  },
+  {
+    "code": "NOM-020-SCFI-1997",
+    "title": "Información comercial-Etiquetado de cueros y pieles curtidas naturales y materiales sintéticos o artificiales con esa apariencia, calzado, marroquinería",
+    "authority": "SE",
+    "type": "NOM",
+    "sector": "industria",
+    "dofDate": "1997-12-11",
+    "validFrom": "1998-02-09",
+    "dofUrl": "https://dof.gob.mx/nota_detalle.php?codigo=4899500&fecha=11/12/1997",
+    "mandatory": true,
+    "sampleChapters": [
+      "41",
+      "42",
+      "64"
+    ],
+    "condition": "Calzado, partes de calzado, artículos de piel, marroquinería y artículos de viaje"
+  }
+]
