@@ -1,1 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap');
 @import "tailwindcss";
+
+:root {
+  --obsidian: #080d11;
+  --petrol: #0c3438;
+  --petrol-2: #11525a;
+  --aqua: #43b8c4;
+  --champagne: #c6a66a;
+  --ivory: #f4f1ea;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #080d11;
+  color: #f4f1ea;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
