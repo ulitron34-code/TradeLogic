@@ -33,9 +33,10 @@ export function loadImmexSensitivityCatalog(csvPath?: string): ImmexSensitivityR
       const description = cols[3];
       if (!tariffCode || !sector || !description) continue;
 
+      const nico = cols[1];
       records.push({
         tariffCode,
-        nico: cols[1] || undefined,
+        ...(nico ? { nico } : {}),
         sector: sector as ImmexSector,
         description,
         maxMonthsPeriod: parseInt(cols[4] ?? '', 10) || 18,
