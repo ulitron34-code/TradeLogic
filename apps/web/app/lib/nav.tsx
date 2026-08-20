@@ -45,7 +45,11 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
 
   async function handleLogout() {
     setLoggingOut(true);
-    await createClient().auth.signOut();
+    try {
+      await createClient().auth.signOut();
+    } catch {
+      // En modo DEV_AUTH_BYPASS no hay sesion real de Supabase que cerrar.
+    }
     router.push('/login');
     router.refresh();
   }
@@ -54,7 +58,7 @@ export function Nav({ email, organizationName }: { email: string; organizationNa
     <nav className="border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Link href="/dashboard" aria-label="Ir al centro de trabajo" className="inline-flex cursor-pointer text-sm font-semibold">TradeLogic</Link>
+          <Link href="/" aria-label="Ir a la pagina principal" className="inline-flex cursor-pointer text-sm font-semibold">TradeLogic</Link>
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`));
             return <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={`inline-flex cursor-pointer rounded px-1 text-sm transition-colors ${active ? 'font-semibold text-neutral-900 dark:text-neutral-100' : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100'}`}>{item.label}</Link>;

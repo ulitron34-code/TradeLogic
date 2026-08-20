@@ -9,10 +9,13 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const devBypassAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_BYPASS_IN_PRODUCTION === 'true';
+  const devAuthBypass = process.env.DEV_AUTH_BYPASS === 'true' && devBypassAllowed;
+
+  // Bypass de desarrollo local: no hay sesion real de Supabase que consultar,
+  // pero la API sigue resolviendo un usuario/organizacion de prueba (mismo
+  // flag DEV_AUTH_BYPASS del lado de la API), asi que igual pedimos /me.
+  const user = devAuthBypass ? true : (await (await createClient()).auth.getUser()).data.user;
 
   let me: { email: string; organizationName: string } | null = null;
   if (user) {
@@ -22,7 +25,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     try {
       me = await apiFetch<{ email: string; organizationName: string }>('/api/v1/me');
     } catch {
-      me = null;
+      me = devAuthBypass ? { email: 'dev@local.bypass', organizationName: 'Modo pruebas (DEV_AUTH_BYPASS)' } : null;
     }
   }
 

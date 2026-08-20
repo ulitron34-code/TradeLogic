@@ -8,8 +8,14 @@ export { ApiError } from './api-error';
 // Components, usar el cliente de supabase/client.ts directamente para
 // obtener el token via supabase.auth.getSession().
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
+  // Bypass de desarrollo local: la API ignora el header Authorization cuando
+  // DEV_AUTH_BYPASS esta activo, asi que no hace falta una sesion real de
+  // Supabase para obtenerlo aqui (y de hecho no siempre hay una configurada).
+  const devBypassAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_DEV_BYPASS_IN_PRODUCTION === 'true';
+  const devAuthBypass = process.env.DEV_AUTH_BYPASS === 'true' && devBypassAllowed;
+  const session = devAuthBypass
+    ? null
+    : (await (await createClient()).auth.getSession()).data.session;
 
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
   if (!baseUrl) throw new Error('NEXT_PUBLIC_API_BASE_URL is not configured');

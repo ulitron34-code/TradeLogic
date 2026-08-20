@@ -27,6 +27,11 @@ const schema = z.object({
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   DEV_AUTH_BYPASS: z.preprocess((value) => value === 'true', z.boolean()).default(false),
+  // Segundo interruptor requerido ademas de DEV_AUTH_BYPASS para permitir el
+  // bypass con NODE_ENV=production. Exigir ambos evita que alguien active
+  // DEV_AUTH_BYPASS en prod por error sin darse cuenta de que deja la
+  // plataforma sin login para cualquiera con el link.
+  ALLOW_DEV_BYPASS_IN_PRODUCTION: z.preprocess((value) => value === 'true', z.boolean()).default(false),
   S3_ENDPOINT: z.string().url(),
   S3_REGION: z.string().min(1),
   S3_BUCKET: z.string().min(1),
