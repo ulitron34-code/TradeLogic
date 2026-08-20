@@ -25,6 +25,7 @@
     "corpus:transform-senasica": "python ../../corpus/scripts/transform-senasica.py"
   },
   "dependencies": {
+    "@platform/domain": "workspace:*",
     "@prisma/client": "^6.1.0"
   },
   "devDependencies": {

@@ -25,13 +25,19 @@ export function loadImmexSensitivityCatalog(csvPath?: string): ImmexSensitivityR
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
+    if (!line) continue;
     const cols = parseCsvLine(line);
     if (cols.length >= 6) {
+      const tariffCode = cols[0];
+      const sector = cols[2];
+      const description = cols[3];
+      if (!tariffCode || !sector || !description) continue;
+
       records.push({
-        tariffCode: cols[0],
+        tariffCode,
         nico: cols[1] || undefined,
-        sector: cols[2] as ImmexSector,
-        description: cols[3],
+        sector: sector as ImmexSector,
+        description,
         maxMonthsPeriod: parseInt(cols[4], 10) || 18,
         requiresSpecialAuthorization: cols[5]?.toLowerCase() === 'true' || cols[5] === '1',
         controlMechanism: cols[6] || '',

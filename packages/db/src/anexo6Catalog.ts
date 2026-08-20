@@ -20,8 +20,9 @@ export function loadAnexo6Catalog(csvPath?: string): Anexo6CriterionRecord[] {
   }
 
   const content = readFileSync(targetPath, 'utf-8');
-  cachedAnexo6Catalog = parseAnexo6CatalogCsv(content);
-  return cachedAnexo6Catalog;
+  const records = parseAnexo6CatalogCsv(content);
+  cachedAnexo6Catalog = records;
+  return records;
 }
 
 export function findAnexo6BindingCriteria(
