@@ -750,6 +750,75 @@ AURUM_HTML = """<!DOCTYPE html>
   <strong>Regla de Oro de Cumplimiento:</strong> En materia de Prevención de Lavado de Dinero ante el SAT, la omisión no es una opción. Con AURUM, cada cliente tiene expediente integrado, cada operación cuenta con cálculo de UMA en tiempo real, y cada aviso ante la UIF queda respaldado con su acuse oficial conciliado.
 </div>
 
+---
+
+<!-- CAPÍTULO 5: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
+<h1>5. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
+<p>
+  La mayoría de los softwares de PLD en el mercado fueron construidos para la banca tradicional regulada por la CNBV o son simples hojas de cálculo sin inteligencia. <strong>AURUM es la primera solución diseñada específicamente para las 16 Actividades Vulnerables de la LFPIORPI y el nuevo estándar del Acuerdo 115/2026 del SAT</strong>.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Capacidad / Requerimiento</th>
+      <th>Control Manual (Excel / Carpetas Físicas)</th>
+      <th>Software PLD Bancario (World-Check / LexisNexis)</th>
+      <th>Sistemas Contables / ERP (Aspel / Contpaqi)</th>
+      <th>AURUM (SaaS PLD Especializado)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Enfoque Regulatorio</strong></td>
+      <td>Sin reglas automáticas</td>
+      <td>Enfocado en Bancos / CNBV (Incompatible)</td>
+      <td>Solo timbrado fiscal CFDI</td>
+      <td><span class="badge badge-approved">100% Art. 17 LFPIORPI & SAT</span></td>
+    </tr>
+    <tr>
+      <td><strong>Cálculo de UMAs en Tiempo Real</strong></td>
+      <td>Manual (Alto riesgo de error de captura)</td>
+      <td>No maneja umbrales de la LFPIORPI</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">Automático Diaria/Mensual/Anual</span></td>
+    </tr>
+    <tr>
+      <td><strong>Screening de Listas Negras SAT</strong></td>
+      <td>Búsqueda manual una por una</td>
+      <td>Listas internacionales sin SAT 69-B</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">OFAC + SAT 69-B + PEPs + ONU</span></td>
+    </tr>
+    <tr>
+      <td><strong>Generación de XML para SPPLD</strong></td>
+      <td>Imposible (Requiere desarrollador)</td>
+      <td>No compatible con esquemas del SAT</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">XML 100% Validado por XSD</span></td>
+    </tr>
+    <tr>
+      <td><strong>Copilotos de Inteligencia Artificial</strong></td>
+      <td>Ninguno</td>
+      <td>Reglas rígidas sin explicación</td>
+      <td>Ninguno</td>
+      <td><span class="badge badge-approved">8 Copilotos Especializados</span></td>
+    </tr>
+    <tr>
+      <td><strong>Costos y Tiempo de Despliegue</strong></td>
+      <td>Riesgo de multas de hasta $10M MXN</td>
+      <td>$30,000+ USD/año (Meses de setup)</td>
+      <td>Módulos inconexos</td>
+      <td><span class="badge badge-approved">SaaS Inmediato y Accesible</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>¿Por qué una empresa con Actividad Vulnerable debe contratar AURUM?</strong><br>
+  Porque el SAT no acepta excusas por desconocimiento ni errores de captura en UMA. <strong>AURUM automatiza el 100% de la integración de expedientes únicos, detecta operaciones sospechosas en tiempo real y genera el archivo XML exacto para cumplir en tiempo y forma ante el portal SPPLD</strong>, blindando a accionistas y oficiales de cumplimiento.
+</div>
+
 </body>
 </html>
 """

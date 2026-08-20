@@ -643,6 +643,75 @@ NUXERA_ENRICHED_HTML = """<!DOCTYPE html>
   <strong>Regla de Oro de NUXERA:</strong> Ninguna solicitud de financiamiento se somete a comité de inversión sin contar con el 100% de los documentos obligatorios resueltos en el Gap Analysis y sin haber obtenido un dictamen limpio en el Corpus de Identidad y Sanciones (OFAC, SAT 69-B, PPE, ONU y UE).
 </div>
 
+---
+
+<!-- CAPÍTULO 5: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
+<h1>5. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
+<p>
+  Los fondos de deuda privada, SOFOMes y fintechs en México suelen operar con burós tradicionales que reportan datos con 60 días de retraso o con CRMs genéricos desconectados del análisis de riesgo real. <strong>NUXERA es la primera plataforma integral que une la originación, scoring explicable, screening de listas negras y emisión del dictamen de comité en un solo entorno</strong>.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Capacidad / Requerimiento</th>
+      <th>Burós Tradicionales (Buró / Círculo de Crédito)</th>
+      <th>CRMs Genéricos (Salesforce / HubSpot)</th>
+      <th>Scoring de "Caja Negra" (Algoritmos opacos)</th>
+      <th>NUXERA (Plataforma Integral de Crédito)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Tiempo de Información</strong></td>
+      <td>Histórico con 30-60 días de retraso</td>
+      <td>Solo registros de contacto</td>
+      <td>Datos estáticos</td>
+      <td><span class="badge badge-approved">Tiempo Real + Facturación CFDI</span></td>
+    </tr>
+    <tr>
+      <td><strong>Screening de Listas Negras (OFAC/SAT)</strong></td>
+      <td>No incluye SAT 69-B ni PPE</td>
+      <td>No disponible</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">OFAC + SAT 69-B + PPE + ONU/UE</span></td>
+    </tr>
+    <tr>
+      <td><strong>Motor de Búsqueda Vectorial</strong></td>
+      <td>Búsqueda exacta rígida por RFC</td>
+      <td>No disponible</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">pgvector con Semántica de Identidad</span></td>
+    </tr>
+    <tr>
+      <td><strong>Explicabilidad del Score</strong></td>
+      <td>Solo número (ej. 650 pts) sin desglose</td>
+      <td>Ninguna</td>
+      <td>Opaco (Inaceptable ante comités)</td>
+      <td><span class="badge badge-approved">Auditable y Motivado por Factores</span></td>
+    </tr>
+    <tr>
+      <td><strong>Emisión de Dossier para Comité</strong></td>
+      <td>Reporte de crédito plano</td>
+      <td>No disponible</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">Investment Committee Brief (PDF)</span></td>
+    </tr>
+    <tr>
+      <td><strong>Actualización de Listas Oficiales</strong></td>
+      <td>Mensual o irregular</td>
+      <td>Manual</td>
+      <td>Manual</td>
+      <td><span class="badge badge-approved">SanctionAgent Cron Cada 4 Días</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>¿Por qué una institución financiera o fondo de inversión debe contratar NUXERA?</strong><br>
+  Porque NUXERA <strong>acelera el tiempo de aprobación de créditos de semanas a horas, reduce la cartera vencida mediante scoring predictivo y blinda jurídicamente a los miembros del comité de inversión</strong> asegurando que ningún fondo se desembolse a entidades boletinadas por el SAT, la OFAC o la ONU.
+</div>
+
 </body>
 </html>
 """

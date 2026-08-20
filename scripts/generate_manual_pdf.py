@@ -602,11 +602,78 @@ HTML_CONTENT = """<!DOCTYPE html>
 
 ---
 
-<!-- CAPÍTULO 4: REGLAS DE ORO -->
-<h1>4. Buenas Prácticas y Reglas de Oro en TradeLogic</h1>
+<!-- CAPÍTULO 5: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
+<h1>5. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
+<p>
+  A diferencia de los buscadores arancelarios estáticos del siglo pasado, los sistemas ERP monolíticos y los chatbots genéricos que alucinan fracciones, <strong>TradeLogic es la única plataforma integral de pre-despacho y defensa aduanera con respaldo legal y criptográfico en México</strong>.
+</p>
 
-<div class="callout callout-success">
-  <strong>Principio Rector de TradeLogic:</strong> La inteligencia artificial procesa millones de datos en segundos y sugiere la mejor estrategia; el agente aduanal profesional revisa, autoriza y firma. La tecnología potencia la capacidad del experto, garantizando certeza jurídica absoluta.
+<table>
+  <thead>
+    <tr>
+      <th>Capacidad / Módulo Operativo</th>
+      <th>Buscadores Tradicionales (CAAAREM / SIARE)</th>
+      <th>ERPs Corporativos (ONESOURCE / SAP GTS)</th>
+      <th>Chatbots de IA Genérica (ChatGPT / Wrappers)</th>
+      <th>TradeLogic (Líder Integral)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Base Arancelaria Oficial</strong></td>
+      <td>Manual / Sin correlación inteligente</td>
+      <td>Base estática con costo de actualización</td>
+      <td>Alucinada / No oficial (Peligro fiscal)</td>
+      <td><span class="badge badge-approved">LIGIE 2026 (19,690 Fracc.)</span></td>
+    </tr>
+    <tr>
+      <td><strong>Criterios SAT (Anexo 6 RGCE)</strong></td>
+      <td>No incluidos</td>
+      <td>No incluidos</td>
+      <td>No disponibles</td>
+      <td><span class="badge badge-approved">Alertas Vinculantes SAT</span></td>
+    </tr>
+    <tr>
+      <td><strong>Ingesta Multimodal de Facturas</strong></td>
+      <td>Captura manual renglón por renglón</td>
+      <td>Requiere EDI propietario costoso</td>
+      <td>Texto libre sin validación arancelaria</td>
+      <td><span class="badge badge-approved">Invoice IA en Chino/Inglés</span></td>
+    </tr>
+    <tr>
+      <td><strong>Pre-despacho SAAI M3</strong></td>
+      <td>No disponible (solo consulta)</td>
+      <td>Módulos complejos de semanas de setup</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">Layouts 501, 551 y 554</span></td>
+    </tr>
+    <tr>
+      <td><strong>Consultas Art. 47 LA / PAMA</strong></td>
+      <td>No disponible</td>
+      <td>No disponible</td>
+      <td>Redacción informal sin sustento</td>
+      <td><span class="badge badge-approved">Escritos Procesales Formales</span></td>
+    </tr>
+    <tr>
+      <td><strong>Cumplimiento IMMEX / Anexo II</strong></td>
+      <td>No disponible</td>
+      <td>Módulos de Anexo 24 desconectados</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">Semáforo + INPC/Recargos CFF</span></td>
+    </tr>
+    <tr>
+      <td><strong>Prueba Legal Defendible</strong></td>
+      <td>Ninguna</td>
+      <td>Reportes estándar sin firma</td>
+      <td>Ninguna</td>
+      <td><span class="badge badge-approved">Dossier PDF con SHA-256</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>¿Por qué una empresa o agencia aduanal debe contratar TradeLogic?</strong><br>
+  Porque TradeLogic no solo clasifica mercancías; <strong>elimina el 80% del tiempo de captura de facturas, evita multas millonarias por inconsistencias en el pedimento, protege el programa IMMEX y entrega la prueba criptográfica completa para ganar cualquier juicio o PAMA ante el SAT y la ANAM</strong>.
 </div>
 
 </body>

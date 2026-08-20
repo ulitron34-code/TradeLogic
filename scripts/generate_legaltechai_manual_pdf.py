@@ -622,6 +622,68 @@ LEGALTECH_HTML = """<!DOCTYPE html>
   <strong>Principio Rector de LegalTech AI:</strong> La inteligencia artificial procesa millones de datos en segundos y localiza el precedente exacto; el abogado analiza, juzga y asume la defensa. La tecnología potencia la labor del jurista, jamás la sustituye.
 </div>
 
+---
+
+<!-- CAPÍTULO 5: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
+<h1>5. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
+<p>
+  En el mercado jurídico existen dos extremos ineficientes: los buscadores tradicionales que exigen horas de lectura manual y las herramientas de IA genéricas que inventan leyes y alucinan números de tesis. <strong>LegalTech AI es el primer entorno de inteligencia jurídica en México que une RAG determinista, grafo normativo de precedentes y redacción procesal con firma auditada</strong>.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Capacidad / Requerimiento</th>
+      <th>Buscador SCJN Tradicional (sjf2 / Datos abiertos)</th>
+      <th>Bases de Datos Clásicas (vLex / Tirant Prime)</th>
+      <th>Modelos de IA Genérica (ChatGPT / Copilot)</th>
+      <th>LegalTech AI (Plataforma Especializada)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Precisión de Citas (Cero Alucinaciones)</strong></td>
+      <td>Oficial (Búsqueda manual pesada)</td>
+      <td>Oficial (Sin razonamiento)</td>
+      <td>Altamente propenso a inventar leyes</td>
+      <td><span class="badge badge-approved">Grounding Estricto SCJN/DOF</span></td>
+    </tr>
+    <tr>
+      <td><strong>Grafo de Tesis Superadas / Vigentes</strong></td>
+      <td>Manual (El abogado debe cotejar)</td>
+      <td>Mención básica sin grafo</td>
+      <td>No disponible (Cita tesis derogadas)</td>
+      <td><span class="badge badge-approved">Detección Automática de Vigencia</span></td>
+    </tr>
+    <tr>
+      <td><strong>Redacción de Demandas y Proyectos</strong></td>
+      <td>No disponible</td>
+      <td>Solo machotes y formatos fijos</td>
+      <td>Prosa informal sin formato judicial</td>
+      <td><span class="badge badge-approved">Drafting Agent Procesal (DOCX/PDF)</span></td>
+    </tr>
+    <tr>
+      <td><strong>Especialización Sectorial</strong></td>
+      <td>Leyes dispersas</td>
+      <td>Leyes dispersas</td>
+      <td>Genérico</td>
+      <td><span class="badge badge-approved">Laboral (CFCRL), Civil y Sanitario</span></td>
+    </tr>
+    <tr>
+      <td><strong>Gobernanza y Responsabilidad Letrada</strong></td>
+      <td>Individual</td>
+      <td>Individual</td>
+      <td>Sin control de autoría</td>
+      <td><span class="badge badge-approved">Compuerta Human-in-the-Loop Obligatoria</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>¿Por qué un despacho o departamento jurídico debe contratar LegalTech AI?</strong><br>
+  Porque LegalTech AI <strong>reduce el tiempo de elaboración de demandas y contestaciones en un 80%, evita el error fatal de citar criterios superados y asegura que cada proyecto entregado cuente con fundamentación oficial intachable</strong>, aumentando la tasa de éxito en litigio y la productividad del equipo legal.
+</div>
+
 </body>
 </html>
 """

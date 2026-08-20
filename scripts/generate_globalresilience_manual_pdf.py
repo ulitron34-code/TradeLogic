@@ -701,6 +701,68 @@ GR_HTML = """<!DOCTYPE html>
   <strong>Principio de Resiliencia Sistémica:</strong> La infraestructura digital ya no es un servicio secundario: es el sistema nervioso del comercio y la energía mundial. Anticipar sus puntos de quiebre es la única defensa real ante la incertidumbre global.
 </div>
 
+---
+
+<!-- CAPÍTULO 5: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
+<h1>5. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
+<p>
+  Las herramientas actuales en el mercado analizan las telecomunicaciones de forma aislada a las materias primas o se limitan a emitir reportes estáticos en PDF semanas después de un evento. <strong>Global Resilience OS es la única plataforma que fusiona en tiempo real la topología de cables submarinos con el impacto financiero en 12 cadenas de commodities críticas</strong>.
+</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Capacidad / Métrica</th>
+      <th>Monitores de Telecom (TeleGeography / RIPE)</th>
+      <th>Supply Chain Analytics (Resilinc / Everstream)</th>
+      <th>Consultoría Geopolítica (McKinsey / Eurasia)</th>
+      <th>Global Resilience OS (Plataforma Integral)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Monitoreo de Cables Submarinos</strong></td>
+      <td>Solo datos de red/latencia IP</td>
+      <td>No incluye infraestructura submarina</td>
+      <td>Menciones narrativas</td>
+      <td><span class="badge badge-approved">Mapeo Físico + Topología Global</span></td>
+    </tr>
+    <tr>
+      <td><strong>Correlación con 12 Commodities</strong></td>
+      <td>No disponible</td>
+      <td>Enfocado solo en proveedores Nivel 1</td>
+      <td>Análisis cualitativo sin telemetría</td>
+      <td><span class="badge badge-approved">Correlación Multimodal en Vivo</span></td>
+    </tr>
+    <tr>
+      <td><strong>Simulación de Impacto Financiero ($/hora)</strong></td>
+      <td>No disponible</td>
+      <td>Estimaciones genéricas de stock</td>
+      <td>Estudios retrospectivos</td>
+      <td><span class="badge badge-approved">Impact Engine con Pérdidas por Hora</span></td>
+    </tr>
+    <tr>
+      <td><strong>Marketplace de Capacidad de Respaldo</strong></td>
+      <td>No disponible</td>
+      <td>No disponible</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">Contratación de Redundancia Inmediata</span></td>
+    </tr>
+    <tr>
+      <td><strong>Perfiles de Recuperación y MTTR</strong></td>
+      <td>Tiempos estimados de ping</td>
+      <td>Tiempos de entrega de fábrica</td>
+      <td>Opiniones de expertos</td>
+      <td><span class="badge badge-approved">Logística de Buques Cableros</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout callout-info">
+  <strong>¿Por qué corporativos multinacionales y aseguradoras deben contratar Global Resilience OS?</strong><br>
+  Porque un corte en un cable transoceánico no solo apaga internet: <strong>paraliza transacciones de petróleo, frena envíos de semiconductores y bloquea la compensación bancaria internacional</strong>. Global Resilience OS permite anticipar puntos únicos de falla, cuantificar el riesgo en dólares y activar rutas de contingencia antes de que ocurra la catástrofe.
+</div>
+
 </body>
 </html>
 """
