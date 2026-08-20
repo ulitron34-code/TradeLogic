@@ -38,7 +38,7 @@ export function loadImmexSensitivityCatalog(csvPath?: string): ImmexSensitivityR
         nico: cols[1] || undefined,
         sector: sector as ImmexSector,
         description,
-        maxMonthsPeriod: parseInt(cols[4], 10) || 18,
+        maxMonthsPeriod: parseInt(cols[4] ?? '', 10) || 18,
         requiresSpecialAuthorization: cols[5]?.toLowerCase() === 'true' || cols[5] === '1',
         controlMechanism: cols[6] || '',
       });
