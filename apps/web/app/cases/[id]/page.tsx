@@ -844,8 +844,8 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
         <CustomsInquiryPanel caseId={classificationCase.id} />
         <PedimentoLayoutPanel
           caseId={classificationCase.id}
-          tariffCode={classificationCase.selectedTariffCode}
-          nico={classificationCase.selectedNico}
+          tariffCode={topCandidate?.tariffCode.code ?? null}
+          nico={topCandidate?.tariffCode.nico ?? null}
         />
       </div>
 
