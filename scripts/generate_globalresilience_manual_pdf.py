@@ -1,7 +1,7 @@
-"""Generador del Manual de Usuario y Guía Operativa de Global Resilience OS en formato PDF de alta calidad.
+"""Generador del Manual de Usuario y Guía Operativa de Global Resilience OS (Versión Integral con Rutas Multimodales y Módulo Mi Impacto).
 
-Compila un documento HTML con diseño de inteligencia geopolítica, flujo vertical paso a paso,
-tablas de impacto por vertical, perfiles de recuperación, matriz de escenarios y exportación a PDF vectorial con Edge headless.
+Compila un documento HTML con tipografía geopolítica e industrial, flujos visuales paso a paso,
+tablas de decisión, capas cartográficas multimodales, estimador personalizado "Mi Impacto" y exportación a PDF vectorial.
 """
 
 from __future__ import annotations
@@ -12,11 +12,11 @@ import shutil
 import subprocess
 from pathlib import Path
 
-GR_HTML = """<!DOCTYPE html>
+HTML_CONTENT = """<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Global Resilience OS — Manual de Usuario y Guía Operativa</title>
+<title>Global Resilience OS — Manual de Usuario y Guía Operativa Integral</title>
 <style>
   @page {
     size: letter;
@@ -28,7 +28,7 @@ GR_HTML = """<!DOCTYPE html>
       font-family: 'Segoe UI', Arial, sans-serif;
     }
     @bottom-left {
-      content: "Global Resilience OS — Manual de Usuario y Guía Operativa v1.0";
+      content: "Global Resilience OS — Manual de Usuario y Guía Operativa v2.0";
       font-size: 8.5pt;
       color: #64748b;
       font-family: 'Segoe UI', Arial, sans-serif;
@@ -37,9 +37,9 @@ GR_HTML = """<!DOCTYPE html>
 
   body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-    color: #1e293b;
+    color: #0f172a;
     line-height: 1.55;
-    font-size: 10pt;
+    font-size: 9.8pt;
     margin: 0;
     padding: 0;
   }
@@ -47,50 +47,49 @@ GR_HTML = """<!DOCTYPE html>
   /* Portada */
   .cover {
     page-break-after: always;
-    padding-top: 40px;
+    padding-top: 35px;
     text-align: center;
   }
   .cover-badge {
     display: inline-block;
-    background: #0f172a;
-    color: #38bdf8;
-    font-size: 9pt;
+    background: #082f49;
+    color: #e0f2fe;
+    font-size: 8.5pt;
     font-weight: 700;
     padding: 4px 14px;
     border-radius: 999px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
-    margin-bottom: 20px;
-    border: 1px solid #1e293b;
+    margin-bottom: 18px;
   }
   .cover-title {
     font-size: 28pt;
     font-weight: 800;
     color: #0f172a;
     line-height: 1.15;
-    margin: 0 0 12px 0;
+    margin: 0 0 10px 0;
   }
   .cover-subtitle {
-    font-size: 13pt;
+    font-size: 12pt;
     color: #475569;
     max-width: 620px;
-    margin: 0 auto 30px auto;
+    margin: 0 auto 25px auto;
     font-weight: 400;
   }
   .cover-divider {
     width: 80px;
     height: 4px;
     background: #0284c7;
-    margin: 0 auto 35px auto;
+    margin: 0 auto 30px auto;
     border-radius: 2px;
   }
   .cover-meta-box {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 12px;
-    padding: 20px 25px;
+    padding: 18px 22px;
     max-width: 540px;
-    margin: 0 auto 40px auto;
+    margin: 0 auto 35px auto;
     text-align: left;
   }
   .cover-meta-grid {
@@ -113,7 +112,7 @@ GR_HTML = """<!DOCTYPE html>
   .cover-abstract {
     max-width: 580px;
     margin: 0 auto;
-    font-size: 9.5pt;
+    font-size: 9.2pt;
     color: #475569;
     font-style: italic;
     background: #f0f9ff;
@@ -123,48 +122,46 @@ GR_HTML = """<!DOCTYPE html>
     text-align: left;
   }
 
-  /* Encabezados y Secciones */
+  /* Encabezados */
   h1 {
-    font-size: 18pt;
+    font-size: 17pt;
     color: #0f172a;
     font-weight: 800;
     border-bottom: 2px solid #e2e8f0;
-    padding-bottom: 6px;
-    margin-top: 24px;
-    margin-bottom: 12px;
+    padding-bottom: 5px;
+    margin-top: 22px;
+    margin-bottom: 10px;
     page-break-after: avoid;
   }
   h2 {
-    font-size: 13pt;
+    font-size: 12.5pt;
     color: #0369a1;
     font-weight: 700;
-    margin-top: 18px;
-    margin-bottom: 8px;
+    margin-top: 16px;
+    margin-bottom: 6px;
     page-break-after: avoid;
   }
   h3 {
-    font-size: 10.5pt;
+    font-size: 10.2pt;
     color: #0f172a;
     font-weight: 700;
-    margin-top: 12px;
-    margin-bottom: 4px;
+    margin-top: 10px;
+    margin-bottom: 3px;
     page-break-after: avoid;
   }
 
-  p {
-    margin: 0 0 8px 0;
-  }
+  p { margin: 0 0 7px 0; }
 
-  /* Cajas de llamada y Alertas */
+  /* Cajas y Alertas */
   .callout {
-    padding: 10px 14px;
+    padding: 9px 13px;
     border-radius: 8px;
-    margin: 12px 0;
-    font-size: 9.2pt;
+    margin: 10px 0;
+    font-size: 9pt;
     page-break-inside: avoid;
   }
   .callout-info {
-    background: #f0f9ff;
+    background: #eff6ff;
     border-left: 4px solid #0284c7;
     color: #0369a1;
   }
@@ -189,46 +186,46 @@ GR_HTML = """<!DOCTYPE html>
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 10px;
+    padding: 10px 14px;
+    margin-bottom: 9px;
     page-break-inside: avoid;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
   .solution-title {
     font-weight: 700;
     color: #0369a1;
-    font-size: 10.5pt;
-    margin-bottom: 4px;
+    font-size: 10pt;
+    margin-bottom: 3px;
     display: flex;
     align-items: center;
   }
   .solution-icon {
     display: inline-block;
-    width: 22px;
-    height: 22px;
-    line-height: 22px;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
     text-align: center;
     background: #e0f2fe;
     color: #0369a1;
-    border-radius: 6px;
-    font-size: 9.5pt;
-    margin-right: 8px;
+    border-radius: 5px;
+    font-size: 9pt;
+    margin-right: 7px;
     font-weight: bold;
   }
 
   /* Flujo Vertical */
   .flow-step-container {
     position: relative;
-    padding-left: 36px;
-    margin-bottom: 18px;
+    padding-left: 34px;
+    margin-bottom: 16px;
     page-break-inside: avoid;
   }
   .flow-step-container::before {
     content: "";
     position: absolute;
-    left: 14px;
-    top: 24px;
-    bottom: -16px;
+    left: 13px;
+    top: 22px;
+    bottom: -14px;
     width: 2px;
     background: #cbd5e1;
   }
@@ -239,47 +236,46 @@ GR_HTML = """<!DOCTYPE html>
     position: absolute;
     left: 0;
     top: 0;
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     background: #0284c7;
     color: #ffffff;
     border-radius: 50%;
     text-align: center;
-    line-height: 28px;
+    line-height: 26px;
     font-weight: 800;
-    font-size: 10pt;
-    box-shadow: 0 2px 4px rgba(2, 132, 199, 0.3);
+    font-size: 9.5pt;
   }
   .flow-step-header {
-    font-size: 11.5pt;
+    font-size: 11pt;
     font-weight: 700;
     color: #0f172a;
-    margin-bottom: 4px;
+    margin-bottom: 3px;
   }
   .flow-step-body {
     background: #f8fafc;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 12px 14px;
-    margin-top: 6px;
+    padding: 10px 12px;
+    margin-top: 5px;
   }
   .flow-step-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 8px;
-    font-size: 9pt;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 8.8pt;
   }
   .flow-box {
     background: #ffffff;
-    padding: 8px 10px;
+    padding: 7px 9px;
     border-radius: 6px;
     border: 1px solid #e2e8f0;
   }
   .flow-box strong {
     color: #0369a1;
     display: block;
-    font-size: 8.5pt;
+    font-size: 8.2pt;
     text-transform: uppercase;
     margin-bottom: 2px;
   }
@@ -288,13 +284,13 @@ GR_HTML = """<!DOCTYPE html>
   table {
     width: 100%;
     border-collapse: collapse;
-    margin: 10px 0;
-    font-size: 8.8pt;
+    margin: 8px 0;
+    font-size: 8.6pt;
     page-break-inside: avoid;
   }
   th, td {
     border: 1px solid #cbd5e1;
-    padding: 6px 10px;
+    padding: 5px 8px;
     text-align: left;
   }
   th {
@@ -309,9 +305,9 @@ GR_HTML = """<!DOCTYPE html>
   /* Insignias */
   .badge {
     display: inline-block;
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: 4px;
-    font-size: 7.5pt;
+    font-size: 7.2pt;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -320,93 +316,89 @@ GR_HTML = """<!DOCTYPE html>
   .badge-review { background: #fef3c7; color: #b45309; }
   .badge-rejected { background: #fee2e2; color: #b91c1c; }
   .badge-blue { background: #e0f2fe; color: #0369a1; }
-  .badge-dark { background: #0f172a; color: #38bdf8; }
+  .badge-dark { background: #082f49; color: #e0f2fe; }
 
-  .page-break {
-    page-break-after: always;
-  }
+  .page-break { page-break-after: always; }
 
   ul, ol {
-    margin: 4px 0 8px 0;
-    padding-left: 20px;
+    margin: 3px 0 6px 0;
+    padding-left: 18px;
   }
-  li {
-    margin-bottom: 3px;
-  }
+  li { margin-bottom: 2px; }
 </style>
 </head>
 <body>
 
 <!-- PORTADA -->
 <div class="cover">
-  <div class="cover-badge">Manual Operativo Oficial • Versión 1.0</div>
+  <div class="cover-badge">Guía Operativa & Manual de Usuario • Versión 2.0</div>
   <h1 class="cover-title">Global Resilience OS</h1>
-  <div class="cover-subtitle">Plataforma de Inteligencia de Riesgo Sistémico y Continuidad para Infraestructura Crítica y Cadenas de Suministro Globales</div>
+  <div class="cover-subtitle">Plataforma de Inteligencia de Riesgo Sistémico, Continuidad para Infraestructura Crítica, Cables Submarinos y Cadenas de Suministro Multimodales</div>
   <div class="cover-divider"></div>
 
   <div class="cover-meta-box">
     <div class="cover-meta-grid">
       <div class="cover-meta-item">
-        <strong>Arquitectura</strong>
-        <span>Híbrida Standalone + API REST</span>
+        <strong>Infraestructura Crítica</strong>
+        <span>Cables Submarinos + Nodos Transoceánicos</span>
       </div>
       <div class="cover-meta-item">
-        <strong>Capa Transversal</strong>
-        <span>Monitoreo de Cables Submarinos</span>
+        <strong>Capas Multimodales</strong>
+        <span>Rutas Marítimas, Aéreas Express y Ferrocarril</span>
       </div>
       <div class="cover-meta-item">
-        <strong>Verticales Críticas</strong>
-        <span>12 Commodities & Cadenas Clave</span>
+        <strong>Verticales Estratégicas</strong>
+        <span>12 Commodities Críticos Globales</span>
       </div>
       <div class="cover-meta-item">
-        <strong>Entregable Central</strong>
-        <span>Executive Intelligence Brief (PDF)</span>
+        <strong>Estimación Personalizada</strong>
+        <span>Módulo "Mi Impacto" en $USD / Hora</span>
       </div>
     </div>
   </div>
 
   <div class="cover-abstract">
-    <strong>Propósito del Manual:</strong> Proveer una guía de navegación vertical y operativa para directores de riesgo, gestores de fondos de infraestructura y analistas geopolíticos: desde la visualización del mapa mundial de cables submarinos, hasta la simulación de cortes, cálculo de cascadas de impacto, reserva de capacidad alternativa y exportación del informe ejecutivo de resiliencia.
+    <strong>Propósito del Manual:</strong> Proveer una guía exhaustiva para comités de riesgo, directores de continuidad y analistas geopolíticos: desde la visualización cartográfica multimodal de cables y corredores de carga, hasta la simulación de disrupciones, estimación de impacto personalizado por empresa ("Mi Impacto"), reserva de capacidad y emisión del Executive Resilience Brief en PDF.
   </div>
 </div>
 
 <!-- CAPÍTULO 1: QUÉ RESUELVE LA PLATAFORMA -->
 <h1>1. ¿Qué Resuelve de Verdad Global Resilience OS?</h1>
 <p>
-  El 99% del tráfico de internet, transacciones financieras globales ($10+ billones de dólares diarios) y telemetría de comercio exterior viaja a través de <strong>cables submarinos de fibra óptica</strong>. Sin embargo, las empresas de energía, minería, logística y semiconductores modelan sus riesgos de suministro de forma aislada, sin considerar el impacto de una disrupción masiva de telecomunicaciones en estrechos geopolíticos (Mar Rojo, Malaca, Canal de la Mancha, Taiwán).
+  El 99% del tráfico digital, transacciones interbancarias ($10+ billones de USD diarios) y telemetría de logística global depende de <strong>cables submarinos de fibra óptica</strong>. Al mismo tiempo, el comercio físico transita por estrechos marítimos vulnerables (Suez, Malaca, Ormuz) y corredores aéreos/ferroviarios interdependientes.
 </p>
 <p>
-  <strong>Global Resilience OS es la primera plataforma que une la infraestructura física digital con las cadenas de suministro de 12 materias primas críticas</strong>, resolviendo 5 problemas estratégicos:
+  <strong>Global Resilience OS es la primera plataforma que correlaciona la infraestructura digital con las cadenas de suministro físicas</strong>, resolviendo 5 problemas críticos:
 </p>
 
 <div class="solution-card">
-  <div class="solution-title"><span class="solution-icon">1</span> Visibilidad Total de Infraestructura Crítica Submarina</div>
-  <p><strong>El problema real:</strong> Los comités de riesgo desconocen qué cables submarinos transportan sus datos operativos y transacciones entre nodos continentales clave.</p>
-  <p><strong>Lo que la plataforma resuelve:</strong> Mapa mundial interactivo en matriz de puntos que visualiza rutas de cables submarinos, estaciones de amarre (*landing stations*) y zonas de alta vulnerabilidad sísmica o geopolítica.</p>
+  <div class="solution-title"><span class="solution-icon">1</span> Visibilidad Multimodal Integrada (Cables + Marítimo + Aéreo + Tren)</div>
+  <p><strong>El problema:</strong> Las empresas monitorean sus servidores por un lado y sus barcos por otro, sin entender cómo una falla digital interrumpe las terminales de carga portuarias y aduaneras.</p>
+  <p><strong>Lo que resuelve:</strong> Capas cartográficas activables que integran cables submarinos en vivo con rutas marítimas (Asia-Europa, Suez, Golfo Pérsico), transporte aéreo express (Taiwán semiconductores) y trenes industriales (T-MEC / China-Europe).</p>
 </div>
 
 <div class="solution-card">
-  <div class="solution-title"><span class="solution-icon">2</span> Simulación Determinista de Cascadas de Impacto (12 Verticales)</div>
-  <p><strong>El problema real:</strong> Cuando se corta un cable en el Mar Rojo, nadie sabe con precisión cómo afectará el suministro de LNG a Europa o de semiconductores a América.</p>
-  <p><strong>Lo que la plataforma resuelve:</strong> El **Impact Engine** calcula el efecto dominó en 12 verticales estratégicas: Petróleo, LNG, Gas, Petroquímica, Electricidad, Cobre, Litio, Níquel, Cobalto, Trigo, Semiconductores y Acero.</p>
+  <div class="solution-title"><span class="solution-icon">2</span> Estimador de Pérdida Personalizada ("Mi Impacto")</div>
+  <p><strong>El problema:</strong> Las estadísticas macroeconómicas globales no le dicen a un director de planta cuánto dinero perderá su fábrica en específico.</p>
+  <p><strong>Lo que resuelve:</strong> El módulo "Mi Impacto" traduce los cortes globales a la realidad de la empresa: ingresa facturación anual, vertical y dependencia import/export para proyectar la pérdida en dólares por hora.</p>
 </div>
 
 <div class="solution-card">
-  <div class="solution-title"><span class="solution-icon">3</span> Modelado de Recuperación y Tiempo Medio de Reparación (MTTR)</div>
-  <p><strong>El problema real:</strong> Reparar un cable submarino toma semanas o meses (dependiendo de la disponibilidad de barcos cableros), pero las empresas asumen recuperaciones instantáneas.</p>
-  <p><strong>Lo que la plataforma resuelve:</strong> Genera perfiles temporales de degradación y curvas de recuperación (*Recovery Curves*) considerando capacidades remanentes y rutas terrestres alternas.</p>
+  <div class="solution-title"><span class="solution-icon">3</span> Impact Engine Determinista en 12 Commodities Críticos</div>
+  <p><strong>El problema:</strong> Incertidumbre sobre el efecto cascada de un corte en el Mar Rojo sobre la industria automotriz, química o de semiconductores.</p>
+  <p><strong>Lo que resuelve:</strong> Motor de cálculo que evalúa vulnerabilidades en Petróleo, GNL, Gas, Petroquímica, Electricidad, Cobre, Litio, Níquel, Cobalto, Trigo, Semiconductores y Acero.</p>
 </div>
 
 <div class="solution-card">
-  <div class="solution-title"><span class="solution-icon">4</span> Marketplace de Capacidad Alternativa y Cobertura (*Capacity Reserve*)</div>
-  <p><strong>El problema real:</strong> Tras un incidente, el costo del ancho de banda de respaldo se dispara en el mercado spot (*price surge*).</p>
-  <p><strong>Lo que la plataforma resuelve:</strong> Módulo de simulación de contratos de reserva y reenvío dinámico de tráfico (*rerouting capacity*) para garantizar continuidad operativa a costo predecible.</p>
+  <div class="solution-title"><span class="solution-icon">4</span> Perfiles de Recuperación y Tiempo Medio de Reparación (MTTR)</div>
+  <p><strong>El problema:</strong> Reparar un cable submarino toma semanas y depende de buques cableros escasos, provocando retrasos no presupuestados.</p>
+  <p><strong>Lo que resuelve:</strong> Curvas de degradación temporal y disponibilidad de buques de reparación para estimar con precisión el tiempo de retorno a la normalidad.</p>
 </div>
 
 <div class="solution-card">
-  <div class="solution-title"><span class="solution-icon">5</span> Sala de Crisis Ejecutiva (Decision Room) y Brief en PDF</div>
-  <p><strong>El problema real:</strong> En situaciones de emergencia, los reportes tardan días en compilarse y no llegan a tiempo a la alta dirección.</p>
-  <p><strong>Lo que la plataforma resuelve:</strong> Generación instantánea del **Executive Resilience Brief en PDF** con matriz de riesgo, recomendaciones de mitigación y estimación de pérdidas financieras.</p>
+  <div class="solution-title"><span class="solution-icon">5</span> Marketplace de Capacidad Alternativa y Sala de Crisis (PDF)</div>
+  <p><strong>El problema:</strong> Tras una catástrofe, los precios del ancho de banda y fletes se disparan en el mercado spot.</p>
+  <p><strong>Lo que resuelve:</strong> Contratación simulada de enlaces de respaldo redundantes y generación instantánea del Executive Resilience Brief en PDF para comités de crisis.</p>
 </div>
 
 <div class="page-break"></div>
@@ -414,23 +406,28 @@ GR_HTML = """<!DOCTYPE html>
 <!-- CAPÍTULO 2: FLUJO VERTICAL PASO A PASO -->
 <h1>2. Flujo Vertical Operativo: De Inicio a Fin</h1>
 <p>
-  A continuación se describe la secuencia operativa para realizar un análisis de resiliencia sistémica en la plataforma:
+  A continuación se detalla la secuencia de trabajo profesional en Global Resilience OS:
 </p>
 
 <!-- PASO 1 -->
 <div class="flow-step-container">
   <div class="flow-step-number">1</div>
-  <div class="flow-step-header">Exploración del Mapa Mundial de Infraestructura (World Map)</div>
+  <div class="flow-step-header">Configuración de la Huella Operativa en "Mi Impacto"</div>
   <div class="flow-step-body">
-    <p><strong>¿Dónde empiezo?</strong> Al abrir la aplicación, visualiza el mapa interactivo global en la pantalla principal.</p>
+    <p><strong>¿Dónde empiezo?</strong> Ingresa a la sección <strong>"Mi Impacto"</strong> para contextualizar la plataforma:</p>
+    <ul>
+      <li>Selecciona tu vertical industrial (ej. Automotriz, Electrónica, Energía, Siderúrgico).</li>
+      <li>Indica tu región operativa (ej. México / Norteamérica, Europa, Asia-Pacífico).</li>
+      <li>(Opcional) Ingresa tu facturación anual en USD y porcentaje de dependencia internacional.</li>
+    </ul>
     <div class="flow-step-grid">
       <div class="flow-box">
         <strong>¿Qué resuelvo en este paso?</strong>
-        Identifico la ubicación geográfica de cables submarinos, capacidad en Tbps, estaciones de amarre y nodos de interconexión transoceánicos.
+        Calibro los modelos matemáticos para que las alertas y simulaciones se expresen en métricas de mi propia empresa.
       </div>
       <div class="flow-box">
         <strong>Resultado obtenido</strong>
-        Línea base de conectividad y reconocimiento visual de puntos de fallo único (*Single Points of Failure*).
+        Perfil corporativo activo guardado localmente de forma 100% privada.
       </div>
     </div>
   </div>
@@ -439,23 +436,22 @@ GR_HTML = """<!DOCTYPE html>
 <!-- PASO 2 -->
 <div class="flow-step-container">
   <div class="flow-step-number">2</div>
-  <div class="flow-step-header">Selección o Creación de Escenario de Disrupción</div>
+  <div class="flow-step-header">Navegación Cartográfica Multimodal (Cables y Rutas de Carga)</div>
   <div class="flow-step-body">
-    <p><strong>¿Qué hago?</strong> En el <strong>Scenario Builder</strong>, selecciona un escenario predefinido o diseña uno personalizado:</p>
+    <p><strong>¿Qué hago?</strong> En el <strong>World Map</strong> interactivo, activa o desactiva las capas superiores:</p>
     <ul>
-      <li><strong>Corte en el Mar Rojo:</strong> Simula la ruptura simultánea de 4 cables estratégicos en el estrecho de Bab el-Mandeb.</li>
-      <li><strong>Disrupción en el Estrecho de Malaca:</strong> Afectación del tráfico digital y logístico entre Asia Oriental y Europa.</li>
-      <li><strong>Falla Transatlántica Mayor:</strong> Ruptura de enlaces de ultra-alta capacidad entre Nueva York y Londres.</li>
-      <li><strong>Escenario Personalizado:</strong> Haz clic sobre cualquier cable o estación en el mapa para declararlo inactivo.</li>
+      <li><strong>Capa Cables Submarinos:</strong> Rutas transoceánicas y landing stations con estado en vivo.</li>
+      <li><strong>Capa Rutas Marítimas:</strong> Tráfico de buques en estrechos estratégicos (Suez, Malaca, Ormuz).</li>
+      <li><strong>Capa Carga Aérea y Tren:</strong> Corredores de semiconductores (Taiwán-EEUU) y trenes industriales T-MEC.</li>
     </ul>
     <div class="flow-step-grid">
       <div class="flow-box">
         <strong>¿Qué resuelvo en este paso?</strong>
-        Parametrizo la hipótesis de crisis con severidad, duración estimada y regiones afectadas.
+        Identifico puntos únicos de falla (SPOF) donde convergen cables de datos y rutas logísticas físicas.
       </div>
       <div class="flow-box">
         <strong>Resultado obtenido</strong>
-        Escenario activo configurado y listo para ejecución en el motor de impacto.
+        Mapa de calor de exposición geográfica en tiempo real.
       </div>
     </div>
   </div>
@@ -464,77 +460,41 @@ GR_HTML = """<!DOCTYPE html>
 <!-- PASO 3 -->
 <div class="flow-step-container">
   <div class="flow-step-number">3</div>
-  <div class="flow-step-header">Ejecución del Impact Engine (Cascada por Vertical)</div>
+  <div class="flow-step-header">Simulación de Crisis y Ejecución del Impact Engine</div>
   <div class="flow-step-body">
-    <p><strong>¿Qué hago?</strong> Presiona <em>"Simulate Impact"</em> y observa el cálculo determinista del motor:</p>
+    <p><strong>¿Qué hago?</strong> En el <strong>Scenario Builder</strong>, selecciona una contingencia (ej. <em>"Corte Masivo en el Mar Rojo"</em> o <em>"Bloqueo en el Estrecho de Malaca"</em>) y presiona <strong>"Simulate Impact"</strong>.</p>
     <table>
       <thead>
         <tr>
-          <th>Vertical Crítica</th>
+          <th>Vertical Afectada</th>
           <th>Nivel de Exposición</th>
-          <th>Mecanismo de Afectación</th>
-          <th>Tiempo Estimado</th>
+          <th>Pérdida Sectorial Proyectada</th>
+          <th>Impacto en Tu Empresa ("Mi Impacto")</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td><strong>LNG & Gas Natural</strong></td>
-          <td><span class="badge badge-rejected">CRÍTICO (88%)</span></td>
-          <td>Falla en telemetría de buques metaneros y terminales portuarias.</td>
-          <td>Inmediato (0 - 4 hrs)</td>
-        </tr>
-        <tr>
           <td><strong>Semiconductores</strong></td>
-          <td><span class="badge badge-rejected">ALTO (74%)</span></td>
-          <td>Interrupción de cadenas de diseño y pedidos just-in-time Asia-EEUU.</td>
-          <td>Medio plazo (24 - 72 hrs)</td>
+          <td><span class="badge badge-rejected">CRÍTICO (88%)</span></td>
+          <td>$4.2M USD / hora</td>
+          <td><strong>$12,400 USD / hora</strong></td>
         </tr>
         <tr>
-          <td><strong>Petróleo Crudo</strong></td>
-          <td><span class="badge badge-review">MEDIO (52%)</span></td>
-          <td>Desvío de rutas marítimas y retraso en liquidaciones bancarias.</td>
-          <td>1 - 7 días</td>
-        </tr>
-        <tr>
-          <td><strong>Cobre & Litio</strong></td>
-          <td><span class="badge badge-approved">BAJO (28%)</span></td>
-          <td>Impacto diferido en logística de concentrados mineros.</td>
-          <td>7 - 14 días</td>
+          <td><strong>GNL & Energía</strong></td>
+          <td><span class="badge badge-review">ALTO (65%)</span></td>
+          <td>$2.8M USD / hora</td>
+          <td><strong>$6,800 USD / hora</strong></td>
         </tr>
       </tbody>
     </table>
     <div class="flow-step-grid">
       <div class="flow-box">
         <strong>¿Qué resuelvo en este paso?</strong>
-        Cuantifico el riesgo sistémico transversal eliminando puntos ciegos en la cadena de valor.
+        Cuantifico con precisión matemática el costo financiero de la inacción ante la contingencia.
       </div>
       <div class="flow-box">
         <strong>Resultado obtenido</strong>
-        Matriz de exposición con puntaje global de resiliencia (0-100).
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PASO 4 -->
-<div class="flow-step-container">
-  <div class="flow-step-number">4</div>
-  <div class="flow-step-header">Análisis de Perfiles de Recuperación (Recovery Curve)</div>
-  <div class="flow-step-body">
-    <p><strong>¿Qué hago?</strong> Ve a la pestaña <strong>Recovery Profile</strong> para examinar la curva temporal de restablecimiento.</p>
-    <ul>
-      <li><strong>Fase 1 (Re-enrutamiento Automático):</strong> Conmutación a cables secundarios en minutos (recuperación de ~40% de capacidad).</li>
-      <li><strong>Fase 2 (Congestión y Latencia):</strong> Degradación del servicio durante el periodo de saturación de enlaces alternos.</li>
-      <li><strong>Fase 3 (Reparación Física):</strong> Movilización de buques cableros y empalme en fondo marino (15 a 45 días).</li>
-    </ul>
-    <div class="flow-step-grid">
-      <div class="flow-box">
-        <strong>¿Qué resuelvo en este paso?</strong>
-        Establezco expectativas realistas de recuperación para planes de continuidad de negocio (BCP).
-      </div>
-      <div class="flow-box">
-        <strong>Resultado obtenido</strong>
-        Gráfica de degradación temporal y cálculo de pérdidas económicas acumuladas.
+        Matriz de afectación por vertical y estimación de pérdidas en dólares.
       </div>
     </div>
   </div>
@@ -542,52 +502,49 @@ GR_HTML = """<!DOCTYPE html>
 
 <div class="page-break"></div>
 
-<!-- PASO 5 -->
+<!-- PASO 4 -->
 <div class="flow-step-container">
-  <div class="flow-step-number">5</div>
-  <div class="flow-step-header">Mitigación en el Capacity Marketplace</div>
+  <div class="flow-step-number">4</div>
+  <div class="flow-step-header">Activación de Capacidad de Respaldo en el Marketplace</div>
   <div class="flow-step-body">
-    <p><strong>¿Qué hago?</strong> En el <strong>Capacity Marketplace</strong>, simula la contratación de rutas de respaldo:</p>
-    <ul>
-      <li>Reserva de ancho de banda en rutas terrestres transcontinentales.</li>
-      <li>Contratación de enlaces satelitales (LEO/GEO) para telemetría crítica de activos.</li>
-      <li>Diversificación de proveedores de tránsito IP.</li>
-    </ul>
-    <div class="flow-step-grid">
-      <div class="flow-box">
-        <strong>¿Qué resuelvo en este paso?</strong>
-        Estrategia financiera de mitigación. Comparo el costo de contratar capacidad de reserva vs. el costo de inactividad operativa.
-      </div>
-      <div class="flow-box">
-        <strong>Resultado obtenido</strong>
-        Plan de contingencia validado con reducción inmediata del puntaje de riesgo.
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PASO 6 -->
-<div class="flow-step-container">
-  <div class="flow-step-number">6</div>
-  <div class="flow-step-header">Exportación del Executive Resilience Brief (PDF)</div>
-  <div class="flow-step-body">
-    <p><strong>¿Cómo concluye el proceso?</strong> En la <strong>Decision Room</strong>, haz clic en <em>"Export Executive Brief (PDF)"</em>.</p>
-    <p>El sistema genera un informe ejecutivo que contiene:</p>
+    <p><strong>¿Qué hago?</strong> Accede al <strong>Capacity Marketplace</strong>:</p>
     <ol>
-      <li>Resumen ejecutivo con nivel de amenaza y puntaje de resiliencia.</li>
-      <li>Mapa y detalle del escenario simulado con cables y estaciones afectadas.</li>
-      <li>Desglose de impacto en las 12 verticales con estimación financiera.</li>
-      <li>Curva de recuperación y plan de re-enrutamiento recomendado.</li>
-      <li>Checklist de acciones inmediatas para el comité de crisis.</li>
+      <li>Revisa rutas terrestres o satelitales alternativas y capacidad de ancho de banda disponible.</li>
+      <li>Simula la contratación de contratos de reserva (*Capacity Reserve*) para mitigar la congestión.</li>
+      <li>Verifica el tiempo de conmutación automática de tráfico (*rerouting switch time*).</li>
     </ol>
     <div class="flow-step-grid">
       <div class="flow-box">
         <strong>¿Qué resuelvo en este paso?</strong>
-        Entregable de nivel directivo listo para comités ejecutivos, aseguradoras o entidades regulatorias.
+        Aseguro la continuidad de mis operaciones críticas antes de que los precios del mercado spot se multipliquen.
       </div>
       <div class="flow-box">
         <strong>Resultado obtenido</strong>
-        Documento PDF formal de inteligencia estratégica de riesgos.
+        Plan de contingencia y redundancia activado con costos predecibles.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PASO 5 -->
+<div class="flow-step-container">
+  <div class="flow-step-number">5</div>
+  <div class="flow-step-header">Emisión del Executive Resilience Brief en PDF</div>
+  <div class="flow-step-body">
+    <p><strong>¿Cómo concluye el proceso?</strong></p>
+    <ol>
+      <li>Haz clic en <strong>"Export Executive Resilience Brief (PDF)"</strong>.</li>
+      <li>El sistema compila un informe C-Level con el análisis de la contingencia, pérdidas estimadas por hora en tu empresa, rutas de respaldo seleccionadas y cronograma de reparación (MTTR).</li>
+      <li>Preséntalo ante el Consejo de Administración o Comité de Continuidad para autorizar decisiones de mitigación.</li>
+    </ol>
+    <div class="flow-step-grid">
+      <div class="flow-box">
+        <strong>¿Qué resuelvo en este paso?</strong>
+        Entrego información ejecutiva clara y procesable a la alta dirección en minutos en lugar de semanas.
+      </div>
+      <div class="flow-box">
+        <strong>Resultado obtenido</strong>
+        Dossier de resiliencia formal y auditable para toma de decisiones inmediata.
       </div>
     </div>
   </div>
@@ -595,119 +552,85 @@ GR_HTML = """<!DOCTYPE html>
 
 ---
 
-<!-- CAPÍTULO 3: MATRIZ DE LAS 12 VERTICALES -->
-<h1>3. Las 12 Verticales Estratégicas Monitoreadas</h1>
+<!-- CAPÍTULO 3: MATRIZ DE VERTICALES -->
+<h1>3. Catálogo de las 12 Verticales Críticas Monitoreadas</h1>
 
 <table>
   <thead>
     <tr>
-      <th>Vertical</th>
-      <th>Vulnerabilidad Digital Principal</th>
-      <th>Efecto de Cadena Crítica</th>
+      <th>#</th>
+      <th>Vertical Crítica</th>
+      <th>Puntos de Vulnerabilidad en Cadenas Globales</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>1. Petróleo Crudo</strong></td>
-      <td>Telemetría SCADA en oleoductos y tracking AIS de supertanqueros (VLCC).</td>
-      <td>Parálisis de transferencias y retraso en zarpes portuarios.</td>
+      <td>1</td>
+      <td><strong>Petróleo Crudo</strong></td>
+      <td>Monitoreo de terminales de carga en el Golfo Pérsico, Mar Rojo y Estrecho de Malaca.</td>
     </tr>
     <tr>
-      <td><strong>2. LNG (Gas Licuado)</strong></td>
-      <td>Sistemas de nominación y liquidación en terminales de regasificación.</td>
-      <td>Picos de volatilidad en precios spot (TTF / Henry Hub).</td>
+      <td>2</td>
+      <td><strong>GNL (Gas Licuado)</strong></td>
+      <td>Flujo de metaneros desde Qatar, EE.UU. y Australia hacia Europa y Asia Oriental.</td>
     </tr>
     <tr>
-      <td><strong>3. Gas Natural</strong></td>
-      <td>Monitoreo transfronterizo de estaciones de compresión.</td>
-      <td>Riesgo de corte en generación termoeléctrica.</td>
+      <td>3</td>
+      <td><strong>Gasoductos & Gas Natural</strong></td>
+      <td>Sistemas SCADA y telemetría de distribución transfronteriza.</td>
     </tr>
     <tr>
-      <td><strong>4. Petroquímica</strong></td>
-      <td>Coordinación de cadenas just-in-time de polímeros y fertilizantes.</td>
-      <td>Desabasto en manufactura e industria farmacéutica.</td>
+      <td>4</td>
+      <td><strong>Petroquímica</strong></td>
+      <td>Cadenas de polímeros y resinas para la industria médica y automotriz.</td>
     </tr>
     <tr>
-      <td><strong>5. Electricidad</strong></td>
-      <td>Redes inteligentes (Smart Grids) y despacho interconectado.</td>
-      <td>Inestabilidad de frecuencia y riesgo de apagón regional.</td>
+      <td>5</td>
+      <td><strong>Electricidad & Redes</strong></td>
+      <td>Interconexiones eléctricas regionales y redes inteligentes transcontinentales.</td>
     </tr>
     <tr>
-      <td><strong>6. Cobre</strong></td>
-      <td>Logística de fundiciones y subastas en el London Metal Exchange (LME).</td>
-      <td>Disrupción en industrias de electromovilidad e infraestructura.</td>
+      <td>6</td>
+      <td><strong>Cobre & Metales Base</strong></td>
+      <td>Rutas marítimas del Pacífico desde Chile y Perú hacia refinerías en Asia.</td>
     </tr>
     <tr>
-      <td><strong>7. Litio</strong></td>
-      <td>Cadenas de suministro de cátodos para celdas de baterías.</td>
-      <td>Retraso en plantas de ensamblaje automotriz global.</td>
+      <td>7</td>
+      <td><strong>Litio</strong></td>
+      <td>Cadenas de suministro del triángulo del litio hacia plantas de baterías.</td>
     </tr>
     <tr>
-      <td><strong>8. Níquel</strong></td>
-      <td>Trading y contratos de refinación en Asia-Pacífico.</td>
-      <td>Impacto directo en la producción de acero inoxidable.</td>
+      <td>8</td>
+      <td><strong>Níquel & Cobalto</strong></td>
+      <td>Suministros de Indonesia y R.D. Congo para almacenamiento energético y acero inoxidable.</td>
     </tr>
     <tr>
-      <td><strong>9. Cobalto</strong></td>
-      <td>Trazabilidad de origen y cumplimiento de estándares ESG.</td>
-      <td>Cuellos de botella en almacenamiento de energía.</td>
+      <td>9</td>
+      <td><strong>Trigo & Granos</strong></td>
+      <td>Seguridad alimentaria y fletes a granel desde el Mar Negro y América.</td>
     </tr>
     <tr>
-      <td><strong>10. Trigo & Granos</strong></td>
-      <td>Mercados de futuros (CBOT) e inspecciones fitosanitarias.</td>
-      <td>Amenaza a la seguridad alimentaria en países importadores.</td>
+      <td>10</td>
+      <td><strong>Semiconductores</strong></td>
+      <td>Cadenas wafer-to-fab entre Taiwán, Japón, Corea del Sur, Europa y EE.UU.</td>
     </tr>
     <tr>
-      <td><strong>11. Semiconductores</strong></td>
-      <td>Cadenas de diseño wafer-to-fab entre Taiwán, Japón y EE.UU.</td>
-      <td>Parálisis global en electrónica, automotriz y defensa.</td>
+      <td>11</td>
+      <td><strong>Acero & Metalurgia</strong></td>
+      <td>Logística de mineral de hierro y coque para construcción y astilleros.</td>
     </tr>
     <tr>
-      <td><strong>12. Acero</strong></td>
-      <td>Gestión de fletes de mineral de hierro y coque metalúrgico.</td>
-      <td>Afectación a la construcción pesada y astilleros.</td>
+      <td>12</td>
+      <td><strong>Carga Aérea Express</strong></td>
+      <td>Corredores logísticos aéreos de alto valor agregado y tiempos críticos just-in-time.</td>
     </tr>
   </tbody>
 </table>
 
 ---
 
-<!-- CAPÍTULO 4: RESUMEN DE ARRANQUE RÁPIDO -->
-<h1>4. Guía de Ejecución y Arranque</h1>
-
-<table>
-  <thead>
-    <tr>
-      <th>Modo de Operación</th>
-      <th>Comando de Ejecución</th>
-      <th>Uso Recomendado</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><strong>Modo Completo (API + Web)</strong></td>
-      <td><code>cd backend &amp;&amp; npm start</code> | <code>cd frontend &amp;&amp; npm run dev</code></td>
-      <td>Entorno completo de análisis con persistencia y jobs.</td>
-    </tr>
-    <tr>
-      <td><strong>Modo Portátil (Standalone)</strong></td>
-      <td><code>cd frontend &amp;&amp; npx serve dist</code></td>
-      <td>Presentaciones a clientes/inversores en laptops sin conexión.</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="callout callout-success">
-  <strong>Principio de Resiliencia Sistémica:</strong> La infraestructura digital ya no es un servicio secundario: es el sistema nervioso del comercio y la energía mundial. Anticipar sus puntos de quiebre es la única defensa real ante la incertidumbre global.
-</div>
-
----
-
-<!-- CAPÍTULO 5: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
-<h1>5. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
-<p>
-  Las herramientas actuales en el mercado analizan las telecomunicaciones de forma aislada a las materias primas o se limitan a emitir reportes estáticos en PDF semanas después de un evento. <strong>Global Resilience OS es la única plataforma que fusiona en tiempo real la topología de cables submarinos con el impacto financiero en 12 cadenas de commodities críticas</strong>.
-</p>
+<!-- CAPÍTULO 4: DIFERENCIADORES FRENTE A LA COMPETENCIA -->
+<h1>4. Diferenciadores Clave Frente a la Competencia y Ventajas de Mercado</h1>
 
 <table>
   <thead>
@@ -728,18 +651,25 @@ GR_HTML = """<!DOCTYPE html>
       <td><span class="badge badge-approved">Mapeo Físico + Topología Global</span></td>
     </tr>
     <tr>
-      <td><strong>Correlación con 12 Commodities</strong></td>
+      <td><strong>Capas Marítimas, Aéreas y Tren</strong></td>
       <td>No disponible</td>
-      <td>Enfocado solo en proveedores Nivel 1</td>
-      <td>Análisis cualitativo sin telemetría</td>
-      <td><span class="badge badge-approved">Correlación Multimodal en Vivo</span></td>
+      <td>Solo seguimiento de camiones</td>
+      <td>No disponible</td>
+      <td><span class="badge badge-approved">Multimodal (Suez, T-MEC, Air Express)</span></td>
     </tr>
     <tr>
-      <td><strong>Simulación de Impacto Financiero ($/hora)</strong></td>
+      <td><strong>Módulo Personalizado "Mi Impacto"</strong></td>
       <td>No disponible</td>
-      <td>Estimaciones genéricas de stock</td>
-      <td>Estudios retrospectivos</td>
-      <td><span class="badge badge-approved">Impact Engine con Pérdidas por Hora</span></td>
+      <td>No disponible a nivel planta</td>
+      <td>Estudios caros a la medida</td>
+      <td><span class="badge badge-approved">Pérdida en $USD/Hora de TU Empresa</span></td>
+    </tr>
+    <tr>
+      <td><strong>Correlación con 12 Commodities</strong></td>
+      <td>No disponible</td>
+      <td>Enfocado solo en proveedores N1</td>
+      <td>Análisis cualitativo sin telemetría</td>
+      <td><span class="badge badge-approved">Correlación Multimodal en Vivo</span></td>
     </tr>
     <tr>
       <td><strong>Marketplace de Capacidad de Respaldo</strong></td>
@@ -748,19 +678,11 @@ GR_HTML = """<!DOCTYPE html>
       <td>No disponible</td>
       <td><span class="badge badge-approved">Contratación de Redundancia Inmediata</span></td>
     </tr>
-    <tr>
-      <td><strong>Perfiles de Recuperación y MTTR</strong></td>
-      <td>Tiempos estimados de ping</td>
-      <td>Tiempos de entrega de fábrica</td>
-      <td>Opiniones de expertos</td>
-      <td><span class="badge badge-approved">Logística de Buques Cableros</span></td>
-    </tr>
   </tbody>
 </table>
 
-<div class="callout callout-info">
-  <strong>¿Por qué corporativos multinacionales y aseguradoras deben contratar Global Resilience OS?</strong><br>
-  Porque un corte en un cable transoceánico no solo apaga internet: <strong>paraliza transacciones de petróleo, frena envíos de semiconductores y bloquea la compensación bancaria internacional</strong>. Global Resilience OS permite anticipar puntos únicos de falla, cuantificar el riesgo en dólares y activar rutas de contingencia antes de que ocurra la catástrofe.
+<div class="callout callout-success">
+  <strong>Principio de Resiliencia Sistémica:</strong> La infraestructura digital y física conforma el sistema nervioso del comercio mundial. Anticipar sus puntos de quiebre y calcular el impacto exacto en dólares es la única defensa real ante la incertidumbre global.
 </div>
 
 </body>
@@ -790,7 +712,7 @@ def generate_gr_pdf(output_pdf: Path) -> bool:
         return False
         
     temp_html = output_pdf.parent / f"temp_{output_pdf.stem}.html"
-    temp_html.write_text(GR_HTML, encoding="utf-8")
+    temp_html.write_text(HTML_CONTENT, encoding="utf-8")
     
     cmd = [
         str(edge_exe),
@@ -801,7 +723,7 @@ def generate_gr_pdf(output_pdf: Path) -> bool:
         str(temp_html.resolve())
     ]
     
-    print(f"Ejecutando generación de PDF con Edge: {output_pdf.name}...")
+    print(f"Ejecutando generación de PDF de Global Resilience OS: {output_pdf.name}...")
     res = subprocess.run(cmd, capture_output=True, text=True)
     
     if temp_html.exists():
@@ -817,7 +739,7 @@ def generate_gr_pdf(output_pdf: Path) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Genera el manual de Global Resilience en PDF")
+    parser = argparse.ArgumentParser(description="Genera el manual de Global Resilience OS en PDF")
     parser.add_argument("--downloads", type=Path, default=Path(os.path.expanduser(r"~\Downloads")))
     parser.add_argument("--usb_gr", type=Path, default=Path(r"E:\GLOBALRESILIENCE"))
     parser.add_argument("--desktop", type=Path, default=Path(os.path.expanduser(r"~\OneDrive\Escritorio\Respaldo Negocios\GLOBALRESILIENCE")))
@@ -844,52 +766,36 @@ def main() -> None:
         shutil.copy2(usb_pdf, desktop_pdf)
         print(f"Copiado a Escritorio: {desktop_pdf}")
         
-        # 4. Guardar versión Markdown limpia
-        md_content = f"""# Global Resilience OS — Manual de Usuario y Guía Operativa
+        # 4. Guardar versión Markdown enriquecida
+        md_content = f"""# Global Resilience OS — Manual de Usuario y Guía Operativa Integral
 
-**Versión:** 1.0  
+**Versión:** 2.0 (Con Rutas Comerciales Multimodales y Módulo Personalizado "Mi Impacto")  
 **Fecha:** 19 de agosto de 2026  
-**Alcance:** Cables Submarinos, Infraestructura Crítica y Cadenas de Suministro de 12 Commodities  
-**Arquitectura:** Híbrida Standalone (Navegador) + API REST Express  
+**Alcance:** Cables Submarinos, Rutas Marítimas (Suez/Ormuz), Corredores Aéreos Express (Semiconductores), Corredor Ferroviario T-MEC y 12 Commodities  
 
 ---
 
 ## 1. ¿Qué Resuelve de Verdad Global Resilience OS?
 
-Global Resilience OS es la plataforma pionera en inteligencia de riesgo sistémico que vincula la infraestructura física digital de cables submarinos con las cadenas de suministro de 12 materias primas críticas. Resuelve 5 grandes dolores estratégicos:
+Global Resilience OS es la primera plataforma de inteligencia geopolítica e infraestructura crítica que une la conectividad submarina con las cadenas de suministro globales. Resuelve 5 grandes dolores:
 
-1. **Visibilidad Total de Infraestructura Submarina**: Mapa interactivo de rutas de fibra óptica, estaciones de amarre y zonas de vulnerabilidad geopolítica.
-2. **Simulación de Cascadas de Impacto**: El Impact Engine modela el efecto dominó de rupturas de cable en 12 verticales (Petróleo, LNG, Gas, Cobre, Litio, Semiconductores, Trigo, etc.).
-3. **Modelado de Curvas de Recuperación (MTTR)**: Estimación temporal realista de reparación física con barcos cableros y re-enrutamiento secundario.
-4. **Marketplace de Capacidad Alternativa**: Simulación de contratos de reserva y compra anticipada de ancho de banda para evitar sobrecostos spot.
-5. **Sala de Crisis y Brief Ejecutivo**: Generación instantánea del informe PDF para comités de crisis y directores de riesgo.
+1. **Visibilidad Cartográfica Multimodal**: Muestra en tiempo real cables submarinos, rutas marítimas transoceánicas, transporte aéreo de semiconductores y corredores ferroviarios industriales.
+2. **Estimador Personalizado "Mi Impacto"**: Traduce eventos globales a la realidad de tu propia empresa (ingresa facturación en USD, vertical y dependencia import/export para calcular pérdidas por hora).
+3. **Impact Engine en 12 Commodities**: Evalúa el efecto dominó en Petróleo, GNL, Gas, Petroquímica, Cobre, Litio, Níquel, Cobalto, Granos, Semiconductores, Acero y Logística Aérea.
+4. **Modelado de Recuperación y MTTR**: Estima curvas de degradación y tiempos de retorno a la normalidad según disponibilidad de buques cableros.
+5. **Marketplace de Capacidad y Crisis Brief en PDF**: Permite reservar capacidad de respaldo y emite informes ejecutivos instantáneos para comités de dirección.
 
 ---
 
 ## 2. Flujo Vertical Operativo Paso a Paso
 
 ```text
-[Paso 1: World Map] ➔ [Paso 2: Scenario Builder] ➔ [Paso 3: Impact Engine]
-➔ [Paso 4: Recovery Curve] ➔ [Paso 5: Capacity Marketplace] ➔ [Paso 6: Executive Brief PDF]
+[Paso 1: Configurar "Mi Impacto"] 
+   ➔ [Paso 2: Exploración Cartográfica Multimodal] 
+   ➔ [Paso 3: Simulación de Crisis con Impact Engine] 
+   ➔ [Paso 4: Reserva de Capacidad en Marketplace] 
+   ➔ [Paso 5: Emisión del Executive Brief en PDF]
 ```
-
-### Paso 1 — Exploración del Mapa Mundial de Infraestructura
-- Visualización de la red global de cables submarinos, capacidades en Tbps y puntos de fallo único.
-
-### Paso 2 — Selección o Creación de Escenarios
-- Elección de crisis predefinidas (Mar Rojo, Estrecho de Malaca, Falla Transatlántica) o diseño a la medida.
-
-### Paso 3 — Ejecución del Impact Engine
-- Cuantificación de la exposición por vertical con semáforo de criticidad y tiempo de afectación.
-
-### Paso 4 — Análisis de Perfiles de Recuperación
-- Evaluación de las fases de re-enrutamiento automático, degradación por congestión y reparación física.
-
-### Paso 5 — Mitigación en el Capacity Marketplace
-- Simulación de contratos de reserva de ancho de banda alterno y enlaces satelitales.
-
-### Paso 6 — Exportación del Executive Resilience Brief en PDF
-- Descarga del informe de inteligencia estratégica para comités de dirección y aseguradoras.
 """
         (args.usb_gr / md_name).write_text(md_content, encoding="utf-8")
         (args.downloads / md_name).write_text(md_content, encoding="utf-8")

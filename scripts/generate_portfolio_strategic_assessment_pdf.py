@@ -293,7 +293,7 @@ HTML_ASSESSMENT = """<!DOCTYPE html>
       </div>
       <div class="cover-meta-item">
         <strong>Puntuación Promedio de Madurez</strong>
-        <span>9.2 / 10 (Grado Enterprise / Institucional)</span>
+        <span>9.3 / 10 (Grado Enterprise / Institucional)</span>
       </div>
       <div class="cover-meta-item">
         <strong>Jurisdicción & Regulación</strong>
@@ -372,14 +372,14 @@ HTML_ASSESSMENT = """<!DOCTYPE html>
 <!-- 3. GLOBAL RESILIENCE OS -->
 <div class="platform-card">
   <div class="platform-header">
-    <div class="platform-name">3. 🌐 Global Resilience OS — Infraestructura Crítica & Cables Submarinos</div>
-    <span class="platform-tag" style="background:#e0f2fe; color:#0369a1;">Madurez: 8.8 / 10</span>
+    <div class="platform-name">3. 🌐 Global Resilience OS — Infraestructura Crítica, Cables & Logística Multimodal</div>
+    <span class="platform-tag" style="background:#e0f2fe; color:#0369a1;">Madurez: 9.4 / 10</span>
   </div>
-  <p><strong>¿Qué problema resuelve?</strong> Permite a multinacionales, aseguradoras y fondos anticipar y mitigar el impacto financiero y logístico de cortes en cables submarinos de telecomunicaciones sobre 12 cadenas de commodities globales.</p>
+  <p><strong>¿Qué problema resuelve?</strong> Permite a corporativos, aseguradoras y directores de planta anticipar el impacto financiero y logístico de fallas en cables submarinos y cuellos de botella en estrechos marítimos (Suez/Ormuz), corredores aéreos express y trenes industriales.</p>
   <ul>
-    <li><strong>Datos y Motores Oficiales:</strong> Topología física global de cables submarinos, monitoreo de latencia y telemetría, correlación en vivo con 12 commodities (petróleo, gas, litio, semiconductores, etc.).</li>
-    <li><strong>Diferenciadores Clave:</strong> Impact Engine que calcula pérdidas proyectadas en dólares por hora, Marketplace de Capacidad de Respaldo y perfiles de recuperación (MTTR) basados en buques cableros.</li>
-    <li><strong>ROI para el Cliente:</strong> Mitigación de pérdidas multimillonarias por parálisis operativa y activación de rutas de redundancia en minutos.</li>
+    <li><strong>Datos y Motores Oficiales:</strong> Topología física global de cables submarinos, capas cartográficas de rutas marítimas y aéreas express de semiconductores, corredores ferroviarios T-MEC y correlación en vivo con 12 commodities.</li>
+    <li><strong>Diferenciadores Clave:</strong> Módulo personalizado <strong>"Mi Impacto"</strong> (calcula la pérdida en $USD/hora específica para la planta del usuario), Impact Engine determinista, Marketplace de Capacidad y perfiles de recuperación (MTTR) con buques cableros.</li>
+    <li><strong>ROI para el Cliente:</strong> Mitiga pérdidas multimillonarias por parálisis operativa, traduce contingencias globales a la realidad de la empresa y activa rutas de contingencia en minutos.</li>
   </ul>
 </div>
 
@@ -464,16 +464,16 @@ HTML_ASSESSMENT = """<!DOCTYPE html>
     </tr>
     <tr>
       <td><strong>Global Resilience</strong></td>
-      <td><span class="badge badge-tier2">8.8 / 10</span></td>
-      <td>95% (Cables / Telemetría)</td>
+      <td><span class="badge badge-tier1">9.4 / 10</span></td>
+      <td>98% (Cables / Rutas Multimodales / Mi Impacto)</td>
       <td><span class="badge badge-tier1">Único (9.8)</span></td>
-      <td>Multinacionales, Aseguradoras, Fondos Globales (~2,500 corp.)</td>
-      <td>$5,000 - $25,000 USD / mes</td>
-      <td>$180,000 - $600,000 USD</td>
-      <td>Media (Enterprise)</td>
-      <td>1 - 2 semanas</td>
-      <td>Bajo (&lt;4%)</td>
-      <td><span class="badge badge-tier2">Estratégico Global</span></td>
+      <td>Multinacionales, Aseguradoras, Plantas Nearshoring (~3,500 corp.)</td>
+      <td>$3,000 - $25,000 USD / mes</td>
+      <td>$120,000 - $600,000 USD</td>
+      <td>Media-Alta (Disrupciones)</td>
+      <td>1 - 3 días</td>
+      <td>Bajo (&lt;3%)</td>
+      <td><span class="badge badge-tier1">Líder Estratégico Global</span></td>
     </tr>
     <tr>
       <td><strong>NUXERA</strong></td>
