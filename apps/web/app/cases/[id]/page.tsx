@@ -9,6 +9,8 @@ import { OriginAssessmentForm } from './origin-assessment-form';
 import { RequestReviewButton } from './request-review-button';
 import { AssignmentsPanel } from './assignments-panel';
 import { ReviewRequestsPanel } from './review-requests-panel';
+import { CustomsInquiryPanel } from './customs-inquiry-panel';
+import { PedimentoLayoutPanel } from './pedimento-layout-panel';
 
 type Rationale = {
   summary?: string;
@@ -837,6 +839,15 @@ export default async function CaseDetailPage({ params }: { params: Promise<{ id:
           </ol>
         </section>
       ) : null}
+
+      <div className="mt-8 grid grid-cols-1 gap-6">
+        <CustomsInquiryPanel caseId={classificationCase.id} />
+        <PedimentoLayoutPanel
+          caseId={classificationCase.id}
+          tariffCode={classificationCase.selectedTariffCode}
+          nico={classificationCase.selectedNico}
+        />
+      </div>
 
       <section className="mt-8 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
         <div className="flex flex-wrap items-center justify-between gap-2">

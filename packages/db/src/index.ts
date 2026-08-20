@@ -8,6 +8,8 @@ export {
 export { upsertOriginRuleCatalog, type OriginRuleCatalogPersistenceRecord } from './originRuleCatalog.js';
 export { persistRegulatoryCatalog, type RegulatoryCatalogPersistenceRecord } from './regulatoryCatalog.js';
 export { persistHistoricalAuditRun, type HistoricalAuditRunPersistence } from './historicalAudit.js';
+export { loadAnexo6Catalog, findAnexo6BindingCriteria } from './anexo6Catalog.js';
+export { loadImmexSensitivityCatalog, checkImmexCompliance } from './immexCatalog.js';
 export {
   enqueueClassificationJob,
   claimNextClassificationJob,

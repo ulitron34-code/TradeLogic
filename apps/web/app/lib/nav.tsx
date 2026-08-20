@@ -14,6 +14,8 @@ const NAV_ITEMS = [
 
 const MORE_ITEMS = [
   { href: '/products', label: 'Mercancías y evidencia' },
+  { href: '/invoices', label: 'Facturas / Invoices (Ingesta IA)' },
+  { href: '/immex', label: 'Cumplimiento IMMEX / Anexo 24' },
   { href: '/audits', label: 'Auditoría histórica' },
 ];
 

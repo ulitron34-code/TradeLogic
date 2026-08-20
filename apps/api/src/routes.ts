@@ -2,8 +2,27 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { env } from '@platform/config';
-import { analyzeHistoricalDeclarations, assessLegalRisk, calculateLandedCost, evaluateOrigin, parseClassificationIntakeCsv, parseHistoricalDeclarationsCsv, renderCaseDossierPdf } from '@platform/domain';
-import { db as defaultDb, getIngestionSchedulerSnapshot, persistHistoricalAuditRun, scopeToOrganization } from '@platform/db';
+import {
+  analyzeHistoricalDeclarations,
+  assessLegalRisk,
+  calculateLandedCost,
+  evaluateOrigin,
+  parseClassificationIntakeCsv,
+  parseHistoricalDeclarationsCsv,
+  renderCaseDossierPdf,
+  generateCustomsInquiryDocument,
+  parseCommercialInvoiceCsv,
+  generatePedimentoLayout,
+  calculateChangeOfRegime,
+} from '@platform/domain';
+import {
+  db as defaultDb,
+  getIngestionSchedulerSnapshot,
+  persistHistoricalAuditRun,
+  scopeToOrganization,
+  findAnexo6BindingCriteria,
+  checkImmexCompliance,
+} from '@platform/db';
 import type { Prisma } from '@platform/db';
 import {
   buildStorageKey,
@@ -1380,5 +1399,240 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       data: { status: body.status },
     });
     return updated;
+  });
+
+  // --- 1. Generador de Consultas Oficiales Art. 47 LA y Defensa PAMA ---
+  const generateInquiryBody = z.object({
+    inquiry_type: z.enum(['ART_47_CONSULTA', 'PAMA_DEFENSA']).default('ART_47_CONSULTA'),
+    applicant: z.object({
+      company_name: z.string().min(1),
+      rfc: z.string().min(12).max(13),
+      legal_representative: z.string().min(1),
+      address: z.string().min(1),
+      customs_agent_name: z.string().optional(),
+      customs_patent: z.string().optional(),
+    }),
+    pama_details: z.object({
+      act_number: z.string(),
+      customs_office: z.string(),
+      act_date: z.string(),
+      authority_challenged_code: z.string(),
+      alleged_irregularity: z.string(),
+    }).optional(),
+  });
+
+  app.post('/api/v1/cases/:id/inquiry', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithId.parse(request.params);
+    const body = generateInquiryBody.parse(request.body);
+
+    const c = await scopedDb.case.findFirst({
+      where: { id: params.id, organizationId: organization.id },
+      include: {
+        product: true,
+        productVersion: true,
+        evidenceDocuments: { include: { document: true } },
+      },
+    });
+    if (!c) return reply.notFound('Case not found');
+
+    const evidenceList = c.evidenceDocuments.map((ed) => ({
+      fileName: ed.document.fileName,
+      documentType: ed.document.documentType,
+      sha256Hash: ed.document.sha256,
+    }));
+
+    const doc = generateCustomsInquiryDocument({
+      inquiryType: body.inquiry_type,
+      applicant: {
+        companyName: body.applicant.company_name,
+        rfc: body.applicant.rfc,
+        legalRepresentative: body.applicant.legal_representative,
+        address: body.applicant.address,
+        customsAgentName: body.applicant.customs_agent_name,
+        customsPatent: body.applicant.customs_patent,
+      },
+      product: {
+        name: c.product.name,
+        commercialDescription: c.product.description,
+        technicalDescription: c.product.description,
+        materialsComposition: JSON.stringify(c.productVersion.attributes),
+        functionAndUsage: c.product.description,
+        packagingPresentation: 'Acondicionado para importación',
+        countryOfOrigin: 'Extranjero',
+        countryOfExport: 'Extranjero',
+      },
+      proposedClassification: {
+        tariffCode: c.selectedTariffCode ?? '8504.40.99',
+        nico: c.selectedNico ?? '99',
+        generalRuleApplied: 'Regla General 1 y 6 Complementaria de la LIGIE',
+        legalNotesRationale: 'Clasificación fundamentada en notas de partida y evidencia técnica del expediente.',
+      },
+      pamaDetails: body.pama_details ? {
+        actNumber: body.pama_details.act_number,
+        customsOffice: body.pama_details.customs_office,
+        actDate: body.pama_details.act_date,
+        authorityChallengedCode: body.pama_details.authority_challenged_code,
+        allegedIrregularity: body.pama_details.alleged_irregularity,
+      } : undefined,
+      evidenceList,
+    });
+
+    return reply.code(200).send({ data: doc });
+  });
+
+  // --- 2. Ingesta y Desglose Inteligente de Facturas Internacionales ---
+  const ingestInvoiceBody = z.object({
+    csv_content: z.string().min(1),
+  });
+
+  app.post('/api/v1/invoices/ingest', async (request, reply) => {
+    await resolveContext(request, db);
+    const body = ingestInvoiceBody.parse(request.body);
+
+    try {
+      const parsed = parseCommercialInvoiceCsv(body.csv_content);
+      return reply.code(200).send({ data: parsed });
+    } catch (err: unknown) {
+      return reply.badRequest(err instanceof Error ? err.message : 'Error procesando la factura');
+    }
+  });
+
+  // --- 3. Generador y Pre-validador de Layout de Pedimento SAAI M3 ---
+  const pedimentoLayoutBody = z.object({
+    pedimento_number: z.string().min(7).max(7),
+    customs_office_code: z.string().min(3).max(3),
+    customs_patent: z.string().min(4).max(4),
+    regime: z.enum(['IMD', 'ITR', 'EXP', 'EXD']).default('IMD'),
+    exchange_rate: z.number().positive().default(18.5),
+    items: z.array(z.object({
+      item_number: z.number().int().positive(),
+      tariff_code: z.string(),
+      nico: z.string().default('00'),
+      commercial_description: z.string(),
+      valuation_method_code: z.number().int().default(1),
+      quantity_commercial: z.number().positive(),
+      unit_of_measure_code: z.number().int().default(6),
+      customs_value_item: z.number().nonnegative(),
+      country_of_origin: z.string().length(3).default('USA'),
+      duty_rate_percent: z.number().nonnegative().default(0),
+      duty_form_of_payment_code: z.number().int().default(0),
+      vat_rate_percent: z.number().nonnegative().default(16),
+      permits: z.array(z.object({
+        authority_code: z.string(),
+        permit_number: z.string(),
+        firm_number: z.string().optional(),
+      })).optional(),
+    })),
+  });
+
+  app.post('/api/v1/cases/:id/pedimento-layout', async (request, reply) => {
+    const { organization } = await resolveContext(request, db);
+    const scopedDb = scopeToOrganization(db, organization.id);
+    const params = paramsWithId.parse(request.params);
+    const body = pedimentoLayoutBody.parse(request.body);
+
+    const c = await scopedDb.case.findFirst({
+      where: { id: params.id, organizationId: organization.id },
+      include: { product: true },
+    });
+    if (!c) return reply.notFound('Case not found');
+
+    const totalCustomsValue = body.items.reduce((acc, i) => acc + i.customs_value_item, 0);
+
+    const layout = generatePedimentoLayout({
+      pedimentoNumber: body.pedimento_number,
+      customsOfficeCode: body.customs_office_code,
+      customsPatent: body.customs_patent,
+      operationType: 1,
+      regime: body.regime,
+      customsValueTotal: totalCustomsValue,
+      commercialValueTotal: totalCustomsValue,
+      currency: 'MXN',
+      exchangeRate: body.exchange_rate,
+      importer: {
+        rfc: organization.id.slice(0, 12).toUpperCase(),
+        companyName: organization.name,
+      },
+    }, body.items.map((i) => ({
+      itemNumber: i.item_number,
+      tariffCode: i.tariff_code,
+      nico: i.nico,
+      commercialDescription: i.commercial_description,
+      valuationMethodCode: i.valuation_method_code,
+      quantityCommercial: i.quantity_commercial,
+      unitOfMeasureCommercialCode: i.unit_of_measure_code,
+      quantityTariff: i.quantity_commercial,
+      unitOfMeasureTariffCode: i.unit_of_measure_code,
+      commercialValueItem: i.customs_value_item,
+      customsValueItem: i.customs_value_item,
+      countryOfOriginCode: i.country_of_origin,
+      countryOfExportCode: i.country_of_origin,
+      dutyRatePercent: i.duty_rate_percent,
+      dutyFormOfPaymentCode: i.duty_form_of_payment_code,
+      vatRatePercent: i.vat_rate_percent,
+      permits: i.permits?.map((p) => ({
+        authorityCode: p.authority_code,
+        permitNumber: p.permit_number,
+        firmNumber: p.firm_number,
+      })),
+    })));
+
+    return reply.code(200).send({ data: layout });
+  });
+
+  // --- 4. Módulo de Cumplimiento IMMEX y Cambio de Régimen ---
+  const immexEvalBody = z.object({
+    tariff_code: z.string().min(4),
+    change_of_regime: z.object({
+      original_import_date: z.string(),
+      change_of_regime_date: z.string(),
+      original_customs_value_mxn: z.number().positive(),
+      original_duty_rate_percent: z.number().nonnegative(),
+      inpc_import_month: z.number().positive(),
+      inpc_change_month: z.number().positive(),
+      surcharges_rate_percent: z.number().nonnegative().optional(),
+    }).optional(),
+  });
+
+  app.post('/api/v1/immex/evaluate', async (request) => {
+    await resolveContext(request, db);
+    const body = immexEvalBody.parse(request.body);
+
+    const sensitivity = checkImmexCompliance(body.tariff_code);
+    let regimeCalculation = null;
+
+    if (body.change_of_regime) {
+      regimeCalculation = calculateChangeOfRegime({
+        originalImportDate: body.change_of_regime.original_import_date,
+        changeOfRegimeDate: body.change_of_regime.change_of_regime_date,
+        originalCustomsValueMxn: body.change_of_regime.original_customs_value_mxn,
+        originalDutyRatePercent: body.change_of_regime.original_duty_rate_percent,
+        inpcImportMonth: body.change_of_regime.inpc_import_month,
+        inpcChangeMonth: body.change_of_regime.inpc_change_month,
+        surchargesRatePercent: body.change_of_regime.surcharges_rate_percent,
+      });
+    }
+
+    return {
+      data: {
+        sensitivity,
+        regimeCalculation,
+      },
+    };
+  });
+
+  // --- 5. Búsqueda de Criterios Vinculantes del Anexo 6 RGCE ---
+  const anexo6Query = z.object({
+    tariff_code: z.string().optional().default(''),
+    description: z.string().optional().default(''),
+  });
+
+  app.get('/api/v1/anexo6/search', async (request) => {
+    await resolveContext(request, db);
+    const query = anexo6Query.parse(request.query);
+    const result = findAnexo6BindingCriteria(query.tariff_code, query.description);
+    return { data: result };
   });
 }

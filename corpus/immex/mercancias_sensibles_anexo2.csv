@@ -1,0 +1,9 @@
+fraccion_arancelaria,nico,sector,descripcion,plazo_maximo_meses,requiere_autorizacion_ampliacion,mecanismo_control
+7208.10.01,00,Siderurgico,"Productos laminados planos de hierro o acero sin alear, enrollados, de espesor superior a 10 mm",9,true,"Permiso Previo de la Secretaría de Economía y Control de Saldos Anexo 24"
+7208.25.01,00,Siderurgico,"Productos laminados planos de espesor superior o igual a 4.75 mm",9,true,"Permiso Previo SE y Registro de Molino de Origen"
+7601.10.01,00,Aluminio,"Aluminio en bruto sin alear en lingotes o barras",12,true,"Control de Capacidad Instalada y Garantía de IVA/IEPS"
+5208.11.01,00,Textil_y_Confeccion,"Tejidos de algodón con ligamento tafetán de peso inferior o igual a 100 g/m2",6,true,"Padrón de Importadores de Sectores Específicos (Sector 11 Textil)"
+5402.33.01,00,Textil_y_Confeccion,"Hilados texturados de poliéster",6,true,"Padrón Sectorial y Reporte Bimestral de Descargo"
+6109.10.01,00,Confeccion,"T-shirts y camisetas de punto de algodón",6,true,"Inspección Física y Control de Inventarios en Línea"
+1001.99.99,99,Agropecuario,"Los demás trigos y morcajo (tranquillón)",12,true,"Certificado Fitosanitario Internacional y Cupo de Importación"
+1701.14.01,00,Azucar,"Azúcar de caña en bruto",6,true,"Autorización Específica de la Dirección General de Comercio Exterior"

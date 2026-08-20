@@ -257,3 +257,41 @@ export {
   type HistoricalDeclaration,
 } from './historicalAudit.js';
 export { parseClassificationIntakeCsv, type ClassificationIntakeRow } from './classificationIntake.js';
+export {
+  generateCustomsInquiryDocument,
+  CUSTOMS_INQUIRY_RULESET_VERSION,
+  type CustomsInquiryInput,
+  type CustomsInquiryDocument,
+  type InquiryType,
+} from './customsInquiry.js';
+export {
+  parseCommercialInvoiceCsv,
+  COMMERCIAL_INVOICE_RULESET_VERSION,
+  type CommercialInvoiceItem,
+  type CommercialInvoiceInput,
+  type ParsedInvoiceResult,
+} from './commercialInvoice.js';
+export {
+  parseAnexo6CatalogCsv,
+  matchAnexo6Criteria,
+  type Anexo6CriterionRecord,
+  type Anexo6MatchResult,
+} from './anexo6Catalog.js';
+export {
+  generatePedimentoLayout,
+  PEDIMENTO_RULESET_VERSION,
+  type PedimentoHeaderInput,
+  type PedimentoItemInput,
+  type GeneratedPedimentoLayout,
+  type PedimentoRegime,
+} from './pedimentoLayout.js';
+export {
+  evaluateImmexSensitivity,
+  calculateChangeOfRegime,
+  IMMEX_RULESET_VERSION,
+  type ImmexSector,
+  type ImmexSensitivityRecord,
+  type ImmexSensitivityResult,
+  type ChangeOfRegimeInput,
+  type ChangeOfRegimeBreakdown,
+} from './immexCompliance.js';
