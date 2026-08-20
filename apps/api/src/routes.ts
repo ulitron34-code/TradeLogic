@@ -1427,19 +1427,28 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const params = paramsWithId.parse(request.params);
     const body = generateInquiryBody.parse(request.body);
 
-    const c = await scopedDb.case.findFirst({
+    const c = await scopedDb.classificationCase.findFirst({
       where: { id: params.id, organizationId: organization.id },
       include: {
-        product: true,
-        productVersion: true,
-        evidenceDocuments: { include: { document: true } },
+        product: { include: { versions: { orderBy: { version: 'desc' } } } },
+        candidates: { orderBy: { rank: 'asc' }, include: { tariffCode: true } },
+        evidence: { include: { document: true } },
       },
     });
     if (!c) return reply.notFound('Case not found');
 
-    const evidenceList = c.evidenceDocuments.map((ed) => ({
-      fileName: ed.document.fileName,
-      documentType: ed.document.documentType,
+    const selectedCandidate = c.selectedCodeId
+      ? c.candidates.find((candidate) => candidate.tariffCodeId === c.selectedCodeId)
+      : c.candidates[0];
+    const productVersionId = productVersionIdFromAssumptions(c.assumptions);
+    const productVersion = productVersionId
+      ? c.product.versions.find((version) => version.id === productVersionId) ?? c.product.versions[0]
+      : c.product.versions[0];
+    const productDescription = productVersion?.description ?? c.product.name;
+
+    const evidenceList = c.evidence.map((ed) => ({
+      fileName: ed.document.filename,
+      documentType: ed.document.sourceType || ed.document.mimeType,
       sha256Hash: ed.document.sha256,
     }));
 
@@ -1455,17 +1464,17 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
       },
       product: {
         name: c.product.name,
-        commercialDescription: c.product.description,
-        technicalDescription: c.product.description,
-        materialsComposition: JSON.stringify(c.productVersion.attributes),
-        functionAndUsage: c.product.description,
+        commercialDescription: productDescription,
+        technicalDescription: productDescription,
+        materialsComposition: JSON.stringify(productVersion?.attributes ?? {}),
+        functionAndUsage: productDescription,
         packagingPresentation: 'Acondicionado para importación',
         countryOfOrigin: 'Extranjero',
         countryOfExport: 'Extranjero',
       },
       proposedClassification: {
-        tariffCode: c.selectedTariffCode ?? '8504.40.99',
-        nico: c.selectedNico ?? '99',
+        tariffCode: selectedCandidate?.tariffCode.code ?? '8504.40.99',
+        nico: selectedCandidate?.tariffCode.nico ?? '99',
         generalRuleApplied: 'Regla General 1 y 6 Complementaria de la LIGIE',
         legalNotesRationale: 'Clasificación fundamentada en notas de partida y evidencia técnica del expediente.',
       },
@@ -1533,9 +1542,9 @@ export async function registerRoutes(app: FastifyInstance, dependencies: RouteDe
     const params = paramsWithId.parse(request.params);
     const body = pedimentoLayoutBody.parse(request.body);
 
-    const c = await scopedDb.case.findFirst({
+    const c = await scopedDb.classificationCase.findFirst({
       where: { id: params.id, organizationId: organization.id },
-      include: { product: true },
+      select: { id: true },
     });
     if (!c) return reply.notFound('Case not found');
 
